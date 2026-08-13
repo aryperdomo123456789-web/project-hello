@@ -1,13 +1,19 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { mockContacts } from '@/lib/mocks/chatMocks';
 import { useState } from 'react';
+import { ConnectionsView } from '@/components/connections/ConnectionsView';
+import { Toaster } from '@/components/ui/sonner';
 
 export const Route = createFileRoute('/')({
   component: Dashboard,
 });
 
+type Tab = 'Atendimento' | 'Contatos/CRM' | 'Automações' | 'Conexões' | 'Configurações' | 'Relatórios';
+
 function Dashboard() {
   const [contacts] = useState(mockContacts);
+  const [activeTab, setActiveTab] = useState<Tab>('Atendimento');
+
 
   return (
     <div className="flex h-screen bg-slate-50 text-slate-900">
