@@ -18,14 +18,23 @@ function Dashboard() {
   return (
     <div className="flex h-screen bg-slate-50 text-slate-900">
       {/* Sidebar - Collapsible */}
-      <aside className="w-64 bg-slate-900 text-white p-4">
-        <h1 className="text-xl font-bold mb-8">SaaS OmniChat</h1>
-        <nav className="space-y-4">
-          {['Atendimento', 'Contatos/CRM', 'Automações', 'Conexões', 'Configurações', 'Relatórios'].map((item) => (
-            <div key={item} className="cursor-pointer hover:text-blue-400">{item}</div>
+      <aside className="w-64 bg-slate-900 text-white p-4 flex flex-col">
+        <h1 className="text-xl font-bold mb-8 px-2">SaaS OmniChat</h1>
+        <nav className="space-y-1 flex-1">
+          {(['Atendimento', 'Contatos/CRM', 'Automações', 'Conexões', 'Configurações', 'Relatórios'] as Tab[]).map((item) => (
+            <button
+              key={item}
+              onClick={() => setActiveTab(item)}
+              className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                activeTab === item ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              {item}
+            </button>
           ))}
         </nav>
       </aside>
+
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col">
