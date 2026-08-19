@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 
 interface ChatListProps {
   contacts: Contact[];
-  selectedId?: string;
+  selectedId?: string | undefined;
   onSelect: (contact: Contact) => void;
 }
 
