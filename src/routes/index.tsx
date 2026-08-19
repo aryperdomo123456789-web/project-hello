@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { ChatList } from '@/components/chat/ChatList';
 import { ChatMessageArea } from '@/components/chat/ChatMessageArea';
 import { KanbanBoard } from '@/components/kanban/KanbanBoard';
+import { ContactDetails } from '@/components/chat/ContactDetails';
 import { useChat } from '@/hooks/useChat';
 import { 
   MessageSquare, 
