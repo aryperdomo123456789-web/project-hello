@@ -142,6 +142,8 @@ function Dashboard() {
             </div>
           ) : activeTab === 'Contatos/CRM' ? (
             <KanbanBoard contacts={crmContacts} />
+          ) : activeTab === 'Relatórios' ? (
+            <ReportsView />
           ) : activeTab === 'Atendimento' ? (
             <div className="flex-1 flex overflow-hidden w-full">
               <ChatList 
