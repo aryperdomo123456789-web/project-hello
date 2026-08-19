@@ -6,6 +6,7 @@ import { ChatList } from '@/components/chat/ChatList';
 import { ChatMessageArea } from '@/components/chat/ChatMessageArea';
 import { KanbanBoard } from '@/components/kanban/KanbanBoard';
 import { ContactDetails } from '@/components/chat/ContactDetails';
+import { ReportsView } from '@/components/dashboard/ReportsView';
 import { useChat } from '@/hooks/useChat';
 import { 
   MessageSquare, 
