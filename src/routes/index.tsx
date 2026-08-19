@@ -31,6 +31,7 @@ function Dashboard() {
   const { contacts, selectedContact, setSelectedContact, messages, sendMessage } = useChat();
   const [activeTab, setActiveTab] = useState<Tab>('Atendimento');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [crmContacts, setCrmContacts] = useState(contacts);
 
   const menuItems = [
     { id: 'Atendimento', label: 'Chat', icon: MessageSquare },
