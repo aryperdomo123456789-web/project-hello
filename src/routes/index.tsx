@@ -4,7 +4,7 @@ import { ConnectionsView } from '@/components/connections/ConnectionsView';
 import { Toaster } from '@/components/ui/sonner';
 import { ChatList } from '@/components/chat/ChatList';
 import { ChatMessageArea } from '@/components/chat/ChatMessageArea';
-import { ContactDetails } from '@/components/chat/ContactDetails';
+import { KanbanBoard } from '@/components/kanban/KanbanBoard';
 import { useChat } from '@/hooks/useChat';
 import { 
   MessageSquare, 
@@ -138,6 +138,8 @@ function Dashboard() {
             <div className="flex-1 overflow-y-auto bg-slate-50/50">
               <ConnectionsView />
             </div>
+          ) : activeTab === 'Contatos/CRM' ? (
+            <KanbanBoard contacts={crmContacts} />
           ) : activeTab === 'Atendimento' ? (
             <div className="flex-1 flex overflow-hidden w-full">
               <ChatList 
