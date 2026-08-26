@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { meFn } from "@/functions/auth.functions";
+import { canAccessTab, roleLabel } from "@/permissions/roles";
 
 export const Route = createFileRoute("/")({
   beforeLoad: async () => {
@@ -69,6 +70,7 @@ function Dashboard() {
     addNote,
     syncError,
   } = useChat();
+  const { user } = Route.useRouteContext();
   const [activeTab, setActiveTab] = useState<Tab>("Atendimento");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [crmContacts, setCrmContacts] = useState(contacts);
@@ -83,7 +85,7 @@ function Dashboard() {
     { id: "Saúde", label: "Saúde", icon: Monitor },
     { id: "Equipe", label: "Equipe", icon: Users },
     { id: "Configurações", label: "Ajustes", icon: Settings },
-  ];
+  ].filter((item) => canAccessTab(user.role, item.id));
 
   return (
     <div className="flex h-screen bg-slate-50 text-slate-900 overflow-hidden font-sans">
@@ -151,10 +153,10 @@ function Dashboard() {
             <h2 className="text-lg font-bold text-slate-800">{activeTab}</h2>
             <div className="flex items-center px-3 py-1 rounded-full bg-green-50 text-green-700 text-[10px] font-bold uppercase tracking-wider gap-2">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
               </span>
-              WhatsApp Online
+              Ambiente protegido
             </div>
           </div>
 
@@ -175,11 +177,21 @@ function Dashboard() {
 
             <div className="flex items-center gap-3 pl-4 border-l">
               <div className="text-right hidden sm:block">
-                <p className="text-xs font-bold text-slate-900 leading-none mb-1">Mago Dev</p>
-                <p className="text-[10px] text-slate-400 font-medium">Administrador</p>
+                <p className="text-xs font-bold text-slate-900 leading-none mb-1">
+                  {user.fullName}
+                </p>
+                <p className="text-[10px] text-slate-400 font-medium">
+                  {roleLabel(user.role)} · {user.organizationName}
+                </p>
               </div>
               <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold border-2 border-white shadow-sm">
-                MD
+                {(user.fullName || "U")
+                  .split(/\s+/)
+                  .filter(Boolean)
+                  .slice(0, 2)
+                  .map((part) => part[0])
+                  .join("")
+                  .toUpperCase()}
               </div>
             </div>
           </div>
