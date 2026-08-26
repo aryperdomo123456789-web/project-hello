@@ -139,7 +139,7 @@ class StubWhatsAppAdapter implements WhatsAppProviderAdapter {
   }
 }
 
-class HttpWhatsAppAdapter implements WhatsAppProviderAdapter {
+export class HttpWhatsAppAdapter implements WhatsAppProviderAdapter {
   readonly provider: string;
   private readonly baseUrl: string;
   private readonly apiKey: string;
