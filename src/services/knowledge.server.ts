@@ -5,7 +5,7 @@ import { and, desc, eq, ilike, or } from "drizzle-orm";
 import { db } from "@/db/client.server";
 import { knowledgeChunks, knowledgeDocuments } from "@/db/schema";
 import {
-  configuredEmbeddingProvider,
+  configuredEmbeddingProviderForOrganization,
   embedTexts,
   normalizedCosineSimilarity,
   rerankDocuments,
@@ -76,11 +76,14 @@ async function populateEmbeddings(
   organizationId: string,
   chunks: Array<{ id: string; content: string }>,
 ) {
-  if (!configuredEmbeddingProvider()) return;
+  if (!(await configuredEmbeddingProviderForOrganization(organizationId))) return;
   for (let start = 0; start < chunks.length; start += EMBEDDING_BATCH_SIZE) {
     const batch = chunks.slice(start, start + EMBEDDING_BATCH_SIZE);
     try {
-      const vectors = await embedTexts(batch.map((chunk) => chunk.content));
+      const vectors = await embedTexts(
+        batch.map((chunk) => chunk.content),
+        organizationId,
+      );
       if (!vectors) return;
       await Promise.all(
         batch.map((chunk, index) => {
@@ -187,7 +190,9 @@ export async function searchKnowledge(input: {
     .split(" ")
     .filter((term) => term.length >= 3)
     .slice(0, 8);
-  const providerEnabled = Boolean(configuredEmbeddingProvider());
+  const providerEnabled = Boolean(
+    await configuredEmbeddingProviderForOrganization(input.organizationId),
+  );
   const lexicalFilter = terms.length
     ? or(...terms.map((term) => ilike(knowledgeChunks.content, `%${term}%`)))
     : undefined;
@@ -216,7 +221,7 @@ export async function searchKnowledge(input: {
   let queryEmbedding: number[] | null = null;
   if (providerEnabled) {
     try {
-      queryEmbedding = (await embedTexts([input.query]))?.[0] ?? null;
+      queryEmbedding = (await embedTexts([input.query], input.organizationId))?.[0] ?? null;
     } catch (error) {
       console.warn(
         `[knowledge] query embedding unavailable; lexical fallback preserved: ${
@@ -255,6 +260,7 @@ export async function searchKnowledge(input: {
     const reranked = await rerankDocuments(
       input.query,
       rerankCandidates.map((candidate) => `${candidate.title}\n${candidate.content}`),
+      input.organizationId,
     );
     if (reranked?.length) {
       const rerankByIndex = new Map(reranked.map((item) => [item.index, item.score]));

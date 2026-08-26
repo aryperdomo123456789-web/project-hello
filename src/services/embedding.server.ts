@@ -1,4 +1,8 @@
 import { getServerEnv } from "@/server/env.server";
+import {
+  getOrganizationIntegrationRuntime,
+  type OrganizationIntegrationRuntime,
+} from "@/services/integrations.server";
 
 const MAX_BATCH = 32;
 const MAX_TEXT_LENGTH = 8_000;
@@ -21,19 +25,49 @@ function normalizeProvider(value: string | undefined): EmbeddingProvider | null 
   return value === "jina" || value === "openai-compatible" ? value : null;
 }
 
-function endpointFor(provider: EmbeddingProvider): string {
+function endpointFor(
+  provider: EmbeddingProvider,
+  runtime?: OrganizationIntegrationRuntime | null,
+): string {
+  if (runtime?.endpointUrl) {
+    const baseUrl = runtime.endpointUrl.replace(/\/$/, "");
+    return baseUrl.endsWith("/embeddings") ? baseUrl : `${baseUrl}/embeddings`;
+  }
   if (provider === "jina") return "https://api.jina.ai/v1/embeddings";
   return `${getServerEnv().EMBEDDING_API_BASE_URL?.replace(/\/$/, "") ?? ""}/embeddings`;
 }
 
-function keyFor(provider: EmbeddingProvider): string | undefined {
+function rerankEndpoint(runtime?: OrganizationIntegrationRuntime | null): string {
+  const baseUrl = (runtime?.endpointUrl ?? "https://api.jina.ai/v1").replace(/\/$/, "");
+  return baseUrl.endsWith("/rerank") ? baseUrl : `${baseUrl}/rerank`;
+}
+
+function keyFor(
+  provider: EmbeddingProvider,
+  runtime?: OrganizationIntegrationRuntime | null,
+): string | undefined {
+  if (runtime?.credentials["apiKey"]) return runtime.credentials["apiKey"];
   const env = getServerEnv();
   return provider === "jina" ? env.JINA_API_KEY : env.EMBEDDING_API_KEY;
 }
 
-function modelFor(provider: EmbeddingProvider): string {
+function modelFor(
+  provider: EmbeddingProvider,
+  runtime?: OrganizationIntegrationRuntime | null,
+): string {
   const env = getServerEnv();
-  return provider === "jina" ? env.EMBEDDING_MODEL : env.EMBEDDING_MODEL;
+  return runtime?.model ?? env.EMBEDDING_MODEL;
+}
+
+async function organizationJinaRuntime(
+  organizationId: string | undefined,
+): Promise<OrganizationIntegrationRuntime | null> {
+  if (!organizationId) return null;
+  try {
+    return await getOrganizationIntegrationRuntime(organizationId, "jina");
+  } catch {
+    return null;
+  }
 }
 
 export function cosineSimilarity(left: number[], right: number[]): number {
@@ -107,17 +141,29 @@ export function configuredEmbeddingProvider(): EmbeddingProvider | null {
   return provider;
 }
 
-export async function embedTexts(texts: string[]): Promise<number[][] | null> {
-  const provider = configuredEmbeddingProvider();
+export async function configuredEmbeddingProviderForOrganization(
+  organizationId: string,
+): Promise<EmbeddingProvider | null> {
+  const tenantRuntime = await organizationJinaRuntime(organizationId);
+  if (tenantRuntime?.credentials["apiKey"]) return "jina";
+  return configuredEmbeddingProvider();
+}
+
+export async function embedTexts(
+  texts: string[],
+  organizationId?: string,
+): Promise<number[][] | null> {
+  const tenantRuntime = await organizationJinaRuntime(organizationId);
+  const provider = tenantRuntime?.credentials["apiKey"] ? "jina" : configuredEmbeddingProvider();
   if (!provider || texts.length === 0 || texts.length > MAX_BATCH) return null;
-  const apiKey = keyFor(provider);
+  const apiKey = keyFor(provider, tenantRuntime);
   if (!apiKey) return null;
   const safeTexts = texts.map((text) => text.trim().slice(0, MAX_TEXT_LENGTH));
   if (safeTexts.some((text) => !text)) return null;
   const data = await requestJson(
-    endpointFor(provider),
+    endpointFor(provider, tenantRuntime),
     {
-      model: modelFor(provider),
+      model: modelFor(provider, tenantRuntime),
       input: safeTexts,
       ...(provider === "jina" ? { task: "retrieval.passage" } : {}),
     },
@@ -129,20 +175,28 @@ export async function embedTexts(texts: string[]): Promise<number[][] | null> {
 export async function rerankDocuments(
   query: string,
   documents: string[],
+  organizationId?: string,
 ): Promise<RerankResult[] | null> {
   const env = getServerEnv();
-  if (env.RERANK_PROVIDER !== "jina" || !env.JINA_API_KEY || documents.length === 0) return null;
+  const tenantRuntime = await organizationJinaRuntime(organizationId);
+  const apiKey = keyFor("jina", tenantRuntime);
+  if (
+    (tenantRuntime ? !apiKey : env.RERANK_PROVIDER !== "jina" || !apiKey) ||
+    documents.length === 0
+  )
+    return null;
+  if (!apiKey) return null;
   const data = await requestJson(
-    "https://api.jina.ai/v1/rerank",
+    rerankEndpoint(tenantRuntime),
     {
-      model: env.RERANK_MODEL,
+      model: tenantRuntime?.model ?? env.RERANK_MODEL,
       query: query.slice(0, MAX_TEXT_LENGTH),
       documents: documents
         .slice(0, MAX_BATCH)
         .map((document) => document.slice(0, MAX_TEXT_LENGTH)),
       top_n: Math.min(documents.length, MAX_BATCH),
     },
-    env.JINA_API_KEY,
+    apiKey,
   );
   const raw = asRecord(data)["results"];
   if (!Array.isArray(raw)) return null;
