@@ -33,7 +33,7 @@ export const createKnowledgeFromUrlFn = createServerFn({ method: "POST" })
   .validator(z.object({ url: z.string().url().max(2_000), flowId: z.string().uuid().optional() }))
   .handler(async ({ data }) => {
     const user = await requireRole("owner", "admin", "manager");
-    const source = await ingestKnowledgeUrl(data.url);
+    const source = await ingestKnowledgeUrl(user.organizationId, data.url);
     return saveKnowledgeDocument({
       organizationId: user.organizationId,
       userId: user.id,

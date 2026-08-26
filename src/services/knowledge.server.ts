@@ -11,6 +11,7 @@ import {
   rerankDocuments,
 } from "@/services/embedding.server";
 import { getServerEnv } from "@/server/env.server";
+import { getOrganizationIntegrationRuntime } from "@/services/integrations.server";
 
 const CHUNK_SIZE = 1200;
 const MAX_SOURCE_LENGTH = 200_000;
@@ -157,26 +158,113 @@ export async function saveKnowledgeDocument(input: {
   return { created: true, documentId: document.id, chunks: insertedChunks.length, contentHash };
 }
 
-export async function ingestKnowledgeUrl(url: string) {
-  const parsed = new URL(url);
-  if (!["http:", "https:"].includes(parsed.protocol))
-    throw new Error("Only HTTP(S) knowledge URLs are allowed");
-  const env = getServerEnv();
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), env.AI_TIMEOUT_MS * 2);
+function isPrivateHostname(hostname: string) {
+  const normalized = hostname.toLowerCase().replace(/[\[\]]/g, "");
+  if (
+    normalized === "localhost" ||
+    normalized.endsWith(".localhost") ||
+    normalized.endsWith(".local") ||
+    normalized.endsWith(".internal") ||
+    normalized === "0.0.0.0" ||
+    normalized === "::1"
+  )
+    return true;
+  if (/^127\./.test(normalized) || /^10\./.test(normalized) || /^192\.168\./.test(normalized))
+    return true;
+  const private172 = normalized.match(/^172\.(\d{1,3})\./);
+  return Boolean(private172 && Number(private172[1]) >= 16 && Number(private172[1]) <= 31);
+}
+
+export function isSafeKnowledgeUrl(value: string) {
   try {
-    const headers: Record<string, string> = { Accept: "text/markdown, text/plain;q=0.9" };
-    if (env.JINA_API_KEY) headers["Authorization"] = `Bearer ${env.JINA_API_KEY}`;
-    const response = await fetch(`https://r.jina.ai/${parsed.toString()}`, {
-      headers,
-      signal: controller.signal,
-    });
-    if (!response.ok) throw new Error(`Knowledge source returned HTTP ${response.status}`);
-    const content = (await response.text()).slice(0, MAX_SOURCE_LENGTH);
-    return { content, title: parsed.hostname, sourceUrl: parsed.toString() };
-  } finally {
-    clearTimeout(timer);
+    const parsed = new URL(value);
+    return (
+      ["http:", "https:"].includes(parsed.protocol) &&
+      !isPrivateHostname(parsed.hostname) &&
+      !parsed.username &&
+      !parsed.password
+    );
+  } catch {
+    return false;
   }
+}
+
+function parseProviderContent(value: unknown): string {
+  if (!value || typeof value !== "object") return "";
+  const record = value as Record<string, unknown>;
+  const data = record["data"];
+  if (typeof record["markdown"] === "string") return record["markdown"].trim();
+  if (data && typeof data === "object") {
+    const nested = data as Record<string, unknown>;
+    if (typeof nested["markdown"] === "string") return nested["markdown"].trim();
+    if (typeof nested["content"] === "string") return nested["content"].trim();
+  }
+  if (typeof record["content"] === "string") return record["content"].trim();
+  return "";
+}
+
+async function ingestWithFirecrawl(
+  url: string,
+  runtime: Awaited<ReturnType<typeof getOrganizationIntegrationRuntime>>,
+) {
+  const apiKey = runtime?.credentials["apiKey"];
+  if (!apiKey) return null;
+  const baseUrl = (runtime.endpointUrl ?? "https://api.firecrawl.dev").replace(/\/$/, "");
+  const endpoint = baseUrl.endsWith("/scrape") ? baseUrl : `${baseUrl}/v1/scrape`;
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ url, formats: ["markdown"] }),
+    signal: AbortSignal.timeout(Math.min(getServerEnv().AI_TIMEOUT_MS * 2, 30_000)),
+  });
+  if (!response.ok) throw new Error(`Firecrawl returned HTTP ${response.status}`);
+  const content = parseProviderContent(await response.json());
+  if (!content) throw new Error("Firecrawl returned empty content");
+  return content.slice(0, MAX_SOURCE_LENGTH);
+}
+
+async function ingestWithJina(
+  parsed: URL,
+  runtime: Awaited<ReturnType<typeof getOrganizationIntegrationRuntime>>,
+) {
+  const env = getServerEnv();
+  const apiKey = runtime?.credentials["apiKey"] ?? env.JINA_API_KEY;
+  const headers: Record<string, string> = { Accept: "text/markdown, text/plain;q=0.9" };
+  if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
+  const response = await fetch(`https://r.jina.ai/${parsed.toString()}`, {
+    headers,
+    signal: AbortSignal.timeout(Math.min(env.AI_TIMEOUT_MS * 2, 30_000)),
+  });
+  if (!response.ok) throw new Error(`Knowledge source returned HTTP ${response.status}`);
+  return (await response.text()).slice(0, MAX_SOURCE_LENGTH);
+}
+
+export async function ingestKnowledgeUrl(organizationId: string, url: string) {
+  if (!isSafeKnowledgeUrl(url))
+    throw new Error("Only safe public HTTP(S) knowledge URLs are allowed");
+  const parsed = new URL(url);
+  let firecrawlRuntime = null;
+  try {
+    firecrawlRuntime = await getOrganizationIntegrationRuntime(organizationId, "firecrawl");
+  } catch {
+    firecrawlRuntime = null;
+  }
+  let content: string | null = null;
+  if (firecrawlRuntime) content = await ingestWithFirecrawl(parsed.toString(), firecrawlRuntime);
+  if (!content) {
+    let jinaRuntime = null;
+    try {
+      jinaRuntime = await getOrganizationIntegrationRuntime(organizationId, "jina");
+    } catch {
+      jinaRuntime = null;
+    }
+    content = await ingestWithJina(parsed, jinaRuntime);
+  }
+  return { content, title: parsed.hostname, sourceUrl: parsed.toString() };
 }
 
 export async function searchKnowledge(input: {
