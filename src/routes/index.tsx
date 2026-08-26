@@ -10,6 +10,7 @@ import { ContactDetails } from "@/components/chat/ContactDetails";
 import { ReportsView } from "@/components/dashboard/ReportsView";
 import { FlowBuilderView } from "@/components/flows/FlowBuilderView";
 import { SimulationLab } from "@/components/simulator/SimulationLab";
+import { PlanOverview } from "@/components/settings/PlanOverview";
 import { useChat } from "@/hooks/useChat";
 import {
   MessageSquare,
@@ -240,6 +241,15 @@ function Dashboard() {
               )}
             >
               <SimulationLab />
+            </ResilientBoundary>
+          ) : activeTab === "Configurações" ? (
+            <ResilientBoundary
+              boundaryName="plan-overview"
+              fallback={(retry) => (
+                <ComponentFallback title="Configurações indisponíveis" onRetry={retry} />
+              )}
+            >
+              <PlanOverview />
             </ResilientBoundary>
           ) : activeTab === "Atendimento" ? (
             <div className="flex-1 flex overflow-hidden w-full">
