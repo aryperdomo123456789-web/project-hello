@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   addEdge,
   Background,
@@ -13,7 +13,7 @@ import {
   useNodesState,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Save, Send, Sparkles, Workflow, X } from "lucide-react";
+import { Copy, Download, Save, Send, Sparkles, Upload, Workflow, X } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 
@@ -166,6 +166,7 @@ export function FlowBuilderView() {
   const [saving, setSaving] = useState(false);
   const [simulationOutput, setSimulationOutput] = useState<string[]>([]);
   const [simulationInput, setSimulationInput] = useState("Olá, quero saber mais");
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   const selectedFlow = useMemo(
     () => flows.find((flow) => flow.id === selectedFlowId) ?? null,
@@ -290,6 +291,93 @@ export function FlowBuilderView() {
     }
   }
 
+  function handleExport() {
+    if (!selectedFlow) return;
+    const payload = JSON.stringify(
+      {
+        name: selectedFlow.name,
+        category: selectedFlow.category,
+        graph: reactFlowToGraph(nodes, edges),
+      },
+      null,
+      2,
+    );
+    const url = URL.createObjectURL(new Blob([payload], { type: "application/json" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${selectedFlow.slug || "especialista"}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    toast.success("Fluxo exportado");
+  }
+
+  function handleImportFile(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed: unknown = JSON.parse(String(reader.result ?? ""));
+        const graphValue =
+          parsed && typeof parsed === "object" && "graph" in parsed
+            ? (parsed as { graph?: unknown }).graph
+            : parsed;
+        const graph = parseFlowGraph(JSON.stringify(graphValue), "import_file");
+        const reactGraph = graphToReactFlow(graph);
+        setNodes(reactGraph.nodes);
+        setEdges(reactGraph.edges);
+        toast.success("Fluxo importado como alteração local; salve para persistir");
+      } catch (error) {
+        captureDiagnostic(error, {
+          source: "async",
+          component: "FlowBuilderView",
+          payload: { operation: "import_flow", fileName: file.name, fileSize: file.size },
+          recoverable: true,
+        });
+        toast.error("Arquivo de fluxo inválido");
+      }
+    };
+    reader.onerror = () => {
+      const error = reader.error ?? new Error("Falha ao ler arquivo de fluxo");
+      captureDiagnostic(error, {
+        source: "network",
+        component: "FlowBuilderView",
+        payload: { operation: "read_flow_file", fileName: file.name },
+        recoverable: true,
+      });
+      toast.error("Não foi possível ler o arquivo");
+    };
+    reader.readAsText(file);
+  }
+
+  async function handleDuplicate() {
+    if (!selectedFlow) return;
+    setSaving(true);
+    try {
+      const copy = await createFlow({
+        data: {
+          name: `${selectedFlow.name} (cópia)`.slice(0, 120),
+          category: selectedFlow.category,
+          graphJson: JSON.stringify(reactFlowToGraph(nodes, edges)),
+        },
+      });
+      setFlows((current) => [copy, ...current]);
+      selectFlow(copy);
+      toast.success("Especialista duplicado");
+    } catch (error) {
+      captureDiagnostic(error, {
+        source: "async",
+        component: "FlowBuilderView",
+        payload: { operation: "duplicate_flow", flowId: selectedFlow.id },
+        recoverable: true,
+      });
+      toast.error(error instanceof Error ? error.message : "Falha ao duplicar");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleBind() {
     if (!selectedFlowId || !selectedConnectionId) {
       toast.error("Escolha um fluxo e um número");
@@ -405,6 +493,37 @@ export function FlowBuilderView() {
             disabled={!selectedFlowId || !selectedConnectionId}
           >
             Vincular fluxo
+          </Button>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={handleImportFile}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => importInputRef.current?.click()}
+            disabled={!selectedFlowId || saving}
+          >
+            <Upload className="mr-1 h-4 w-4" /> Importar
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExport}
+            disabled={!selectedFlowId || saving}
+          >
+            <Download className="mr-1 h-4 w-4" /> Exportar
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void handleDuplicate()}
+            disabled={!selectedFlowId || saving}
+          >
+            <Copy className="mr-1 h-4 w-4" /> Duplicar
           </Button>
           <div className="hidden items-center gap-2 rounded-md border bg-slate-50 p-1 lg:flex">
             <Input
