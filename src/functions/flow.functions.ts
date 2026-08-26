@@ -50,8 +50,13 @@ export type FlowDTO = {
 };
 
 function parseGraph(graphJson: string): FlowGraph {
-  const parsed: unknown = JSON.parse(graphJson);
-  return graphSchema.parse(parsed) as FlowGraph;
+  try {
+    const parsed: unknown = JSON.parse(graphJson);
+    return graphSchema.parse(parsed) as FlowGraph;
+  } catch (error) {
+    const reason = error instanceof z.ZodError ? "estrutura inválida" : "JSON inválido";
+    throw new Error(`Grafo de automação rejeitado: ${reason}`, { cause: error });
+  }
 }
 
 function compileGraph(graph: FlowGraph) {
