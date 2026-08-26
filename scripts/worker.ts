@@ -1,8 +1,18 @@
 import "dotenv/config";
 
 import { createBackgroundWorker } from "@/queue/worker.server";
+import { runReadySequenceEnrollments } from "@/queue/sequence-worker.server";
 
 const worker = createBackgroundWorker();
+const sequenceScheduler = setInterval(() => {
+  void runReadySequenceEnrollments().catch((error) => {
+    console.error("[sequence-worker] scheduler error", error);
+  });
+}, 30_000);
+sequenceScheduler.unref();
+void runReadySequenceEnrollments().catch((error) => {
+  console.error("[sequence-worker] initial run error", error);
+});
 const once = process.argv.includes("--once");
 let settled = false;
 
@@ -24,6 +34,7 @@ worker.on("failed", (job, error) => {
 
 async function shutdown(signal: string) {
   console.info(`[worker] encerrando por ${signal}`);
+  clearInterval(sequenceScheduler);
   await worker.close();
   process.exit(0);
 }
