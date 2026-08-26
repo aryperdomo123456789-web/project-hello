@@ -54,3 +54,19 @@ A aplicação não deve ser considerada pronta para cliente pagante enquanto ess
 O procedimento detalhado de produção está em [`docs/deploy/aapanel-production-manual.md`](../docs/deploy/aapanel-production-manual.md). Ele cobre primeira instalação, atualização por commit, `.env`, PostgreSQL, Redis, PM2 web + worker, Nginx, HTTPS, webhook, Evolution, health check, backup, rollback, incidentes e critérios de go-live.
 
 Sempre use a branch publicada no GitHub e registre o commit executado no VPS. Não faça edição manual de arquivos versionados dentro de `/www/wwwroot/mago-bot.com`.
+
+## Monitoramento externo do health
+
+O arquivo `deploy/mago-bot-health-monitor.sh` verifica a cada cinco minutos o endpoint `/api/health`, banco e Redis. Ele registra o estado no journald e envia alerta apenas quando ocorre transição entre saudável e indisponível, caso `ALERT_WEBHOOK_URL` esteja configurado no `.env`. As unidades `mago-bot-health-monitor.service` e `.timer` podem ser instaladas em `/etc/systemd/system`; o script deve ficar em `/usr/local/sbin/mago-bot-health-monitor.sh`.
+
+```bash
+install -m 750 deploy/mago-bot-health-monitor.sh /usr/local/sbin/mago-bot-health-monitor.sh
+install -m 644 deploy/mago-bot-health-monitor.service deploy/mago-bot-health-monitor.timer /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now mago-bot-health-monitor.timer
+systemctl start mago-bot-health-monitor.service
+systemctl status mago-bot-health-monitor.timer --no-pager
+journalctl -u mago-bot-health-monitor.service -n 20 --no-pager
+```
+
+O monitor não substitui o health check nem reinicia processos automaticamente; ele alerta a operação para que o runbook seja seguido com backup e rollback controlados.

@@ -1,0 +1,16 @@
+[Unit]
+Description=Mago Bot health monitor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+ExecStart=/usr/local/sbin/mago-bot-health-monitor.sh
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/mago-bot
+ReadOnlyPaths=/www/wwwroot/mago-bot.com/mago-bot
