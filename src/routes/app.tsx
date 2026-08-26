@@ -166,6 +166,10 @@ function Dashboard() {
   const [crmContacts, setCrmContacts] = useState(contacts);
 
   useEffect(() => {
+    if (activeTab !== "Atendimento") {
+      setMetrics(null);
+      return;
+    }
     let mounted = true;
     void getMetrics()
       .then((value) => {
@@ -175,7 +179,7 @@ function Dashboard() {
     return () => {
       mounted = false;
     };
-  }, [getMetrics]);
+  }, [activeTab, getMetrics]);
 
   const menuItems = [
     { id: "Atendimento", label: "Chat", icon: MessageSquare },
