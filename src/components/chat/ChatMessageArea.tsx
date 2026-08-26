@@ -11,10 +11,12 @@ import {
   Sparkles,
   UserCheck,
   Video,
+  Ticket as TicketIcon,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 
 import { suggestAssistFn } from "@/functions/assist.functions";
+import { createTicketFn } from "@/functions/ticket.functions";
 import type { ConversationNoteDTO, QuickReplyDTO } from "@/functions/inbox.functions";
 import type { Contact, Message } from "@/types/chat";
 import { captureDiagnostic } from "@/lib/diagnostics";
@@ -57,7 +59,9 @@ export function ChatMessageArea({
   const [actionError, setActionError] = useState<string | null>(null);
   const [assist, setAssist] = useState<Awaited<ReturnType<typeof suggestAssistFn>> | null>(null);
   const [assistLoading, setAssistLoading] = useState(false);
+  const [ticketLoading, setTicketLoading] = useState(false);
   const suggestAssist = useServerFn(suggestAssistFn);
+  const createTicket = useServerFn(createTicketFn);
   const scrollRef = useRef<HTMLDivElement>(null);
   const safeMessages = Array.isArray(messages) ? messages : [];
   const safeContactName = contact.name?.trim() || "Contato sem nome";
@@ -112,6 +116,34 @@ export function ChatMessageArea({
       });
     } finally {
       setAssistLoading(false);
+    }
+  }
+
+  async function handleCreateTicket() {
+    if (!contact.conversationId || ticketLoading) return;
+    setTicketLoading(true);
+    setActionError(null);
+    try {
+      const ticket = await createTicket({
+        data: {
+          conversationId: contact.conversationId,
+          subject: `Atendimento — ${safeContactName}`,
+          category: "atendimento",
+          priority: 0,
+          slaMinutes: 1440,
+        },
+      });
+      setActionError(`Ticket #${ticket.number} criado com sucesso.`);
+    } catch (error) {
+      setActionError("Não foi possível abrir o ticket. O diagnóstico foi registrado.");
+      captureDiagnostic(error, {
+        source: "async",
+        component: "ChatMessageArea",
+        state: { conversationId: contact.conversationId, action: "create_ticket" },
+        recoverable: true,
+      });
+    } finally {
+      setTicketLoading(false);
     }
   }
 
@@ -188,6 +220,19 @@ export function ChatMessageArea({
               </option>
             ))}
           </select>
+          <button
+            type="button"
+            onClick={() => void handleCreateTicket()}
+            disabled={!contact.conversationId || ticketLoading || Boolean(pendingAction)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-50"
+            title={
+              contact.conversationId
+                ? "Abrir ticket para esta conversa"
+                : "Conversa sem identificador"
+            }
+          >
+            <TicketIcon className="h-4 w-4" /> {ticketLoading ? "Abrindo" : "Ticket"}
+          </button>
           <button
             onClick={() => void runAction("resolve_conversation", onResolve)}
             disabled={Boolean(pendingAction)}
