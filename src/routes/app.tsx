@@ -8,6 +8,7 @@ import { ComponentFallback, ResilientBoundary } from "@/components/resilience/Re
 import { ChatList } from "@/components/chat/ChatList";
 import { ChatMessageArea } from "@/components/chat/ChatMessageArea";
 import { ContactDetails } from "@/components/chat/ContactDetails";
+import { IntegrationsView } from "@/components/settings/IntegrationsView";
 import { PlanOverview } from "@/components/settings/PlanOverview";
 import { OperationalHealthView } from "@/components/operations/OperationalHealthView";
 import { TeamWorkspace } from "@/components/team/TeamWorkspace";
@@ -30,6 +31,7 @@ import {
   BookOpen,
   Ticket as TicketIcon,
   Clock3,
+  Plug,
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -89,6 +91,7 @@ type Tab =
   | "Automações"
   | "Conexões"
   | "Configurações"
+  | "Integrações"
   | "Relatórios"
   | "Laboratório"
   | "Saúde"
@@ -139,6 +142,7 @@ function Dashboard() {
     { id: "Macros", label: "Macros", icon: Zap },
     { id: "Sequências", label: "Sequências", icon: Clock3 },
     { id: "Configurações", label: "Ajustes", icon: Settings },
+    { id: "Integrações", label: "APIs", icon: Plug },
   ].filter((item) => canAccessTab(user.role, item.id));
 
   return (
@@ -387,6 +391,15 @@ function Dashboard() {
               )}
             >
               <PlanOverview onNavigate={(tab) => setActiveTab(tab)} />
+            </ResilientBoundary>
+          ) : activeTab === "Integrações" ? (
+            <ResilientBoundary
+              boundaryName="integrations"
+              fallback={(retry) => (
+                <ComponentFallback title="Central de APIs indisponível" onRetry={retry} />
+              )}
+            >
+              <IntegrationsView />
             </ResilientBoundary>
           ) : activeTab === "Saúde" ? (
             <ResilientBoundary

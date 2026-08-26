@@ -128,6 +128,69 @@ export const planCatalogItems = pgTable(
   ],
 );
 
+export const integrationProviderEnum = pgEnum("integration_provider", [
+  "deepseek",
+  "gemini",
+  "groq",
+  "cohere",
+  "tavily",
+  "jina",
+  "openrouter",
+  "mistral",
+  "huggingface",
+  "cloudflare_workers",
+  "firecrawl",
+  "exa",
+  "langfuse",
+  "siliconflow",
+  "whisper",
+  "lamatok",
+  "mercadopago",
+  "evolution",
+  "meta_cloud",
+  "custom",
+]);
+
+export type IntegrationProvider = (typeof integrationProviderEnum.enumValues)[number];
+
+export const integrationStatusEnum = pgEnum("integration_status", [
+  "not_configured",
+  "configured",
+  "healthy",
+  "degraded",
+  "error",
+  "disabled",
+]);
+
+export const providerIntegrations = pgTable(
+  "provider_integrations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    provider: integrationProviderEnum("provider").notNull(),
+    label: text("label").notNull(),
+    description: text("description").notNull(),
+    credentialsEncrypted: text("credentials_encrypted"),
+    endpointUrl: text("endpoint_url"),
+    model: text("model"),
+    capabilities: jsonb("capabilities").$type<string[]>().notNull().default([]),
+    status: integrationStatusEnum("status").notNull().default("not_configured"),
+    isEnabled: boolean("is_enabled").notNull().default(false),
+    lastCheckedAt: timestamp("last_checked_at", { withTimezone: true }),
+    lastError: text("last_error"),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    updatedBy: uuid("updated_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("provider_integrations_org_provider_uq").on(table.organizationId, table.provider),
+    index("provider_integrations_org_status_idx").on(table.organizationId, table.status),
+  ],
+);
+
 export const users = pgTable(
   "users",
   {
