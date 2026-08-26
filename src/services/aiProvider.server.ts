@@ -1,6 +1,10 @@
 import { consumeRateLimit } from "@/server/rate-limit.server";
 import { getServerEnv } from "@/server/env.server";
 import { traceAiCall } from "@/services/aiTelemetry.server";
+import {
+  getOrganizationIntegrationRuntime,
+  type OrganizationIntegrationRuntime,
+} from "@/services/integrations.server";
 
 export type AiProvider = "stub" | "openrouter" | "groq" | "deepseek" | "gemini";
 
@@ -25,7 +29,8 @@ export type AiResponse = {
   fallbackUsed: boolean;
 };
 
-function providerKey(provider: AiProvider) {
+function providerKey(provider: AiProvider, runtime?: OrganizationIntegrationRuntime | null) {
+  if (runtime?.credentials["apiKey"]) return runtime.credentials["apiKey"];
   const env = getServerEnv();
   if (provider === "openrouter") return env.OPENROUTER_API_KEY;
   if (provider === "groq") return env.GROQ_API_KEY;
@@ -34,11 +39,23 @@ function providerKey(provider: AiProvider) {
   return undefined;
 }
 
-function endpoint(provider: AiProvider) {
-  if (provider === "openrouter") return "https://openrouter.ai/api/v1/chat/completions";
-  if (provider === "groq") return "https://api.groq.com/openai/v1/chat/completions";
-  if (provider === "deepseek") return "https://api.deepseek.com/chat/completions";
-  return undefined;
+function appendPath(baseUrl: string, path: string) {
+  return `${baseUrl.replace(/\/$/, "")}${path}`;
+}
+
+function endpoint(provider: AiProvider, runtime?: OrganizationIntegrationRuntime | null) {
+  const configured = runtime?.endpointUrl;
+  const baseUrl =
+    configured ??
+    (provider === "openrouter"
+      ? "https://openrouter.ai/api/v1"
+      : provider === "groq"
+        ? "https://api.groq.com/openai/v1"
+        : provider === "deepseek"
+          ? "https://api.deepseek.com"
+          : undefined);
+  if (!baseUrl) return undefined;
+  return baseUrl.endsWith("/chat/completions") ? baseUrl : appendPath(baseUrl, "/chat/completions");
 }
 
 async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number) {
@@ -55,9 +72,14 @@ function safeText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-async function requestOpenAiCompatible(provider: AiProvider, model: string, request: AiRequest) {
-  const key = providerKey(provider);
-  const url = endpoint(provider);
+async function requestOpenAiCompatible(
+  provider: AiProvider,
+  model: string,
+  request: AiRequest,
+  runtime?: OrganizationIntegrationRuntime | null,
+) {
+  const key = providerKey(provider, runtime);
+  const url = endpoint(provider, runtime);
   if (!key || !url) throw new Error(`AI provider ${provider} is not configured`);
   const env = getServerEnv();
   const response = await fetchWithTimeout(
@@ -101,14 +123,20 @@ async function requestOpenAiCompatible(provider: AiProvider, model: string, requ
   };
 }
 
-async function requestGemini(model: string, request: AiRequest) {
+async function requestGemini(
+  model: string,
+  request: AiRequest,
+  runtime?: OrganizationIntegrationRuntime | null,
+) {
   const env = getServerEnv();
-  if (!env.GEMINI_API_KEY) throw new Error("AI provider gemini is not configured");
+  const key = providerKey("gemini", runtime);
+  const baseUrl = runtime?.endpointUrl ?? "https://generativelanguage.googleapis.com";
+  if (!key) throw new Error("AI provider gemini is not configured");
   const response = await fetchWithTimeout(
-    `https://generativelanguage.googleapis.com/v1beta/interactions`,
+    baseUrl.endsWith("/interactions") ? baseUrl : appendPath(baseUrl, "/v1beta/interactions"),
     {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
+      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify({
         model,
         input: [{ role: "system", content: request.system }, ...request.messages],
@@ -151,16 +179,20 @@ export async function generateWithFallback(request: AiRequest): Promise<AiRespon
     if (candidate.provider === "stub") continue;
     const startedAt = Date.now();
     try {
+      const runtime = request.organizationId
+        ? await getOrganizationIntegrationRuntime(request.organizationId, candidate.provider)
+        : null;
+      const model = runtime?.model ?? candidate.model;
       const response =
         candidate.provider === "gemini"
-          ? await requestGemini(candidate.model, request)
-          : await requestOpenAiCompatible(candidate.provider, candidate.model, request);
+          ? await requestGemini(model, request, runtime)
+          : await requestOpenAiCompatible(candidate.provider, model, request, runtime);
       const result = { ...response, fallbackUsed: candidate.fallbackUsed };
       await traceAiCall({
         ...(request.organizationId ? { organizationId: request.organizationId } : {}),
         purpose: request.purpose,
         provider: candidate.provider,
-        model: candidate.model,
+        model,
         latencyMs: Date.now() - startedAt,
         fallbackUsed: candidate.fallbackUsed,
         success: true,
