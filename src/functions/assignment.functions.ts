@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { db } from "@/db/client.server";
 import { assignmentEvents, conversations, memberships, queues } from "@/db/schema";
+import { writeAudit } from "../server/audit.server";
 import { requireUser } from "../server/auth.server";
 
 const conversationIdSchema = z.object({ conversationId: z.string().uuid() });
@@ -91,6 +92,12 @@ export const claimConversationFn = createServerFn({ method: "POST" })
       actorUserId: user.id,
       reason: "Atendimento assumido",
     });
+    await writeAudit(user, {
+      action: "conversation.claimed",
+      resourceType: "conversation",
+      resourceId: updated.id,
+      metadata: { queueId: updated.queueId },
+    });
 
     return { ok: true as const, assigneeId: user.id };
   });
@@ -124,6 +131,12 @@ export const releaseConversationFn = createServerFn({ method: "POST" })
       eventType: "released",
       actorUserId: user.id,
       reason: "Devolvido à fila",
+    });
+    await writeAudit(user, {
+      action: "conversation.released",
+      resourceType: "conversation",
+      resourceId: conversation.id,
+      metadata: { fromUserId: conversation.assigneeId, queueId: conversation.queueId },
     });
 
     return { ok: true as const };
@@ -180,6 +193,17 @@ export const transferConversationFn = createServerFn({ method: "POST" })
       actorUserId: user.id,
       reason: data.reason ?? "Transferência manual",
     });
+    await writeAudit(user, {
+      action: "conversation.transferred",
+      resourceType: "conversation",
+      resourceId: conversation.id,
+      metadata: {
+        fromUserId: conversation.assigneeId,
+        toUserId: data.assigneeId ?? null,
+        fromQueueId: conversation.queueId,
+        toQueueId: data.queueId ?? null,
+      },
+    });
 
     return {
       ok: true as const,
@@ -218,6 +242,12 @@ export const resolveConversationFn = createServerFn({ method: "POST" })
       eventType: "resolved",
       actorUserId: user.id,
       reason: "Atendimento resolvido",
+    });
+    await writeAudit(user, {
+      action: "conversation.resolved",
+      resourceType: "conversation",
+      resourceId: conversation.id,
+      metadata: { fromUserId: conversation.assigneeId, queueId: conversation.queueId },
     });
 
     return { ok: true as const };
