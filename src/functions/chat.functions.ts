@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { and, desc, eq, notInArray } from "drizzle-orm";
+import { and, count, desc, eq, isNull, notInArray } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/db/client.server";
@@ -27,6 +27,8 @@ export type ConversationDTO = {
   assigneeId: string | null;
   lastMessageAt: string;
   automationPaused: boolean;
+  lastMessageText: string | null;
+  unreadCount: number;
 };
 
 export type MessageDTO = {
@@ -44,6 +46,8 @@ function conversationDto(row: {
   contact: typeof contacts.$inferSelect;
   connection: typeof channelConnections.$inferSelect;
   queue: typeof queues.$inferSelect | null;
+  lastMessageText: string | null;
+  unreadCount: number;
 }): ConversationDTO {
   return {
     id: row.conversation.id,
@@ -58,6 +62,8 @@ function conversationDto(row: {
     assigneeId: row.conversation.assigneeId,
     lastMessageAt: row.conversation.lastMessageAt.toISOString(),
     automationPaused: Boolean(row.conversation.automationPausedAt),
+    lastMessageText: row.lastMessageText,
+    unreadCount: row.unreadCount,
   };
 }
 
@@ -75,20 +81,55 @@ function messageDto(message: typeof messages.$inferSelect): MessageDTO {
 
 export const listConversationsFn = createServerFn({ method: "GET" }).handler(async () => {
   const user = await requireUser();
-  const rows = await db
-    .select({ conversation: conversations, contact: contacts, connection: channelConnections, queue: queues })
-    .from(conversations)
-    .innerJoin(contacts, eq(contacts.id, conversations.contactId))
-    .innerJoin(channelConnections, eq(channelConnections.id, conversations.channelConnectionId))
-    .leftJoin(queues, eq(queues.id, conversations.queueId))
-    .where(
-      and(
-        eq(conversations.organizationId, user.organizationId),
-        notInArray(conversations.status, ["closed"]),
-      ),
-    )
-    .orderBy(desc(conversations.priority), desc(conversations.lastMessageAt));
-  return rows.map(conversationDto);
+  const latestMessages = db
+    .selectDistinctOn([messages.conversationId], {
+      conversationId: messages.conversationId,
+      text: messages.text,
+    })
+    .from(messages)
+    .where(eq(messages.organizationId, user.organizationId))
+    .orderBy(messages.conversationId, desc(messages.sentAt))
+    .as("latest_messages");
+
+  const [rows, unreadRows] = await Promise.all([
+    db
+      .select({
+        conversation: conversations,
+        contact: contacts,
+        connection: channelConnections,
+        queue: queues,
+        lastMessageText: latestMessages.text,
+      })
+      .from(conversations)
+      .innerJoin(contacts, eq(contacts.id, conversations.contactId))
+      .innerJoin(channelConnections, eq(channelConnections.id, conversations.channelConnectionId))
+      .leftJoin(queues, eq(queues.id, conversations.queueId))
+      .leftJoin(latestMessages, eq(latestMessages.conversationId, conversations.id))
+      .where(
+        and(
+          eq(conversations.organizationId, user.organizationId),
+          notInArray(conversations.status, ["closed"]),
+        ),
+      )
+      .orderBy(desc(conversations.priority), desc(conversations.lastMessageAt)),
+    db
+      .select({ conversationId: messages.conversationId, value: count() })
+      .from(messages)
+      .where(
+        and(
+          eq(messages.organizationId, user.organizationId),
+          eq(messages.direction, "inbound"),
+          isNull(messages.readAt),
+        ),
+      )
+      .groupBy(messages.conversationId),
+  ]);
+  const unreadByConversation = new Map(
+    unreadRows.map((row) => [row.conversationId, Number(row.value)]),
+  );
+  return rows.map((row) =>
+    conversationDto({ ...row, unreadCount: unreadByConversation.get(row.conversation.id) ?? 0 }),
+  );
 });
 
 export const listConversationMessagesFn = createServerFn({ method: "GET" })
