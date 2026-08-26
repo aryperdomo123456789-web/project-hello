@@ -1,15 +1,11 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { ConnectionsView } from "@/components/connections/ConnectionsView";
 import { Toaster } from "@/components/ui/sonner";
 import { ComponentFallback, ResilientBoundary } from "@/components/resilience/ResilienceLayer";
 import { ChatList } from "@/components/chat/ChatList";
 import { ChatMessageArea } from "@/components/chat/ChatMessageArea";
-import { CRMWorkspace } from "@/components/crm/CRMWorkspace";
 import { ContactDetails } from "@/components/chat/ContactDetails";
-import { ReportsView } from "@/components/dashboard/ReportsView";
-import { FlowBuilderView } from "@/components/flows/FlowBuilderView";
-import { SimulationLab } from "@/components/simulator/SimulationLab";
 import { PlanOverview } from "@/components/settings/PlanOverview";
 import { OperationalHealthView } from "@/components/operations/OperationalHealthView";
 import { TeamWorkspace } from "@/components/team/TeamWorkspace";
@@ -33,6 +29,23 @@ import {
 import { cn } from "@/lib/utils";
 import { meFn } from "@/functions/auth.functions";
 import { canAccessTab, roleLabel } from "@/permissions/roles";
+
+const LazyCRMWorkspace = lazy(() =>
+  import("@/components/crm/CRMWorkspace").then((module) => ({ default: module.CRMWorkspace })),
+);
+const LazyReportsView = lazy(() =>
+  import("@/components/dashboard/ReportsView").then((module) => ({ default: module.ReportsView })),
+);
+const LazyFlowBuilderView = lazy(() =>
+  import("@/components/flows/FlowBuilderView").then((module) => ({
+    default: module.FlowBuilderView,
+  })),
+);
+const LazySimulationLab = lazy(() =>
+  import("@/components/simulator/SimulationLab").then((module) => ({
+    default: module.SimulationLab,
+  })),
+);
 
 export const Route = createFileRoute("/")({
   beforeLoad: async () => {
@@ -235,7 +248,9 @@ function Dashboard() {
               boundaryName="crm-screen"
               fallback={(retry) => <ComponentFallback title="CRM indisponível" onRetry={retry} />}
             >
-              <CRMWorkspace contacts={crmContacts} onSelect={setSelectedContact} />
+              <Suspense fallback={<ComponentFallback title="Carregando CRM" />}>
+                <LazyCRMWorkspace contacts={crmContacts} onSelect={setSelectedContact} />
+              </Suspense>
             </ResilientBoundary>
           ) : activeTab === "Relatórios" ? (
             <ResilientBoundary
@@ -244,7 +259,9 @@ function Dashboard() {
                 <ComponentFallback title="Relatórios indisponíveis" onRetry={retry} />
               )}
             >
-              <ReportsView />
+              <Suspense fallback={<ComponentFallback title="Carregando relatórios" />}>
+                <LazyReportsView />
+              </Suspense>
             </ResilientBoundary>
           ) : activeTab === "Automações" ? (
             <ResilientBoundary
@@ -253,7 +270,9 @@ function Dashboard() {
                 <ComponentFallback title="Automações indisponíveis" onRetry={retry} />
               )}
             >
-              <FlowBuilderView />
+              <Suspense fallback={<ComponentFallback title="Carregando automações" />}>
+                <LazyFlowBuilderView />
+              </Suspense>
             </ResilientBoundary>
           ) : activeTab === "Laboratório" ? (
             <ResilientBoundary
@@ -262,7 +281,9 @@ function Dashboard() {
                 <ComponentFallback title="Laboratório indisponível" onRetry={retry} />
               )}
             >
-              <SimulationLab />
+              <Suspense fallback={<ComponentFallback title="Carregando laboratório" />}>
+                <LazySimulationLab />
+              </Suspense>
             </ResilientBoundary>
           ) : activeTab === "Configurações" ? (
             <ResilientBoundary
