@@ -1,0 +1,9 @@
+V4.6 Update Guide.
+
+1. first take a backup your site.
+
+2. replace everything from your project root without these folders and files 
+
+public (folder)
+.env (file)
+sessions (folder)
