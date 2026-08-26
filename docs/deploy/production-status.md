@@ -5,9 +5,9 @@
 
 **Branch:** `feat/saas-multiwhatsapp-flow-builder`
 
-**Último commit do aplicativo registrado anteriormente no VPS:** `963598b`
+**Último commit do aplicativo no VPS:** `d1f6d55`
 
-**Commit desta atualização:** será registrado no deploy após o push.
+**Migration de retenção:** `0015_lyrical_scream.sql` aplicada; `retention_policies` e `retention_runs` existem.
 
 ## Estado verificado
 
