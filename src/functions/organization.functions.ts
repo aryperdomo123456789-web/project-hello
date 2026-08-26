@@ -2,7 +2,14 @@ import { createServerFn } from "@tanstack/react-start";
 import { and, count, eq } from "drizzle-orm";
 
 import { db } from "@/db/client.server";
-import { channelConnections, flowBindings, flows, memberships, organizations } from "@/db/schema";
+import {
+  channelConnections,
+  flowBindings,
+  flowExecutions,
+  flows,
+  memberships,
+  organizations,
+} from "@/db/schema";
 import { getPlanCatalog, type PlanId, type PlanLimits } from "@/entitlements/plans";
 import { requireUser } from "@/server/auth.server";
 
@@ -18,6 +25,7 @@ export type WorkspacePlanDTO = {
     connections: number;
     agents: number;
     activeFlows: number;
+    testedRuns: number;
   };
 };
 
@@ -30,7 +38,7 @@ export const getWorkspacePlanFn = createServerFn({ method: "GET" }).handler(asyn
     .limit(1);
   if (!organization) throw new Error("Organização não encontrada");
 
-  const [[connectionCount], [agentCount], [flowCount]] = await Promise.all([
+  const [[connectionCount], [agentCount], [flowCount], [executionCount]] = await Promise.all([
     db
       .select({ value: count() })
       .from(channelConnections)
@@ -45,6 +53,10 @@ export const getWorkspacePlanFn = createServerFn({ method: "GET" }).handler(asyn
       .select({ value: count() })
       .from(flows)
       .where(and(eq(flows.organizationId, user.organizationId), eq(flows.status, "published"))),
+    db
+      .select({ value: count() })
+      .from(flowExecutions)
+      .where(eq(flowExecutions.organizationId, user.organizationId)),
   ]);
 
   const catalog = getPlanCatalog(organization.plan);
@@ -60,6 +72,7 @@ export const getWorkspacePlanFn = createServerFn({ method: "GET" }).handler(asyn
       connections: Number(connectionCount?.value ?? 0),
       agents: Number(agentCount?.value ?? 0),
       activeFlows: Number(flowCount?.value ?? 0),
+      testedRuns: Number(executionCount?.value ?? 0),
     },
   } satisfies WorkspacePlanDTO;
 });

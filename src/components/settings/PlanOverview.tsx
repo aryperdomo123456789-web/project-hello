@@ -117,7 +117,7 @@ export function PlanOverview({ onNavigate }: { onNavigate?: (tab: OnboardingTab)
       label: "Testar a jornada",
       description: "Rode o laboratório antes do canal real.",
       tab: "Laboratório",
-      done: false,
+      done: data.usage.testedRuns > 0,
     },
     {
       label: "Preparar a equipe",
