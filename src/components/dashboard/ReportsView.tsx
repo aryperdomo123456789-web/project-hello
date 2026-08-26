@@ -12,7 +12,15 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { CheckCircle, Clock, Link2, MessageSquare, Workflow } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  Link2,
+  MessageSquare,
+  Users,
+  Workflow,
+} from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getMetricsFn, type MetricsDTO } from "@/functions/metrics.functions";
@@ -67,6 +75,35 @@ export function ReportsView() {
           label="Números conectados"
           value={value(metrics?.connectedConnections)}
           color="purple"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <StatusCard
+          icon={<AlertTriangle className="h-5 w-5" />}
+          label="Fora do SLA"
+          value={value(metrics?.waitingOverSla)}
+          tone={metrics?.waitingOverSla ? "danger" : "default"}
+        />
+        <StatusCard
+          icon={<Clock className="h-5 w-5" />}
+          label="Maior espera"
+          value={metrics ? `${metrics.oldestQueuedMinutes} min` : "—"}
+          tone={
+            metrics?.oldestQueuedMinutes && metrics.oldestQueuedMinutes > 15 ? "warning" : "default"
+          }
+        />
+        <StatusCard
+          icon={<Users className="h-5 w-5" />}
+          label="Agentes online"
+          value={value(metrics?.onlineAgents)}
+          tone="default"
+        />
+        <StatusCard
+          icon={<MessageSquare className="h-5 w-5" />}
+          label="Atendimentos atribuídos"
+          value={value(metrics?.assignedConversations)}
+          tone="default"
         />
       </div>
 
@@ -189,15 +226,21 @@ function StatusCard({
   icon,
   label,
   value,
+  tone = "default",
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
+  tone?: "default" | "warning" | "danger";
 }) {
   return (
     <Card className="border-none bg-white shadow-sm">
       <CardContent className="flex items-center gap-4 py-5">
-        <div className="rounded-lg bg-slate-100 p-3 text-slate-600">{icon}</div>
+        <div
+          className={`rounded-lg p-3 ${tone === "danger" ? "bg-red-50 text-red-600" : tone === "warning" ? "bg-amber-50 text-amber-600" : "bg-slate-100 text-slate-600"}`}
+        >
+          {icon}
+        </div>
         <div>
           <p className="text-sm text-slate-500">{label}</p>
           <p className="text-xl font-bold text-slate-900">{value}</p>
