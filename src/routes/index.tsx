@@ -58,6 +58,11 @@ const LazyTicketsView = lazy(() =>
     default: module.TicketsView,
   })),
 );
+const LazyMacrosView = lazy(() =>
+  import("@/components/macros/MacrosView").then((module) => ({
+    default: module.MacrosView,
+  })),
+);
 
 export const Route = createFileRoute("/")({
   beforeLoad: async () => {
@@ -80,7 +85,8 @@ type Tab =
   | "Saúde"
   | "Equipe"
   | "Campanhas"
-  | "Conhecimento";
+  | "Conhecimento"
+  | "Macros";
 
 function Dashboard() {
   const {
@@ -117,6 +123,7 @@ function Dashboard() {
     { id: "Equipe", label: "Equipe", icon: Users },
     { id: "Campanhas", label: "Campanhas", icon: Megaphone },
     { id: "Conhecimento", label: "Conhecimento", icon: BookOpen },
+    { id: "Macros", label: "Macros", icon: Zap },
     { id: "Configurações", label: "Ajustes", icon: Settings },
   ].filter((item) => canAccessTab(user.role, item.id));
 
@@ -321,6 +328,17 @@ function Dashboard() {
             >
               <Suspense fallback={<ComponentFallback title="Carregando conhecimento" />}>
                 <LazyKnowledgeView />
+              </Suspense>
+            </ResilientBoundary>
+          ) : activeTab === "Macros" ? (
+            <ResilientBoundary
+              boundaryName="macros-screen"
+              fallback={(retry) => (
+                <ComponentFallback title="Macros indisponíveis" onRetry={retry} />
+              )}
+            >
+              <Suspense fallback={<ComponentFallback title="Carregando macros" />}>
+                <LazyMacrosView />
               </Suspense>
             </ResilientBoundary>
           ) : activeTab === "Configurações" ? (
