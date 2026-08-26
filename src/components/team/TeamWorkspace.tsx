@@ -10,6 +10,7 @@ import {
   type TeamMemberDTO,
 } from "@/functions/team.functions";
 import { captureDiagnostic } from "@/lib/diagnostics";
+import { TeamChatPanel } from "@/components/team/TeamChatPanel";
 
 export function TeamWorkspace() {
   const listMembers = useServerFn(listTeamMembersFn);
@@ -101,6 +102,8 @@ export function TeamWorkspace() {
   return (
     <div className="h-full overflow-y-auto bg-slate-50 p-8">
       <div className="mx-auto max-w-6xl space-y-6">
+        <TeamChatPanel />
+
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-indigo-600">

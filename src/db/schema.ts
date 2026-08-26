@@ -843,3 +843,28 @@ export const knowledgeChunks = pgTable(
     index("knowledge_chunks_org_document_idx").on(table.organizationId, table.documentId),
   ],
 );
+
+
+export const internalTeamMessages = pgTable(
+  "internal_team_messages",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    authorUserId: uuid("author_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    recipientUserId: uuid("recipient_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("internal_team_messages_org_time_idx").on(table.organizationId, table.createdAt),
+    index("internal_team_messages_recipient_idx").on(table.organizationId, table.recipientUserId),
+  ],
+);
+
+export type InternalTeamMessage = typeof internalTeamMessages.$inferSelect;

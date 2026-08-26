@@ -101,3 +101,18 @@ Essas evidências elevam o backlog do Mago Bot em quatro pontos: a IA precisa te
 [6]: https://sacmais.com.br/blog/chatbots-hibridos-humanos-ia-whatsapp/ "SacMais — Chatbots híbridos: quando humanos e IA trabalham juntos no WhatsApp"
 [7]: https://sacmais.com.br/blog/crm-whatsapp-centralizar-vendas-atendimento/ "SacMais — CRM WhatsApp: Como Centralizar Vendas e Atendimento"
 [8]: https://sacmais.com.br/blog/como-criar-relatorios-de-desempenho-para-equipes-no-whatsapp/ "SacMais — Como criar relatórios de desempenho para equipes no WhatsApp"
+
+
+## Benchmark aprofundado — IA, CRM e relatórios
+
+A página comparativa pública do SAC Mais destaca como critérios de avaliação a integração com WhatsApp Cloud API, multiatendimento com distribuição automática, chatbot, outros canais, agente de IA contextual, relatórios em tempo real, CRM, etiquetas, agendamento e preço escalável. Também cita suporte de implantação e treinamento. Fonte: https://sacmais.com.br/blog/sacmais-whatsapp-atendimento-plataforma-recursos-ia-precos-2026/
+
+O conteúdo sobre chatbot híbrido define a divisão operacional entre automação para triagem, FAQ, coleta, classificação e encaminhamento, e humanos para reclamações, negociação, exceções e oportunidades de alto valor. O Mago Bot deve manter aprovação humana, contexto preservado e transbordo explícito. Fonte: https://sacmais.com.br/blog/chatbots-hibridos-humanos-ia-whatsapp/
+
+O conteúdo de CRM trata cada mensagem como possível lead, negociação, tarefa, retorno ou atendimento e recomenda origem, produto de interesse, região, prontidão de compra, histórico, estágio de funil e próximo passo como dados acionáveis. Fonte: https://sacmais.com.br/blog/crm-whatsapp-centralizar-vendas-atendimento/
+
+O conteúdo de relatórios recomenda volume, primeira resposta, tempo total, conversas sem retorno, atendimentos por agente, motivos de contato, conversão e comparação por equipe/turno. Também reforça que relatório deve terminar em decisão operacional. Fonte: https://sacmais.com.br/blog/como-criar-relatorios-de-desempenho-para-equipes-no-whatsapp/
+
+### Backlog derivado
+
+Sem depender da Evolution, o Mago Bot deve priorizar onboarding sem ajuda, triagem híbrida, campos de jornada no CRM, tarefas e follow-up, métricas acionáveis, metas por fila/agente, controle de custo de IA, aprovação humana e treinamento guiado. Os diferenciais próprios permanecem replay idempotente, diagnóstico de falhas, versionamento, rollback, auditoria e isolamento multiempresa.
