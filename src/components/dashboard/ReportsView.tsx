@@ -20,17 +20,21 @@ import {
   MessageSquare,
   Users,
   Workflow,
+  Star,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getMetricsFn, type MetricsDTO } from "@/functions/metrics.functions";
+import { getRatingMetricsFn, type RatingMetricsDTO } from "@/functions/rating.functions";
 import { captureDiagnostic } from "@/lib/diagnostics";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
 export function ReportsView() {
   const getMetrics = useServerFn(getMetricsFn);
+  const getRatingMetrics = useServerFn(getRatingMetricsFn);
   const [metrics, setMetrics] = useState<MetricsDTO | null>(null);
+  const [ratingMetrics, setRatingMetrics] = useState<RatingMetricsDTO | null>(null);
   const [metricsError, setMetricsError] = useState<string | null>(null);
 
   const loadMetrics = useCallback(async () => {
@@ -49,9 +53,23 @@ export function ReportsView() {
     }
   }, [getMetrics]);
 
+  const loadRatingMetrics = useCallback(async () => {
+    try {
+      setRatingMetrics(await getRatingMetrics({ data: { days: 30 } }));
+    } catch (error) {
+      captureDiagnostic(error, {
+        source: "async",
+        component: "ReportsView",
+        payload: { operation: "load_rating_metrics" },
+        recoverable: true,
+      });
+    }
+  }, [getRatingMetrics]);
+
   useEffect(() => {
     void loadMetrics();
-  }, [loadMetrics]);
+    void loadRatingMetrics();
+  }, [loadMetrics, loadRatingMetrics]);
 
   const value = (number: number | undefined) =>
     number === undefined ? "—" : number.toLocaleString("pt-BR");
@@ -82,7 +100,7 @@ export function ReportsView() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-5">
         <MetricCard
           icon={<MessageSquare className="h-5 w-5" />}
           label="Total de conversas"
@@ -107,7 +125,21 @@ export function ReportsView() {
           value={value(metrics?.connectedConnections)}
           color="purple"
         />
+        <MetricCard
+          icon={<Star className="h-5 w-5" />}
+          label="Satisfação média"
+          value={
+            ratingMetrics
+              ? `${ratingMetrics.average.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}/5`
+              : "—"
+          }
+          color="amber"
+        />
       </div>
+      <p className="-mt-4 text-xs text-slate-400">
+        Avaliações nos últimos 30 dias:{" "}
+        {ratingMetrics ? ratingMetrics.total.toLocaleString("pt-BR") : "—"}
+      </p>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         <StatusCard
