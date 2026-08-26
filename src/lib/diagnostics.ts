@@ -104,12 +104,8 @@ function redact(value: unknown, depth = 0, key = ""): unknown {
 function parseLocation(stack: string, component?: string): DiagnosticLocation {
   const lines = stack.split("\n");
   const match = lines
-    .map((line) =>
-      line.match(
-        /(?:at\s+.*?\s+\()?((?:https?:\/\/|file:\/\/|\/|[A-Za-z]:\\)[^():\s]+):?(\d+)? :(\d+)?\)?$/,
-      ),
-    )
-    .find(Boolean);
+    .map((line) => line.match(/(?:at\s+.*?\s+\()?(.+?):(\d+):(\d+)\)?$/))
+    .find((item): item is RegExpMatchArray => item !== null);
   if (!match) return component ? { component } : {};
   return {
     ...(match[1] ? { file: match[1] } : {}),
