@@ -4,10 +4,17 @@ import { getRedisConnection } from "./redis.server";
 
 export const MAGO_QUEUE_NAME = "mago-bot-background";
 
-export type FlowEffectJob = {
-  kind: "flow_effect";
-  effectId: string;
-};
+export type FlowEffectJob =
+  | {
+      kind: "flow_effect";
+      effectId: string;
+    }
+  | {
+      kind: "resume_flow";
+      conversationId: string;
+      executionId: string;
+      externalEventId: string;
+    };
 
 let queue: Queue<FlowEffectJob> | undefined;
 
@@ -28,4 +35,18 @@ function getQueue() {
 
 export async function enqueueFlowEffect(effectId: string) {
   return getQueue().add("flow-effect", { kind: "flow_effect", effectId }, { jobId: effectId });
+}
+
+export async function enqueueFlowResume(
+  conversationId: string,
+  executionId: string,
+  waitingUntil: Date,
+) {
+  const delay = Math.max(0, waitingUntil.getTime() - Date.now());
+  const externalEventId = `timer:${executionId}:${waitingUntil.toISOString()}`;
+  return getQueue().add(
+    "flow-resume",
+    { kind: "resume_flow", conversationId, executionId, externalEventId },
+    { jobId: externalEventId, delay },
+  );
 }

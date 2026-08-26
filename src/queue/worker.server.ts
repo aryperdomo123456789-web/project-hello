@@ -3,6 +3,7 @@ import { Worker } from "bullmq";
 
 import { db } from "@/db/client.server";
 import { channelConnections, conversations, flowEffects, messages } from "@/db/schema";
+import { resumeFlowAfterTimer } from "@/services/flowRuntime.server";
 import { getWhatsAppAdapter } from "@/services/whatsapp.server";
 import { getRedisConnection } from "./redis.server";
 import { MAGO_QUEUE_NAME, type FlowEffectJob } from "./jobs.server";
@@ -90,6 +91,13 @@ export function createBackgroundWorker() {
     MAGO_QUEUE_NAME,
     async (job) => {
       if (job.data.kind === "flow_effect") return processFlowEffect(job.data.effectId);
+      if (job.data.kind === "resume_flow") {
+        return resumeFlowAfterTimer(
+          job.data.conversationId,
+          job.data.executionId,
+          job.data.externalEventId,
+        );
+      }
       return { status: "ignored" as const };
     },
     { connection: getRedisConnection(), concurrency: 10 },

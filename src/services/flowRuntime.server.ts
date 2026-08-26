@@ -17,7 +17,7 @@ import {
   queues,
 } from "@/db/schema";
 import type { FlowEdge, FlowGraph, FlowNode, FlowNodeData } from "@/flows/types";
-import { enqueueFlowEffect } from "@/queue/jobs.server";
+import { enqueueFlowEffect, enqueueFlowResume } from "@/queue/jobs.server";
 import { getWhatsAppAdapter } from "./whatsapp.server";
 
 type RuntimeGraph = FlowGraph & { entryNodeId?: string | undefined };
@@ -473,6 +473,7 @@ export async function startOrResumeFlow(
     lastInput: inputText,
   };
   let status: "running" | "waiting_input" | "waiting_timer" | "handoff" | "completed" = "running";
+  let waitingUntil: Date | null = null;
 
   for (let safety = 0; safety < 50; safety += 1) {
     const node = nodes.get(currentId);
@@ -489,6 +490,12 @@ export async function startOrResumeFlow(
       break;
     }
     if (result.waiting) {
+      if (node.type === "delay") {
+        const seconds = Math.max(0, Number(nodeData(node).seconds ?? 0));
+        waitingUntil = new Date(Date.now() + seconds * 1000);
+        const next = nextNodes(graph, node.id, context)[0];
+        if (next) currentId = next;
+      }
       status = node.type === "question" ? "waiting_input" : "waiting_timer";
       break;
     }
@@ -511,8 +518,38 @@ export async function startOrResumeFlow(
       context,
       status,
       ...(status === "completed" || status === "handoff" ? { completedAt: new Date() } : {}),
+      waitingUntil: status === "waiting_timer" ? waitingUntil : null,
       lockVersion: sql`${flowExecutions.lockVersion} + 1`,
     })
     .where(eq(flowExecutions.id, execution.id));
+  if (waitingUntil) {
+    try {
+      await enqueueFlowResume(conversationId, execution.id, waitingUntil);
+    } catch {
+      // A retomada também pode ser executada por um reprocessador quando Redis voltar.
+    }
+  }
   return { status, executionId: execution.id };
+}
+
+export async function resumeFlowAfterTimer(
+  conversationId: string,
+  executionId: string,
+  externalEventId: string,
+) {
+  const [execution] = await db
+    .select({
+      id: flowExecutions.id,
+      status: flowExecutions.status,
+      waitingUntil: flowExecutions.waitingUntil,
+    })
+    .from(flowExecutions)
+    .where(
+      and(eq(flowExecutions.id, executionId), eq(flowExecutions.conversationId, conversationId)),
+    )
+    .limit(1);
+  if (!execution || execution.status !== "waiting_timer") return { status: "skipped" as const };
+  if (execution.waitingUntil && execution.waitingUntil.getTime() > Date.now())
+    return { status: "not_due" as const };
+  return startOrResumeFlow(conversationId, "", externalEventId);
 }
