@@ -1,0 +1,119 @@
+{
+  "scores": {
+    "current_production": 5.53,
+    "after_evolution_meta_api": 8.23,
+    "top1_target": 9.18
+  },
+  "rows": [
+    {
+      "dimension": "Canais WhatsApp e omnichannel",
+      "weight": 20,
+      "current": 2.0,
+      "after_channels": 8.5,
+      "top1": 9.5,
+      "gap": "Evolution/Meta homologados, QR/status, inbound/outbound, mídia, templates e reconexão.",
+      "current_weighted": 40.0,
+      "after_channels_weighted": 170.0,
+      "top1_weighted": 190.0
+    },
+    {
+      "dimension": "Inbox, roteamento, filas e SLA",
+      "weight": 12,
+      "current": 7.5,
+      "after_channels": 8.5,
+      "top1": 9.0,
+      "gap": "Presença em tempo real, reequilíbrio de carga, views salvas e workforce avançado.",
+      "current_weighted": 90.0,
+      "after_channels_weighted": 102.0,
+      "top1_weighted": 108.0
+    },
+    {
+      "dimension": "CRM, tickets e jornada",
+      "weight": 10,
+      "current": 7.0,
+      "after_channels": 8.0,
+      "top1": 9.0,
+      "gap": "Objetos customizados, customer health, portal e jornada multicanal completa.",
+      "current_weighted": 70.0,
+      "after_channels_weighted": 80.0,
+      "top1_weighted": 90.0
+    },
+    {
+      "dimension": "Fluxos, automações e campanhas",
+      "weight": 10,
+      "current": 7.0,
+      "after_channels": 8.5,
+      "top1": 9.0,
+      "gap": "Publicação segura, testes de regressão, campanhas multi-etapa e calendário visual.",
+      "current_weighted": 70.0,
+      "after_channels_weighted": 85.0,
+      "top1_weighted": 90.0
+    },
+    {
+      "dimension": "IA, RAG e voz",
+      "weight": 10,
+      "current": 6.0,
+      "after_channels": 7.5,
+      "top1": 9.0,
+      "gap": "Agentes com ações, benchmark de modelos, transcrição, avaliação e limites de custo.",
+      "current_weighted": 60.0,
+      "after_channels_weighted": 75.0,
+      "top1_weighted": 90.0
+    },
+    {
+      "dimension": "Analytics, QA, conversão e ROI",
+      "weight": 8,
+      "current": 6.0,
+      "after_channels": 8.0,
+      "top1": 9.0,
+      "gap": "Dashboards em tempo real, scorecards de IA, cohort/retention e atribuição por campanha.",
+      "current_weighted": 48.0,
+      "after_channels_weighted": 64.0,
+      "top1_weighted": 72.0
+    },
+    {
+      "dimension": "API pública, integrações e webhooks",
+      "weight": 10,
+      "current": 4.5,
+      "after_channels": 8.5,
+      "top1": 9.0,
+      "gap": "API operacional versionada, OAuth, idempotência, scopes, SDKs, sandbox e marketplace.",
+      "current_weighted": 45.0,
+      "after_channels_weighted": 85.0,
+      "top1_weighted": 90.0
+    },
+    {
+      "dimension": "Segurança, privacidade e governança",
+      "weight": 10,
+      "current": 7.5,
+      "after_channels": 8.5,
+      "top1": 9.5,
+      "gap": "SSO/SCIM, IP allowlist, export/delete, DPA, pentest, status público e compliance.",
+      "current_weighted": 75.0,
+      "after_channels_weighted": 85.0,
+      "top1_weighted": 95.0
+    },
+    {
+      "dimension": "Onboarding, UX, mobile e suporte",
+      "weight": 5,
+      "current": 4.5,
+      "after_channels": 7.5,
+      "top1": 9.0,
+      "gap": "Wizard guiado, help center, app mobile, tour, treinamento e suporte com SLA.",
+      "current_weighted": 22.5,
+      "after_channels_weighted": 37.5,
+      "top1_weighted": 45.0
+    },
+    {
+      "dimension": "Escala, performance e operação",
+      "weight": 5,
+      "current": 6.5,
+      "after_channels": 8.0,
+      "top1": 9.5,
+      "gap": "Testes de carga, multi-região, SLO, autoscaling, disaster recovery e chaos testing contínuo.",
+      "current_weighted": 32.5,
+      "after_channels_weighted": 40.0,
+      "top1_weighted": 47.5
+    }
+  ]
+}
