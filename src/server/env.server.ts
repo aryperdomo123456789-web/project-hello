@@ -10,6 +10,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
   DATABASE_SSL: z.enum(["true", "false"]).default("false"),
   REDIS_URL: z.string().min(1).default("redis://127.0.0.1:6379"),
+  LICENSE_MODE: z.enum(["local", "remote"]).default("local"),
   LICENSE_API_BASE_URL: z.string().url().default("https://app.mago-bot.com"),
   LICENSE_PROJECT_SLUG: z.string().min(1).default("mago-bot"),
   LICENSE_DOMAIN: z.string().min(1).default("mago-bot.com"),

@@ -18,6 +18,10 @@ const cache = new Map<LicenseScope, CachedLicense>();
 async function validateLicenseRemote(scope: LicenseScope): Promise<LicenseValidation> {
   const env = getServerEnv();
 
+  if (env.LICENSE_MODE === "local") {
+    return { valid: true, status: "local_mode" };
+  }
+
   if (env.WHATSAPP_PROVIDER === "stub" && !env.WHATSAPP_LICENSE_TOKEN) {
     return { valid: true, status: "development_stub" };
   }
