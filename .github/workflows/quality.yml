@@ -1,0 +1,76 @@
+name: Mago Bot quality
+
+on:
+  push:
+    branches:
+      - main
+      - "feat/**"
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: mago_bot
+          POSTGRES_PASSWORD: mago_bot_ci_password
+          POSTGRES_DB: mago_bot_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U mago_bot -d mago_bot_test"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      DATABASE_URL: postgres://mago_bot:mago_bot_ci_password@127.0.0.1:5432/mago_bot_test
+      REDIS_URL: redis://127.0.0.1:6379
+      SESSION_SECRET: ci-session-secret-change-me-32chars
+      WHATSAPP_WEBHOOK_SECRET: ci-webhook-secret
+      LICENSE_MODE: local
+      INTEGRATION_ENCRYPTION_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+      BOOTSTRAP_ADMIN_PASSWORD: ci-bootstrap-password-1234
+      E2E_DATABASE_URL: postgres://mago_bot:mago_bot_ci_password@127.0.0.1:5432/mago_bot_test
+      E2E_REDIS_URL: redis://127.0.0.1:6379
+      E2E_ALLOW_MUTATIONS: "true"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Apply database migrations
+        run: npm run db:migrate
+      - name: Seed CI database
+        run: npm run db:seed
+      - name: Unit and integration tests
+        run: npm test
+      - name: Real PostgreSQL/Redis E2E
+        run: npm run test:e2e:real
+      - name: Production build
+        run: npm run build:production
+      - name: Diff check
+        run: git diff --check
