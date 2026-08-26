@@ -93,15 +93,44 @@ function reactFlowToGraph(nodes: CanvasNode[], edges: Edge[]): FlowGraph {
   };
 }
 
+function isFlowGraph(value: unknown): value is FlowGraph {
+  if (!value || typeof value !== "object") return false;
+  const graph = value as { nodes?: unknown; edges?: unknown };
+  if (!Array.isArray(graph.nodes) || !Array.isArray(graph.edges)) return false;
+  const validNodes = graph.nodes.every((node) => {
+    if (!node || typeof node !== "object") return false;
+    const candidate = node as Record<string, unknown>;
+    const position = candidate["position"];
+    const data = candidate["data"];
+    return (
+      typeof candidate["id"] === "string" &&
+      nodeKinds.includes(candidate["type"] as FlowNodeKind) &&
+      Boolean(position) &&
+      typeof position === "object" &&
+      typeof (position as Record<string, unknown>)["x"] === "number" &&
+      typeof (position as Record<string, unknown>)["y"] === "number" &&
+      Boolean(data) &&
+      typeof data === "object" &&
+      typeof (data as Record<string, unknown>)["label"] === "string"
+    );
+  });
+  const validEdges = graph.edges.every((edge) => {
+    if (!edge || typeof edge !== "object") return false;
+    const candidate = edge as Record<string, unknown>;
+    return (
+      typeof candidate["id"] === "string" &&
+      typeof candidate["source"] === "string" &&
+      typeof candidate["target"] === "string"
+    );
+  });
+  return validNodes && validEdges;
+}
+
 function parseFlowGraph(value: string, context: string): FlowGraph {
   try {
     const parsed: unknown = JSON.parse(value);
-    if (!parsed || typeof parsed !== "object") throw new Error("Grafo não é um objeto");
-    const graph = parsed as { nodes?: unknown; edges?: unknown };
-    if (!Array.isArray(graph.nodes) || !Array.isArray(graph.edges)) {
-      throw new Error("Grafo precisa conter arrays nodes e edges");
-    }
-    return parsed as FlowGraph;
+    if (!isFlowGraph(parsed)) throw new Error("Grafo precisa conter nodes e edges válidos");
+    return parsed;
   } catch (error) {
     captureDiagnostic(error, {
       source: "async",
