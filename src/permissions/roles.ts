@@ -23,6 +23,7 @@ export const NAVIGATION_ROLES: Record<string, UiRole[]> = {
   Sequências: ["owner", "admin", "manager", "supervisor", "agent"],
   Configurações: ["owner", "admin"],
   Integrações: ["owner", "admin"],
+  Governança: ["owner"],
 };
 
 export function canAccessTab(role: string, tab: string) {

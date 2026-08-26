@@ -9,6 +9,7 @@ import { ChatList } from "@/components/chat/ChatList";
 import { ChatMessageArea } from "@/components/chat/ChatMessageArea";
 import { ContactDetails } from "@/components/chat/ContactDetails";
 import { IntegrationsView } from "@/components/settings/IntegrationsView";
+import { OwnerControlCenter } from "@/components/owner/OwnerControlCenter";
 import { PlanOverview } from "@/components/settings/PlanOverview";
 import { OperationalHealthView } from "@/components/operations/OperationalHealthView";
 import { TeamWorkspace } from "@/components/team/TeamWorkspace";
@@ -19,6 +20,7 @@ import {
   Users,
   Zap,
   Settings,
+  ShieldCheck,
   BarChart3,
   Link2,
   Bell,
@@ -100,7 +102,8 @@ type Tab =
   | "Campanhas"
   | "Conhecimento"
   | "Macros"
-  | "Sequências";
+  | "Sequências"
+  | "Governança";
 
 type MetricTone = "green" | "blue" | "cyan" | "violet";
 
@@ -197,6 +200,7 @@ function Dashboard() {
     { id: "Sequências", label: "Sequências", icon: Clock3 },
     { id: "Configurações", label: "Ajustes", icon: Settings },
     { id: "Integrações", label: "APIs", icon: Plug },
+    { id: "Governança", label: "Dono", icon: ShieldCheck },
   ].filter((item) => canAccessTab(user.role, item.id));
 
   return (
@@ -436,6 +440,15 @@ function Dashboard() {
               <Suspense fallback={<ComponentFallback title="Carregando macros" />}>
                 <LazyMacrosView />
               </Suspense>
+            </ResilientBoundary>
+          ) : activeTab === "Governança" ? (
+            <ResilientBoundary
+              boundaryName="owner-governance"
+              fallback={(retry) => (
+                <ComponentFallback title="Governança indisponível" onRetry={retry} />
+              )}
+            >
+              <OwnerControlCenter onNavigate={(tab) => setActiveTab(tab)} />
             </ResilientBoundary>
           ) : activeTab === "Configurações" ? (
             <ResilientBoundary
