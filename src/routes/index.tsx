@@ -1,4 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
+import logoUrl from "@/assets/brand/mago-bot-logo.webp";
 import {
   ArrowRight,
   BarChart3,
@@ -92,8 +93,8 @@ function MarketingHome() {
       <header className="sticky top-0 z-30 border-b border-white/10 bg-slate-950/95 text-white backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 lg:px-8">
           <a href="#top" className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-400/20">
-              <Zap className="h-5 w-5" />
+            <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-slate-800 shadow-lg shadow-cyan-400/20 ring-1 ring-cyan-300/40">
+              <img src={logoUrl} alt="Mago Bot" className="h-full w-full object-cover" />
             </span>
             <span>
               <span className="block text-lg font-black tracking-tight">Mago Bot</span>
@@ -183,8 +184,8 @@ function MarketingHome() {
             <div className="relative rounded-[2rem] border border-slate-700 bg-slate-900 p-4 shadow-2xl shadow-black/40">
               <div className="flex items-center justify-between border-b border-slate-800 px-2 pb-4">
                 <div className="flex items-center gap-2">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-400 text-slate-950">
-                    <Bot className="h-5 w-5" />
+                  <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-slate-800 ring-1 ring-cyan-300/40">
+                    <img src={logoUrl} alt="" className="h-full w-full object-cover" />
                   </span>
                   <div>
                     <p className="text-sm font-bold">Inbox central</p>

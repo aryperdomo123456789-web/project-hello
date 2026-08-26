@@ -1,5 +1,6 @@
 import { useServerFn } from "@tanstack/react-start";
 import { useNavigate } from "@tanstack/react-router";
+import avatarUrl from "@/assets/brand/mago-bot-avatar.png";
 import { type FormEvent, useState } from "react";
 import { ArrowLeft, Crown, LockKeyhole, Mail, ShieldCheck, Users, Zap } from "lucide-react";
 
@@ -48,7 +49,11 @@ export function LoginScreen({ mode }: { mode: LoginMode }) {
           <div
             className={`flex h-12 w-12 items-center justify-center rounded-2xl ${isOwner ? "bg-violet-600" : "bg-blue-600"}`}
           >
-            {isOwner ? <Crown className="h-6 w-6" /> : <Zap className="h-6 w-6" />}
+            <img
+              src={avatarUrl}
+              alt="Mago Bot"
+              className="h-full w-full rounded-2xl object-cover"
+            />
           </div>
           <div>
             <p className="text-xl font-bold">Mago Bot</p>

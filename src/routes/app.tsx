@@ -1,6 +1,7 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { lazy, Suspense, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import avatarUrl from "@/assets/brand/mago-bot-avatar.png";
 import { ConnectionsView } from "@/components/connections/ConnectionsView";
 import { Toaster } from "@/components/ui/sonner";
 import { ComponentFallback, ResilientBoundary } from "@/components/resilience/ResilienceLayer";
@@ -150,10 +151,10 @@ function Dashboard() {
         )}
       >
         <div className="h-16 flex items-center px-6 border-b border-slate-800">
-          <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center mr-3 flex-shrink-0">
-            <Zap className="w-5 h-5 text-white" />
+          <div className="w-8 h-8 bg-slate-800 rounded-lg overflow-hidden flex items-center justify-center mr-3 flex-shrink-0 ring-1 ring-cyan-300/40">
+            <img src={avatarUrl} alt="Mago Bot" className="h-full w-full object-cover" />
           </div>
-          {!sidebarCollapsed && <span className="text-xl font-bold tracking-tight">OmniChat</span>}
+          {!sidebarCollapsed && <span className="text-xl font-bold tracking-tight">Mago Bot</span>}
         </div>
 
         <nav className="flex-1 py-6 px-3 space-y-2 overflow-y-auto overflow-x-hidden">
@@ -237,14 +238,8 @@ function Dashboard() {
                   {roleLabel(user.role)} · {user.organizationName}
                 </p>
               </div>
-              <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold border-2 border-white shadow-sm">
-                {(user.fullName || "U")
-                  .split(/\s+/)
-                  .filter(Boolean)
-                  .slice(0, 2)
-                  .map((part) => part[0])
-                  .join("")
-                  .toUpperCase()}
+              <div className="w-9 h-9 rounded-xl bg-slate-800 overflow-hidden flex items-center justify-center font-bold border-2 border-white shadow-sm ring-1 ring-cyan-300/40">
+                <img src={avatarUrl} alt="Mago Bot" className="h-full w-full object-cover" />
               </div>
               <button
                 type="button"
