@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   listConversationMessagesFn,
@@ -17,29 +17,46 @@ import {
   transferConversationFn,
   type QueueDTO,
 } from "@/functions/assignment.functions";
+import { captureDiagnostic } from "@/lib/diagnostics";
 import type { Contact, Message } from "@/types/chat";
 
+function safeTime(value: string | null | undefined) {
+  const date = value ? new Date(value) : null;
+  return date && !Number.isNaN(date.getTime())
+    ? date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    : "—";
+}
+
 function toContact(conversation: ConversationDTO): Contact {
+  const status = conversation.status ?? "queued";
   const stage: Contact["stage"] =
-    conversation.status === "queued"
+    status === "queued"
       ? "Aguardando"
-      : conversation.status === "resolved" || conversation.status === "closed"
+      : status === "resolved" || status === "closed"
         ? "Resolvidas"
         : "Abertas";
+  const name = conversation.contactName?.trim() || "Contato sem nome";
+  const phone = conversation.phone?.trim() || "Número não informado";
+  const connectionName = conversation.connectionName?.trim() || "Número desconhecido";
+  const queueName = conversation.queueName?.trim() || "";
+  const automationPaused = Boolean(conversation.automationPaused);
 
   return {
     id: conversation.id,
-    name: conversation.contactName,
-    phone: conversation.phone,
-    lastMessage: conversation.automationPaused ? "Atendimento humano ativo" : "Automação ativa",
-    lastMessageTime: new Date(conversation.lastMessageAt).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    }),
+    name,
+    phone,
+    lastMessage:
+      conversation.lastMessageText?.trim() ||
+      (automationPaused ? "Atendimento humano ativo" : "Automação ativa"),
+    lastMessageTime: safeTime(conversation.lastMessageAt),
     status: "offline",
-    unreadCount: 0,
-    tags: [conversation.connectionName, ...(conversation.queueName ? [conversation.queueName] : []), conversation.automationPaused ? "HUMANO" : "AUTOMAÇÃO"],
-    sector: conversation.queueName ?? "Sem fila",
+    unreadCount: Number.isFinite(conversation.unreadCount) ? conversation.unreadCount : 0,
+    tags: [
+      connectionName,
+      ...(queueName ? [queueName] : []),
+      automationPaused ? "HUMANO" : "AUTOMAÇÃO",
+    ],
+    sector: queueName || "Sem fila",
     stage,
   };
 }
@@ -51,14 +68,22 @@ function toMessage(message: MessageDTO): Message {
       : "text";
   return {
     id: message.id,
-    text: message.text,
+    text: message.text ?? "",
     sender: message.direction === "inbound" ? "contact" : "me",
-    timestamp: new Date(message.sentAt).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    }),
+    timestamp: safeTime(message.sentAt),
     type,
   };
+}
+
+function reportAsyncError(error: unknown, operation: string, state: Record<string, unknown> = {}) {
+  captureDiagnostic(error, {
+    source: "async",
+    component: "useChat",
+    state,
+    payload: { operation },
+    handled: true,
+    recoverable: true,
+  });
 }
 
 export function useChat() {
@@ -77,24 +102,37 @@ export function useChat() {
   const [messagesByConversation, setMessagesByConversation] = useState<Record<string, Message[]>>(
     {},
   );
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   const loadConversations = useCallback(async () => {
-    const rows = await listConversations();
-    setConversations(rows);
-    setSelectedContact((current) => {
-      if (!current) return null;
-      const fresh = rows.find((row) => row.id === current.id);
-      return fresh ? toContact(fresh) : null;
-    });
-  }, [listConversations]);
+    try {
+      const rows = await listConversations();
+      setConversations(Array.isArray(rows) ? rows : []);
+      setSyncError(null);
+      setSelectedContact((current) => {
+        if (!current) return null;
+        const fresh = rows.find((row) => row.id === current.id);
+        return fresh ? toContact(fresh) : null;
+      });
+    } catch (error) {
+      setSyncError("Não foi possível atualizar as conversas");
+      reportAsyncError(error, "list_conversations", { conversationCount: conversations.length });
+      throw error;
+    }
+  }, [conversations.length, listConversations]);
 
   const loadMessages = useCallback(
     async (conversationId: string) => {
-      const rows = await listMessages({ data: { conversationId } });
-      setMessagesByConversation((current) => ({
-        ...current,
-        [conversationId]: rows.map(toMessage),
-      }));
+      try {
+        const rows = await listMessages({ data: { conversationId } });
+        setMessagesByConversation((current) => ({
+          ...current,
+          [conversationId]: (Array.isArray(rows) ? rows : []).map(toMessage),
+        }));
+      } catch (error) {
+        reportAsyncError(error, "list_messages", { conversationId });
+        throw error;
+      }
     },
     [listMessages],
   );
@@ -102,8 +140,11 @@ export function useChat() {
   useEffect(() => {
     void loadConversations().catch(() => undefined);
     void listQueues()
-      .then(setQueues)
-      .catch(() => undefined);
+      .then((rows) => setQueues(Array.isArray(rows) ? rows : []))
+      .catch((error) => {
+        setSyncError("Não foi possível carregar as filas");
+        reportAsyncError(error, "list_queues");
+      });
     const interval = window.setInterval(() => {
       void loadConversations().catch(() => undefined);
     }, 10000);
@@ -112,8 +153,13 @@ export function useChat() {
 
   const transferConversation = useCallback(
     async (conversationId: string, queueId: string) => {
-      await transferConversationRpc({ data: { conversationId, queueId } });
-      await loadConversations();
+      try {
+        await transferConversationRpc({ data: { conversationId, queueId } });
+        await loadConversations();
+      } catch (error) {
+        reportAsyncError(error, "transfer_conversation", { conversationId, queueId });
+        throw error;
+      }
     },
     [loadConversations, transferConversationRpc],
   );
@@ -134,44 +180,69 @@ export function useChat() {
 
   const sendMessage = useCallback(
     async (conversationId: string, text: string) => {
-      const sent = await sendMessageRpc({ data: { conversationId, text } });
-      setMessagesByConversation((current) => ({
-        ...current,
-        [conversationId]: [...(current[conversationId] ?? []), toMessage(sent)],
-      }));
-      await loadConversations();
+      try {
+        const sent = await sendMessageRpc({ data: { conversationId, text } });
+        setMessagesByConversation((current) => ({
+          ...current,
+          [conversationId]: [...(current[conversationId] ?? []), toMessage(sent)],
+        }));
+        await loadConversations();
+      } catch (error) {
+        reportAsyncError(error, "send_message", { conversationId, textLength: text.length });
+        throw error;
+      }
     },
     [loadConversations, sendMessageRpc],
   );
 
   const claimConversation = useCallback(
     async (conversationId: string) => {
-      await claimConversationRpc({ data: { conversationId } });
-      await loadConversations();
+      try {
+        await claimConversationRpc({ data: { conversationId } });
+        await loadConversations();
+      } catch (error) {
+        reportAsyncError(error, "claim_conversation", { conversationId });
+        throw error;
+      }
     },
     [claimConversationRpc, loadConversations],
   );
 
   const releaseConversation = useCallback(
     async (conversationId: string) => {
-      await releaseConversationRpc({ data: { conversationId } });
-      await loadConversations();
+      try {
+        await releaseConversationRpc({ data: { conversationId } });
+        await loadConversations();
+      } catch (error) {
+        reportAsyncError(error, "release_conversation", { conversationId });
+        throw error;
+      }
     },
     [loadConversations, releaseConversationRpc],
   );
 
   const resolveConversation = useCallback(
     async (conversationId: string) => {
-      await resolveConversationRpc({ data: { conversationId } });
-      await loadConversations();
+      try {
+        await resolveConversationRpc({ data: { conversationId } });
+        await loadConversations();
+      } catch (error) {
+        reportAsyncError(error, "resolve_conversation", { conversationId });
+        throw error;
+      }
     },
     [loadConversations, resolveConversationRpc],
   );
 
   const resumeAutomation = useCallback(
     async (conversationId: string) => {
-      await resumeAutomationRpc({ data: { conversationId } });
-      await loadConversations();
+      try {
+        await resumeAutomationRpc({ data: { conversationId } });
+        await loadConversations();
+      } catch (error) {
+        reportAsyncError(error, "resume_automation", { conversationId });
+        throw error;
+      }
     },
     [loadConversations, resumeAutomationRpc],
   );
@@ -188,5 +259,6 @@ export function useChat() {
     transferConversation,
     queues,
     contacts,
+    syncError,
   };
 }

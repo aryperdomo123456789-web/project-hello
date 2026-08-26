@@ -1,0 +1,1165 @@
+# Async e efeitos
+src/components/chat/ChatMessageArea.tsx:1:import { useEffect, useRef, useState } from "react";
+src/components/chat/ChatMessageArea.tsx:45:  useEffect(() => {
+src/components/connections/ConnectionsView.tsx:1:import { useEffect, useState } from "react";
+src/components/connections/ConnectionsView.tsx:2:import { useServerFn } from "@tanstack/react-start";
+src/components/connections/ConnectionsView.tsx:33:  const listConnections = useServerFn(listConnectionsFn);
+src/components/connections/ConnectionsView.tsx:34:  const createConnection = useServerFn(createConnectionFn);
+src/components/connections/ConnectionsView.tsx:35:  const getConnectionQr = useServerFn(getConnectionQrFn);
+src/components/connections/ConnectionsView.tsx:36:  const disconnectConnection = useServerFn(disconnectConnectionFn);
+src/components/connections/ConnectionsView.tsx:44:  async function loadConnections() {
+src/components/connections/ConnectionsView.tsx:46:      setConnections(await listConnections());
+src/components/connections/ConnectionsView.tsx:52:  useEffect(() => {
+src/components/connections/ConnectionsView.tsx:53:    void loadConnections();
+src/components/connections/ConnectionsView.tsx:56:  async function handleCreateConnection() {
+src/components/connections/ConnectionsView.tsx:62:      const connection = await createConnection({ data: { name } });
+src/components/connections/ConnectionsView.tsx:73:  async function handleConnect(connection: ConnectionDTO) {
+src/components/connections/ConnectionsView.tsx:76:      const qr = await getConnectionQr({ data: { connectionId: connection.id } });
+src/components/connections/ConnectionsView.tsx:92:  async function handleDisconnect(connection: ConnectionDTO) {
+src/components/connections/ConnectionsView.tsx:96:      await disconnectConnection({ data: { connectionId: connection.id } });
+src/components/connections/ConnectionsView.tsx:126:              if (event.key === "Enter") void handleCreateConnection();
+src/components/connections/ConnectionsView.tsx:130:            onClick={() => void handleCreateConnection()}
+src/components/connections/ConnectionsView.tsx:209:                        onClick={() => void handleConnect(connection)}
+src/components/connections/ConnectionsView.tsx:220:                        onClick={() => void handleDisconnect(connection)}
+src/components/dashboard/ReportsView.tsx:1:import { useEffect, useState } from "react";
+src/components/dashboard/ReportsView.tsx:2:import { useServerFn } from "@tanstack/react-start";
+src/components/dashboard/ReportsView.tsx:31:  const getMetrics = useServerFn(getMetricsFn);
+src/components/dashboard/ReportsView.tsx:34:  useEffect(() => {
+src/components/dashboard/ReportsView.tsx:35:    void getMetrics()
+src/components/dashboard/ReportsView.tsx:36:      .then(setMetrics)
+src/components/dashboard/ReportsView.tsx:37:      .catch(() => undefined);
+src/components/ui/calendar.tsx:148:  React.useEffect(() => {
+src/components/ui/carousel.tsx:85:  React.useEffect(() => {
+src/components/ui/carousel.tsx:93:  React.useEffect(() => {
+src/components/ui/sidebar.tsx:97:    React.useEffect(() => {
+src/components/flows/FlowBuilderView.tsx:1:import { useCallback, useEffect, useMemo, useState } from "react";
+src/components/flows/FlowBuilderView.tsx:18:import { useServerFn } from "@tanstack/react-start";
+src/components/flows/FlowBuilderView.tsx:96:  const listFlows = useServerFn(listFlowsFn);
+src/components/flows/FlowBuilderView.tsx:97:  const createFlow = useServerFn(createFlowFn);
+src/components/flows/FlowBuilderView.tsx:98:  const saveDraft = useServerFn(saveFlowDraftFn);
+src/components/flows/FlowBuilderView.tsx:99:  const publishFlow = useServerFn(publishFlowFn);
+src/components/flows/FlowBuilderView.tsx:100:  const listConnections = useServerFn(listConnectionsFn);
+src/components/flows/FlowBuilderView.tsx:101:  const bindFlow = useServerFn(bindFlowToConnectionFn);
+src/components/flows/FlowBuilderView.tsx:102:  const simulateFlow = useServerFn(simulateFlowFn);
+src/components/flows/FlowBuilderView.tsx:130:  const load = useCallback(async () => {
+src/components/flows/FlowBuilderView.tsx:131:    const [flowRows, connectionRows] = await Promise.all([listFlows(), listConnections()]);
+src/components/flows/FlowBuilderView.tsx:143:  useEffect(() => {
+src/components/flows/FlowBuilderView.tsx:144:    void load().catch((error) =>
+src/components/flows/FlowBuilderView.tsx:157:  async function handleCreateFlow() {
+src/components/flows/FlowBuilderView.tsx:167:      const flow = await createFlow({
+src/components/flows/FlowBuilderView.tsx:181:  async function handleSave() {
+src/components/flows/FlowBuilderView.tsx:185:      const flow = await saveDraft({
+src/components/flows/FlowBuilderView.tsx:197:  async function handlePublish() {
+src/components/flows/FlowBuilderView.tsx:199:    await handleSave();
+src/components/flows/FlowBuilderView.tsx:202:      const flow = await publishFlow({ data: { flowId: selectedFlowId } });
+src/components/flows/FlowBuilderView.tsx:212:  async function handleBind() {
+src/components/flows/FlowBuilderView.tsx:218:      const result = await bindFlow({
+src/components/flows/FlowBuilderView.tsx:227:  async function handleSimulate() {
+src/components/flows/FlowBuilderView.tsx:230:      const result = await simulateFlow({
+src/components/flows/FlowBuilderView.tsx:306:            onClick={() => void handleBind()}
+src/components/flows/FlowBuilderView.tsx:321:              onClick={() => void handleSimulate()}
+src/components/flows/FlowBuilderView.tsx:329:            onClick={() => void handleSave()}
+src/components/flows/FlowBuilderView.tsx:336:            onClick={() => void handlePublish()}
+src/components/flows/FlowBuilderView.tsx:359:                if (event.key === "Enter") void handleCreateFlow();
+src/components/flows/FlowBuilderView.tsx:376:              onClick={() => void handleCreateFlow()}
+src/hooks/use-mobile.tsx:8:  React.useEffect(() => {
+src/hooks/useChat.ts:1:import { useCallback, useEffect, useMemo, useState } from "react";
+src/hooks/useChat.ts:2:import { useServerFn } from "@tanstack/react-start";
+src/hooks/useChat.ts:65:  const listConversations = useServerFn(listConversationsFn);
+src/hooks/useChat.ts:66:  const listMessages = useServerFn(listConversationMessagesFn);
+src/hooks/useChat.ts:67:  const listQueues = useServerFn(listQueuesFn);
+src/hooks/useChat.ts:68:  const sendMessageRpc = useServerFn(sendMessageFn);
+src/hooks/useChat.ts:69:  const claimConversationRpc = useServerFn(claimConversationFn);
+src/hooks/useChat.ts:70:  const releaseConversationRpc = useServerFn(releaseConversationFn);
+src/hooks/useChat.ts:71:  const resolveConversationRpc = useServerFn(resolveConversationFn);
+src/hooks/useChat.ts:72:  const resumeAutomationRpc = useServerFn(resumeAutomationFn);
+src/hooks/useChat.ts:73:  const transferConversationRpc = useServerFn(transferConversationFn);
+src/hooks/useChat.ts:81:  const loadConversations = useCallback(async () => {
+src/hooks/useChat.ts:82:    const rows = await listConversations();
+src/hooks/useChat.ts:92:    async (conversationId: string) => {
+src/hooks/useChat.ts:93:      const rows = await listMessages({ data: { conversationId } });
+src/hooks/useChat.ts:102:  useEffect(() => {
+src/hooks/useChat.ts:103:    void loadConversations().catch(() => undefined);
+src/hooks/useChat.ts:104:    void listQueues()
+src/hooks/useChat.ts:105:      .then(setQueues)
+src/hooks/useChat.ts:106:      .catch(() => undefined);
+src/hooks/useChat.ts:108:      void loadConversations().catch(() => undefined);
+src/hooks/useChat.ts:114:    async (conversationId: string, queueId: string) => {
+src/hooks/useChat.ts:115:      await transferConversationRpc({ data: { conversationId, queueId } });
+src/hooks/useChat.ts:116:      await loadConversations();
+src/hooks/useChat.ts:121:  useEffect(() => {
+src/hooks/useChat.ts:122:    if (selectedContact) void loadMessages(selectedContact.id).catch(() => undefined);
+src/hooks/useChat.ts:130:      if (contact) void loadMessages(contact.id).catch(() => undefined);
+src/hooks/useChat.ts:136:    async (conversationId: string, text: string) => {
+src/hooks/useChat.ts:137:      const sent = await sendMessageRpc({ data: { conversationId, text } });
+src/hooks/useChat.ts:142:      await loadConversations();
+src/hooks/useChat.ts:148:    async (conversationId: string) => {
+src/hooks/useChat.ts:149:      await claimConversationRpc({ data: { conversationId } });
+src/hooks/useChat.ts:150:      await loadConversations();
+src/hooks/useChat.ts:156:    async (conversationId: string) => {
+src/hooks/useChat.ts:157:      await releaseConversationRpc({ data: { conversationId } });
+src/hooks/useChat.ts:158:      await loadConversations();
+src/hooks/useChat.ts:164:    async (conversationId: string) => {
+src/hooks/useChat.ts:165:      await resolveConversationRpc({ data: { conversationId } });
+src/hooks/useChat.ts:166:      await loadConversations();
+src/hooks/useChat.ts:172:    async (conversationId: string) => {
+src/hooks/useChat.ts:173:      await resumeAutomationRpc({ data: { conversationId } });
+src/hooks/useChat.ts:174:      await loadConversations();
+src/routes/__root.tsx:10:import { useEffect, type ReactNode } from "react";
+src/routes/__root.tsx:40:  useEffect(() => {
+src/routes/index.tsx:29:  beforeLoad: async () => {
+src/routes/index.tsx:30:    const user = await meFn();
+src/routes/index.tsx:192:                    onSendMessage={(text) => void sendMessage(selectedContact.id, text)}
+src/routes/index.tsx:194:                    onClaim={() => void claimConversation(selectedContact.id)}
+src/routes/index.tsx:195:                    onRelease={() => void releaseConversation(selectedContact.id)}
+src/routes/index.tsx:196:                    onResolve={() => void resolveConversation(selectedContact.id)}
+src/routes/index.tsx:197:                    onResumeAutomation={() => void resumeAutomation(selectedContact.id)}
+src/routes/index.tsx:200:                      void transferConversation(selectedContact.id, queueId)
+src/routes/api/webhooks/whatsapp.ts:20:      GET: async ({ request }) => {
+src/routes/api/webhooks/whatsapp.ts:32:      POST: async ({ request }) => {
+src/routes/api/webhooks/whatsapp.ts:37:        await assertLicense("whatsapp:webhook");
+src/routes/api/webhooks/whatsapp.ts:38:        const payload = await request.json();
+src/routes/api/webhooks/whatsapp.ts:40:        const results = await processWebhookEvents(events);
+src/routes/api/health.ts:11:      GET: async () => {
+src/routes/api/health.ts:17:          await db.execute(sql`select 1`);
+src/routes/api/health.ts:23:          const result = await Promise.race([
+src/routes/login.tsx:3:import { useServerFn } from "@tanstack/react-start";
+src/routes/login.tsx:14:  const login = useServerFn(loginFn);
+src/routes/login.tsx:20:  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+src/routes/login.tsx:26:      const result = await login({ data: { email, password } });
+src/routes/login.tsx:31:      await navigate({ to: "/" });
+src/server.ts:12:async function getServerEntry(): Promise<ServerEntry> {
+src/server.ts:14:    serverEntryPromise = import("@tanstack/react-start/server-entry").then(
+src/server.ts:23:async function normalizeCatastrophicSsrResponse(response: Response): Promise<Response> {
+src/server.ts:28:  const body = await response.clone().text();
+src/server.ts:48:  async fetch(request: Request, env: unknown, ctx: unknown) {
+src/server.ts:50:      const handler = await getServerEntry();
+src/server.ts:51:      const response = await handler.fetch(request, env, ctx);
+src/server.ts:52:      return await normalizeCatastrophicSsrResponse(response);
+src/services/evolutionApi.ts:14:  createInstance: async (name: string): Promise<Instance> => {
+src/services/evolutionApi.ts:17:    await new Promise(r => setTimeout(r, 1000));
+src/services/evolutionApi.ts:25:  getQrCode: async (instanceId: string): Promise<QrCodeResponse> => {
+src/services/evolutionApi.ts:27:    await new Promise(r => setTimeout(r, 800));
+src/services/evolutionApi.ts:34:  sendMessage: async (instanceId: string, payload: SendMessagePayload) => {
+src/services/evolutionApi.ts:36:    await new Promise(r => setTimeout(r, 500));
+src/services/evolutionApi.ts:40:  disconnectInstance: async (instanceId: string) => {
+src/services/evolutionApi.ts:42:    await new Promise(r => setTimeout(r, 500));
+src/services/evolutionApi.ts:46:  fetchInstances: async (): Promise<Instance[]> => {
+src/services/license.server.ts:18:async function validateLicenseRemote(scope: LicenseScope): Promise<LicenseValidation> {
+src/services/license.server.ts:34:    const response = await fetch(`${env.LICENSE_API_BASE_URL}/v1/licenses/validate`, {
+src/services/license.server.ts:54:    return (await response.json()) as LicenseValidation;
+src/services/license.server.ts:64:export async function validateLicense(scope: LicenseScope): Promise<LicenseValidation> {
+src/services/license.server.ts:69:  const value = await validateLicenseRemote(scope);
+src/services/license.server.ts:75:export async function assertLicense(scope: LicenseScope) {
+src/services/license.server.ts:76:  const result = await validateLicense(scope);
+src/services/whatsapp.server.ts:97:  async listInstances() {
+src/services/whatsapp.server.ts:101:  async createInstance(name: string) {
+src/services/whatsapp.server.ts:108:  async getQrCode(instanceId: string) {
+src/services/whatsapp.server.ts:116:  async disconnectInstance(instanceId: string) {
+src/services/whatsapp.server.ts:121:  async sendText(instanceId: string, number: string, text: string) {
+src/services/whatsapp.server.ts:155:  private async request(path: string, init?: RequestInit): Promise<unknown> {
+src/services/whatsapp.server.ts:161:    const response = await fetch(`${this.baseUrl}${path}`, {
+src/services/whatsapp.server.ts:166:    const text = await response.text();
+src/services/whatsapp.server.ts:180:  async listInstances() {
+src/services/whatsapp.server.ts:181:    const response = await this.request(this.env.EVOLUTION_INSTANCES_PATH);
+src/services/whatsapp.server.ts:187:  async createInstance(name: string) {
+src/services/whatsapp.server.ts:188:    const response = await this.request(this.env.EVOLUTION_CREATE_PATH, {
+src/services/whatsapp.server.ts:195:  async getQrCode(instanceId: string) {
+src/services/whatsapp.server.ts:197:      await this.request(replaceInstance(this.env.EVOLUTION_CONNECT_PATH, instanceId)),
+src/services/whatsapp.server.ts:210:  async disconnectInstance(instanceId: string) {
+src/services/whatsapp.server.ts:211:    await this.request(replaceInstance(this.env.EVOLUTION_LOGOUT_PATH, instanceId), {
+src/services/whatsapp.server.ts:216:  async sendText(instanceId: string, number: string, text: string) {
+src/services/whatsapp.server.ts:217:    const response = await this.request(
+src/services/webhookProcessor.server.ts:41:async function findConnection(event: NormalizedWebhookEvent) {
+src/services/webhookProcessor.server.ts:45:  const matches = await db
+src/services/webhookProcessor.server.ts:63:async function processIncomingMessage(
+src/services/webhookProcessor.server.ts:70:  const result = await db.transaction(async (tx) => {
+src/services/webhookProcessor.server.ts:71:    const existingContact = await tx
+src/services/webhookProcessor.server.ts:80:        await tx
+src/services/webhookProcessor.server.ts:94:      await tx
+src/services/webhookProcessor.server.ts:100:    const openConversations = await tx
+src/services/webhookProcessor.server.ts:117:        await tx
+src/services/webhookProcessor.server.ts:132:    const inserted = await tx
+src/services/webhookProcessor.server.ts:149:    await tx
+src/services/webhookProcessor.server.ts:167:    const flow = await startOrResumeFlow(result.conversationId, event.text, event.externalEventId);
+src/services/webhookProcessor.server.ts:170:        ? await dispatchBestAgent(connection.organizationId, result.conversationId, null)
+src/services/webhookProcessor.server.ts:178:async function processEvent(event: NormalizedWebhookEvent) {
+src/services/webhookProcessor.server.ts:179:  const connection = await findConnection(event);
+src/services/webhookProcessor.server.ts:189:      await db
+src/services/webhookProcessor.server.ts:207:    await db
+src/services/webhookProcessor.server.ts:221:export async function processWebhookEvents(events: NormalizedWebhookEvent[]) {
+src/services/webhookProcessor.server.ts:225:    const connection = await findConnection(event);
+src/services/webhookProcessor.server.ts:226:    const [stored] = await db
+src/services/webhookProcessor.server.ts:246:      const result = await processEvent(event);
+src/services/webhookProcessor.server.ts:247:      await db
+src/services/webhookProcessor.server.ts:254:      await db
+src/services/flowRuntime.server.ts:63:async function getExecution(executionId: string) {
+src/services/flowRuntime.server.ts:64:  const [execution] = await db
+src/services/flowRuntime.server.ts:73:async function getConversationContext(conversationId: string) {
+src/services/flowRuntime.server.ts:74:  const [row] = await db
+src/services/flowRuntime.server.ts:85:export async function dispatchBestAgent(
+src/services/flowRuntime.server.ts:91:    ? await db
+src/services/flowRuntime.server.ts:102:    : await db
+src/services/flowRuntime.server.ts:111:  const members = await db
+src/services/flowRuntime.server.ts:127:  const loads = await Promise.all(
+src/services/flowRuntime.server.ts:128:    members.map(async (member) => {
+src/services/flowRuntime.server.ts:129:      const [row] = await db
+src/services/flowRuntime.server.ts:147:  const claimed = await db
+src/services/flowRuntime.server.ts:168:async function dispatchMessageEffect(executionId: string, nodeRunId: string, text: string) {
+src/services/flowRuntime.server.ts:169:  const row = await getConversationContext((await getExecution(executionId)).conversationId);
+src/services/flowRuntime.server.ts:171:  const [effect] = await db
+src/services/flowRuntime.server.ts:192:    const result = await getWhatsAppAdapter().sendText(
+src/services/flowRuntime.server.ts:197:    const [message] = await db
+src/services/flowRuntime.server.ts:213:    await db
+src/services/flowRuntime.server.ts:217:    await db
+src/services/flowRuntime.server.ts:223:    await db
+src/services/flowRuntime.server.ts:233:      await enqueueFlowEffect(effect.id);
+src/services/flowRuntime.server.ts:241:async function markExecution(executionId: string, patch: Record<string, unknown>) {
+src/services/flowRuntime.server.ts:242:  await db
+src/services/flowRuntime.server.ts:248:async function runNode(
+src/services/flowRuntime.server.ts:254:  const execution = await getExecution(executionId);
+src/services/flowRuntime.server.ts:256:    await db
+src/services/flowRuntime.server.ts:264:  const [nodeRun] = await db
+src/services/flowRuntime.server.ts:285:    if (text) await dispatchMessageEffect(executionId, nodeRun.id, text);
+src/services/flowRuntime.server.ts:293:      if (text) await dispatchMessageEffect(executionId, nodeRun.id, text);
+src/services/flowRuntime.server.ts:298:    const row = await getConversationContext(execution.conversationId);
+src/services/flowRuntime.server.ts:300:    const [queue] = await db
+src/services/flowRuntime.server.ts:312:      await db
+src/services/flowRuntime.server.ts:318:    const row = await getConversationContext(execution.conversationId);
+src/services/flowRuntime.server.ts:319:    const assignedUserId = await dispatchBestAgent(
+src/services/flowRuntime.server.ts:325:      await db
+src/services/flowRuntime.server.ts:341:    const row = await getConversationContext(execution.conversationId);
+src/services/flowRuntime.server.ts:344:      await db
+src/services/flowRuntime.server.ts:356:  await db
+src/services/flowRuntime.server.ts:363:export async function startOrResumeFlow(
+src/services/flowRuntime.server.ts:368:  const row = await getConversationContext(conversationId);
+src/services/flowRuntime.server.ts:369:  const [existingExecution] = await db
+src/services/flowRuntime.server.ts:393:    const [binding] = await db
+src/services/flowRuntime.server.ts:411:    const createdExecutions = await db
+src/services/flowRuntime.server.ts:424:      const [raceWinner] = await db
+src/services/flowRuntime.server.ts:447:  const [event] = await db
+src/services/flowRuntime.server.ts:461:    await db
+src/services/flowRuntime.server.ts:481:    const result = await runNode(
+src/services/flowRuntime.server.ts:514:  await db
+src/services/flowRuntime.server.ts:527:      await enqueueFlowResume(conversationId, execution.id, waitingUntil);
+src/services/flowRuntime.server.ts:535:export async function resumeFlowAfterTimer(
+src/services/flowRuntime.server.ts:540:  const [execution] = await db
+src/start.ts:5:const errorMiddleware = createMiddleware().server(async ({ next }) => {
+src/start.ts:7:    return await next();
+src/server/auth.server.ts:19:async function resolveUser(
+src/server/auth.server.ts:23:  const [user] = await db
+src/server/auth.server.ts:31:  const membershipsForUser = await db
+src/server/auth.server.ts:54:export async function getCurrentUser(): Promise<AuthUser | null> {
+src/server/auth.server.ts:55:  const session = await getAppSession();
+src/server/auth.server.ts:60:export async function requireUser(): Promise<AuthUser> {
+src/server/auth.server.ts:61:  const user = await getCurrentUser();
+src/server/auth.server.ts:66:export async function requireRole(...allowedRoles: AppRole[]): Promise<AuthUser> {
+src/server/auth.server.ts:67:  const user = await requireUser();
+src/server/auth.server.ts:72:export async function loginUser(emailInput: string, password: string, organizationId?: string) {
+src/server/auth.server.ts:74:  const [user] = await db
+src/server/auth.server.ts:80:  if (!user || !user.isActive || !(await compare(password, user.passwordHash))) {
+src/server/auth.server.ts:84:  const currentUser = await resolveUser(user.id, organizationId);
+src/server/auth.server.ts:87:  const session = await getAppSession();
+src/server/auth.server.ts:88:  await session.update({
+src/server/auth.server.ts:96:export async function logoutUser() {
+src/server/auth.server.ts:97:  const session = await getAppSession();
+src/server/auth.server.ts:98:  await session.clear();
+src/server/auth.server.ts:102:export async function hashPassword(password: string) {
+src/server/audit.server.ts:5:export async function writeAudit(
+src/server/audit.server.ts:14:  await db.insert(auditLogs).values({
+src/functions/channel.functions.ts:51:export const listConnectionsFn = createServerFn({ method: "GET" }).handler(async () => {
+src/functions/channel.functions.ts:52:  const user = await requireUser();
+src/functions/channel.functions.ts:53:  const rows = await db
+src/functions/channel.functions.ts:62:  .handler(async ({ data }) => {
+src/functions/channel.functions.ts:63:    const user = await requireUser();
+src/functions/channel.functions.ts:64:    await assertLicense("whatsapp:connect");
+src/functions/channel.functions.ts:67:    const providerInstance = await adapter.createInstance(data.name);
+src/functions/channel.functions.ts:71:    const [connection] = await db
+src/functions/channel.functions.ts:90:  .handler(async ({ data }) => {
+src/functions/channel.functions.ts:91:    const user = await requireUser();
+src/functions/channel.functions.ts:92:    await assertLicense("whatsapp:connect");
+src/functions/channel.functions.ts:94:    const [connection] = await db
+src/functions/channel.functions.ts:106:    const qr = await getWhatsAppAdapter().getQrCode(connection.providerInstanceId ?? connection.id);
+src/functions/channel.functions.ts:108:    await db
+src/functions/channel.functions.ts:118:  .handler(async ({ data }) => {
+src/functions/channel.functions.ts:119:    const user = await requireUser();
+src/functions/channel.functions.ts:120:    await assertLicense("whatsapp:connect");
+src/functions/channel.functions.ts:122:    const [connection] = await db
+src/functions/channel.functions.ts:134:    await getWhatsAppAdapter().disconnectInstance(connection.providerInstanceId ?? connection.id);
+src/functions/channel.functions.ts:135:    await db
+src/functions/chat.functions.ts:82:export const listConversationsFn = createServerFn({ method: "GET" }).handler(async () => {
+src/functions/chat.functions.ts:83:  const user = await requireUser();
+src/functions/chat.functions.ts:94:  const [rows, unreadRows] = await Promise.all([
+src/functions/chat.functions.ts:137:  .handler(async ({ data }) => {
+src/functions/chat.functions.ts:138:    const user = await requireUser();
+src/functions/chat.functions.ts:139:    const [conversation] = await db
+src/functions/chat.functions.ts:151:    const rows = await db
+src/functions/chat.functions.ts:161:  .handler(async ({ data }) => {
+src/functions/chat.functions.ts:162:    const user = await requireUser();
+src/functions/chat.functions.ts:163:    await assertLicense("whatsapp:send");
+src/functions/chat.functions.ts:165:    const [row] = await db
+src/functions/chat.functions.ts:180:    const [pendingMessage] = await db
+src/functions/chat.functions.ts:197:      const result = await getWhatsAppAdapter().sendText(
+src/functions/chat.functions.ts:202:      const [sentMessage] = await db
+src/functions/chat.functions.ts:211:      await db
+src/functions/chat.functions.ts:222:      await db.update(messages).set({ status: "failed" }).where(eq(messages.id, pendingMessage.id));
+src/functions/assignment.functions.ts:14:export const listQueuesFn = createServerFn({ method: "GET" }).handler(async () => {
+src/functions/assignment.functions.ts:15:  const user = await requireUser();
+src/functions/assignment.functions.ts:16:  const rows = await db
+src/functions/assignment.functions.ts:34:async function assertMember(organizationId: string, userId: string) {
+src/functions/assignment.functions.ts:35:  const [member] = await db
+src/functions/assignment.functions.ts:49:async function getConversation(organizationId: string, conversationId: string) {
+src/functions/assignment.functions.ts:50:  const [conversation] = await db
+src/functions/assignment.functions.ts:63:  .handler(async ({ data }) => {
+src/functions/assignment.functions.ts:64:    const user = await requireUser();
+src/functions/assignment.functions.ts:65:    const [updated] = await db
+src/functions/assignment.functions.ts:86:    await db.insert(assignmentEvents).values({
+src/functions/assignment.functions.ts:95:    await writeAudit(user, {
+src/functions/assignment.functions.ts:107:  .handler(async ({ data }) => {
+src/functions/assignment.functions.ts:108:    const user = await requireUser();
+src/functions/assignment.functions.ts:109:    const conversation = await getConversation(user.organizationId, data.conversationId);
+src/functions/assignment.functions.ts:115:    await db
+src/functions/assignment.functions.ts:126:    await db.insert(assignmentEvents).values({
+src/functions/assignment.functions.ts:135:    await writeAudit(user, {
+src/functions/assignment.functions.ts:147:  .handler(async ({ data }) => {
+src/functions/assignment.functions.ts:148:    const user = await requireUser();
+src/functions/assignment.functions.ts:149:    const conversation = await getConversation(user.organizationId, data.conversationId);
+src/functions/assignment.functions.ts:151:    if (data.assigneeId) await assertMember(user.organizationId, data.assigneeId);
+src/functions/assignment.functions.ts:153:      const [queue] = await db
+src/functions/assignment.functions.ts:167:    const [updated] = await db
+src/functions/assignment.functions.ts:185:    await db.insert(assignmentEvents).values({
+src/functions/assignment.functions.ts:196:    await writeAudit(user, {
+src/functions/assignment.functions.ts:217:  .handler(async ({ data }) => {
+src/functions/assignment.functions.ts:218:    const user = await requireUser();
+src/functions/assignment.functions.ts:219:    const conversation = await getConversation(user.organizationId, data.conversationId);
+src/functions/assignment.functions.ts:225:    await db
+src/functions/assignment.functions.ts:237:    await db.insert(assignmentEvents).values({
+src/functions/assignment.functions.ts:246:    await writeAudit(user, {
+src/functions/assignment.functions.ts:258:  .handler(async ({ data }) => {
+src/functions/assignment.functions.ts:259:    const user = await requireUser();
+src/functions/assignment.functions.ts:260:    const conversation = await getConversation(user.organizationId, data.conversationId);
+src/functions/assignment.functions.ts:268:    await db
+src/functions/flow.functions.ts:94:async function getFlowForOrg(flowId: string, organizationId: string) {
+src/functions/flow.functions.ts:95:  const [flow] = await db
+src/functions/flow.functions.ts:104:async function latestVersion(flowId: string) {
+src/functions/flow.functions.ts:105:  const [version] = await db
+src/functions/flow.functions.ts:114:export const listFlowsFn = createServerFn({ method: "GET" }).handler(async () => {
+src/functions/flow.functions.ts:115:  const user = await requireUser();
+src/functions/flow.functions.ts:116:  const rows = await db
+src/functions/flow.functions.ts:121:  return Promise.all(rows.map(async (flow) => flowDto(flow, await latestVersion(flow.id))));
+src/functions/flow.functions.ts:126:  .handler(async ({ data }) => {
+src/functions/flow.functions.ts:127:    const user = await requireUser();
+src/functions/flow.functions.ts:134:    const [flow] = await db
+src/functions/flow.functions.ts:152:  .handler(async ({ data }) => {
+src/functions/flow.functions.ts:153:    const user = await requireUser();
+src/functions/flow.functions.ts:155:    const [flow] = await db
+src/functions/flow.functions.ts:161:    return flowDto(flow, await latestVersion(flow.id));
+src/functions/flow.functions.ts:166:  .handler(async ({ data }) => {
+src/functions/flow.functions.ts:167:    const user = await requireUser();
+src/functions/flow.functions.ts:168:    const flow = await getFlowForOrg(data.flowId, user.organizationId);
+src/functions/flow.functions.ts:173:    const nextVersion = ((await latestVersion(flow.id)) ?? 0) + 1;
+src/functions/flow.functions.ts:175:    const [version] = await db
+src/functions/flow.functions.ts:189:    const [updated] = await db
+src/functions/flow.functions.ts:205:  .handler(async ({ data }) => {
+src/functions/flow.functions.ts:206:    await requireUser();
+src/functions/flow.functions.ts:231:  .handler(async ({ data }) => {
+src/functions/flow.functions.ts:232:    const user = await requireUser();
+src/functions/flow.functions.ts:233:    const flow = await getFlowForOrg(data.flowId, user.organizationId);
+src/functions/flow.functions.ts:234:    const version = await db
+src/functions/flow.functions.ts:245:    const [connection] = await db
+src/functions/flow.functions.ts:257:    await db.transaction(async (tx) => {
+src/functions/flow.functions.ts:258:      await tx
+src/functions/flow.functions.ts:267:      await tx.insert(flowBindings).values({
+src/functions/metrics.functions.ts:31:export const getMetricsFn = createServerFn({ method: "GET" }).handler(async () => {
+src/functions/metrics.functions.ts:32:  const user = await requireUser();
+src/functions/metrics.functions.ts:48:  ] = await Promise.all([
+src/queue/jobs.server.ts:36:export async function enqueueFlowEffect(effectId: string) {
+src/queue/jobs.server.ts:40:export async function enqueueFlowResume(
+src/queue/worker.server.ts:15:export async function processFlowEffect(effectId: string) {
+src/queue/worker.server.ts:16:  const [effect] = await db
+src/queue/worker.server.ts:29:  const [claimed] = await db
+src/queue/worker.server.ts:38:    const [connection] = await db
+src/queue/worker.server.ts:45:    const result = await getWhatsAppAdapter().sendText(
+src/queue/worker.server.ts:50:    await db
+src/queue/worker.server.ts:65:    await db
+src/queue/worker.server.ts:69:    await db
+src/queue/worker.server.ts:77:    await db
+src/queue/worker.server.ts:92:    async (job) => {
+
+# Parsing e casts
+src/components/connections/ConnectionsView.tsx:190:                              ? ("success" as never)
+src/components/connections/ConnectionsView.tsx:192:                                ? ("warning" as never)
+src/components/ui/accordion.tsx:1:import * as React from "react";
+src/components/ui/accordion.tsx:2:import * as AccordionPrimitive from "@radix-ui/react-accordion";
+src/components/ui/alert-dialog.tsx:1:import * as React from "react";
+src/components/ui/alert-dialog.tsx:2:import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
+src/components/ui/alert.tsx:1:import * as React from "react";
+src/components/ui/aspect-ratio.tsx:1:import * as AspectRatioPrimitive from "@radix-ui/react-aspect-ratio";
+src/components/ui/avatar.tsx:3:import * as React from "react";
+src/components/ui/avatar.tsx:4:import * as AvatarPrimitive from "@radix-ui/react-avatar";
+src/components/ui/badge.tsx:1:import * as React from "react";
+src/components/ui/breadcrumb.tsx:1:import * as React from "react";
+src/components/ui/button.tsx:1:import * as React from "react";
+src/components/ui/calendar.tsx:3:import * as React from "react";
+src/components/ui/card.tsx:1:import * as React from "react";
+src/components/ui/carousel.tsx:1:import * as React from "react";
+src/components/ui/checkbox.tsx:1:import * as React from "react";
+src/components/ui/checkbox.tsx:2:import * as CheckboxPrimitive from "@radix-ui/react-checkbox";
+src/components/ui/collapsible.tsx:3:import * as CollapsiblePrimitive from "@radix-ui/react-collapsible";
+src/components/ui/command.tsx:3:import * as React from "react";
+src/components/ui/command.tsx:5:import { Command as CommandPrimitive } from "cmdk";
+src/components/ui/context-menu.tsx:1:import * as React from "react";
+src/components/ui/context-menu.tsx:2:import * as ContextMenuPrimitive from "@radix-ui/react-context-menu";
+src/components/ui/dialog.tsx:3:import * as React from "react";
+src/components/ui/dialog.tsx:4:import * as DialogPrimitive from "@radix-ui/react-dialog";
+src/components/ui/drawer.tsx:1:import * as React from "react";
+src/components/ui/drawer.tsx:2:import { Drawer as DrawerPrimitive } from "vaul";
+src/components/ui/dropdown-menu.tsx:3:import * as React from "react";
+src/components/ui/dropdown-menu.tsx:4:import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
+src/components/ui/form.tsx:1:import * as React from "react";
+src/components/ui/form.tsx:2:import * as LabelPrimitive from "@radix-ui/react-label";
+src/components/ui/hover-card.tsx:1:import * as React from "react";
+src/components/ui/hover-card.tsx:2:import * as HoverCardPrimitive from "@radix-ui/react-hover-card";
+src/components/ui/input-otp.tsx:1:import * as React from "react";
+src/components/ui/input.tsx:1:import * as React from "react";
+src/components/ui/label.tsx:3:import * as React from "react";
+src/components/ui/label.tsx:4:import * as LabelPrimitive from "@radix-ui/react-label";
+src/components/ui/menubar.tsx:1:import * as React from "react";
+src/components/ui/menubar.tsx:2:import * as MenubarPrimitive from "@radix-ui/react-menubar";
+src/components/ui/navigation-menu.tsx:1:import * as React from "react";
+src/components/ui/navigation-menu.tsx:2:import * as NavigationMenuPrimitive from "@radix-ui/react-navigation-menu";
+src/components/ui/pagination.tsx:1:import * as React from "react";
+src/components/ui/popover.tsx:1:import * as React from "react";
+src/components/ui/popover.tsx:2:import * as PopoverPrimitive from "@radix-ui/react-popover";
+src/components/ui/progress.tsx:3:import * as React from "react";
+src/components/ui/progress.tsx:4:import * as ProgressPrimitive from "@radix-ui/react-progress";
+src/components/ui/radio-group.tsx:1:import * as React from "react";
+src/components/ui/radio-group.tsx:2:import * as RadioGroupPrimitive from "@radix-ui/react-radio-group";
+src/components/ui/scroll-area.tsx:1:import * as React from "react";
+src/components/ui/scroll-area.tsx:2:import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area";
+src/components/ui/select.tsx:3:import * as React from "react";
+src/components/ui/select.tsx:4:import * as SelectPrimitive from "@radix-ui/react-select";
+src/components/ui/separator.tsx:1:import * as React from "react";
+src/components/ui/separator.tsx:2:import * as SeparatorPrimitive from "@radix-ui/react-separator";
+src/components/ui/sheet.tsx:3:import * as React from "react";
+src/components/ui/sheet.tsx:4:import * as SheetPrimitive from "@radix-ui/react-dialog";
+src/components/ui/sidebar.tsx:1:import * as React from "react";
+src/components/ui/sidebar.tsx:135:              } as React.CSSProperties
+src/components/ui/sidebar.tsx:199:              } as React.CSSProperties
+src/components/ui/sidebar.tsx:660:          } as React.CSSProperties
+src/components/ui/slider.tsx:1:import * as React from "react";
+src/components/ui/slider.tsx:2:import * as SliderPrimitive from "@radix-ui/react-slider";
+src/components/ui/sonner.tsx:1:import { Toaster as Sonner } from "sonner";
+src/components/ui/switch.tsx:1:import * as React from "react";
+src/components/ui/switch.tsx:2:import * as SwitchPrimitives from "@radix-ui/react-switch";
+src/components/ui/table.tsx:1:import * as React from "react";
+src/components/ui/tabs.tsx:1:import * as React from "react";
+src/components/ui/tabs.tsx:2:import * as TabsPrimitive from "@radix-ui/react-tabs";
+src/components/ui/textarea.tsx:1:import * as React from "react";
+src/components/ui/toggle-group.tsx:3:import * as React from "react";
+src/components/ui/toggle-group.tsx:4:import * as ToggleGroupPrimitive from "@radix-ui/react-toggle-group";
+src/components/ui/toggle.tsx:1:import * as React from "react";
+src/components/ui/toggle.tsx:2:import * as TogglePrimitive from "@radix-ui/react-toggle";
+src/components/ui/tooltip.tsx:3:import * as React from "react";
+src/components/ui/tooltip.tsx:4:import * as TooltipPrimitive from "@radix-ui/react-tooltip";
+src/components/flows/FlowBuilderView.tsx:41:const nodeKinds = Object.keys(FLOW_NODE_LABELS) as FlowNodeKind[];
+src/components/flows/FlowBuilderView.tsx:61:        {FLOW_NODE_LABELS[type as FlowNodeKind] ?? type}
+src/components/flows/FlowBuilderView.tsx:73:    nodes: graph.nodes as CanvasNode[],
+src/components/flows/FlowBuilderView.tsx:74:    edges: graph.edges as Edge[],
+src/components/flows/FlowBuilderView.tsx:82:      type: (node.type ?? "message") as FlowNodeKind,
+src/components/flows/FlowBuilderView.tsx:137:      const graph = graphToReactFlow(JSON.parse(flowRows[0].draftGraphJson) as FlowGraph);
+src/components/flows/FlowBuilderView.tsx:152:    const graph = graphToReactFlow(JSON.parse(flow.draftGraphJson) as FlowGraph);
+src/components/flows/FlowBuilderView.tsx:168:        data: { name, category: template?.category ?? "custom", graphJson: JSON.stringify(graph) },
+src/components/flows/FlowBuilderView.tsx:186:        data: { flowId: selectedFlowId, graphJson: JSON.stringify(reactFlowToGraph(nodes, edges)) },
+src/components/flows/FlowBuilderView.tsx:232:          graphJson: JSON.stringify(reactFlowToGraph(nodes, edges)),
+src/components/flows/FlowBuilderView.tsx:602:                  {FLOW_NODE_LABELS[selectedNode.type as FlowNodeKind] ?? selectedNode.type}
+src/hooks/use-mobile.tsx:1:import * as React from "react";
+src/lib/error-capture.ts:42:    return JSON.stringify(value) ?? String(value);
+src/lib/error-capture.ts:66:  globalThis.addEventListener("error", (event) => record((event as ErrorEvent).error ?? event));
+src/lib/error-capture.ts:68:    record((event as PromiseRejectionEvent).reason),
+src/routeTree.gen.ts:8:// You should NOT make any changes in this file as it will be overwritten.
+src/routeTree.gen.ts:11:import { Route as rootRouteImport } from './routes/__root'
+src/routeTree.gen.ts:12:import { Route as IndexRouteImport } from './routes/index'
+src/routeTree.gen.ts:13:import { Route as LoginRouteImport } from './routes/login'
+src/routeTree.gen.ts:14:import { Route as ApiHealthRouteImport } from './routes/api/health'
+src/routeTree.gen.ts:15:import { Route as ApiWebhooksWhatsappRouteImport } from './routes/api/webhooks/whatsapp'
+src/routeTree.gen.ts:21:} as any)
+src/routeTree.gen.ts:26:} as any)
+src/routeTree.gen.ts:31:} as any)
+src/routeTree.gen.ts:36:} as any)
+src/routes/index.tsx:87:              onClick={() => setActiveTab(item.id as Tab)}
+src/server.ts:15:      (m) => (m.default ?? m) as ServerEntry,
+src/server.ts:40:    const payload = JSON.parse(body) as { unhandled?: unknown; message?: unknown };
+src/services/license.server.ts:37:      body: JSON.stringify({
+src/services/license.server.ts:54:    return (await response.json()) as LicenseValidation;
+src/services/whatsapp.server.ts:44:  return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+src/services/whatsapp.server.ts:169:      data = text ? JSON.parse(text) : null;
+src/services/whatsapp.server.ts:175:        `WhatsApp provider ${response.status}: ${JSON.stringify(data).slice(0, 500)}`,
+src/services/whatsapp.server.ts:190:      body: JSON.stringify({ instanceName: name, qrcode: true }),
+src/services/whatsapp.server.ts:221:        body: JSON.stringify({ number, text }),
+src/services/webhookProcessor.server.ts:11:      return "read" as const;
+src/services/webhookProcessor.server.ts:13:      return "delivered" as const;
+src/services/webhookProcessor.server.ts:16:      return "sent" as const;
+src/services/webhookProcessor.server.ts:19:      return "failed" as const;
+src/services/webhookProcessor.server.ts:29:      return "connected" as const;
+src/services/webhookProcessor.server.ts:31:      return "connecting" as const;
+src/services/webhookProcessor.server.ts:35:      return "disconnected" as const;
+src/services/webhookProcessor.server.ts:37:      return "error" as const;
+src/services/webhookProcessor.server.ts:68:  if (!phone) return { kind: "ignored" as const, reason: "missing_phone" };
+src/services/webhookProcessor.server.ts:159:      kind: "message" as const,
+src/services/webhookProcessor.server.ts:180:  if (!connection) return { kind: "ignored" as const, reason: "connection_not_found" };
+src/services/webhookProcessor.server.ts:203:    return { kind: "status" as const, status };
+src/services/webhookProcessor.server.ts:215:    return { kind: "connection" as const, status: event.status };
+src/services/webhookProcessor.server.ts:218:  return { kind: "ignored" as const, reason: event.kind };
+src/services/flowRuntime.server.ts:26:  const record = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+src/services/flowRuntime.server.ts:28:    nodes: Array.isArray(record["nodes"]) ? (record["nodes"] as FlowNode[]) : [],
+src/services/flowRuntime.server.ts:29:    edges: Array.isArray(record["edges"]) ? (record["edges"] as FlowEdge[]) : [],
+src/services/flowRuntime.server.ts:47:  if (!match) return [outgoing[0]!.target];
+src/services/flowRuntime.server.ts:49:  const actual = String(context[variable!] ?? "");
+src/services/flowRuntime.server.ts:52:      ? actual.toLowerCase().includes(expected!.toLowerCase())
+src/services/flowRuntime.server.ts:56:  return [labeled?.target ?? outgoing[result ? 0 : Math.min(1, outgoing.length - 1)]!.target];
+src/services/flowRuntime.server.ts:244:    .set(patch as never)
+src/services/flowRuntime.server.ts:406:    if (!binding) return { status: "no_flow" as const };
+src/services/flowRuntime.server.ts:410:    if (!entryNodeId) return { status: "invalid_flow" as const };
+src/services/flowRuntime.server.ts:458:  if (!event) return { status: "duplicate" as const };
+src/services/flowRuntime.server.ts:472:    ...(execution.context as Record<string, unknown>),
+src/services/flowRuntime.server.ts:551:  if (!execution || execution.status !== "waiting_timer") return { status: "skipped" as const };
+src/services/flowRuntime.server.ts:553:    return { status: "not_due" as const };
+src/server/auth.server.ts:81:    return { ok: false as const, error: "E-mail ou senha inválidos" };
+src/server/auth.server.ts:85:  if (!currentUser) return { ok: false as const, error: "Usuário sem organização ativa" };
+src/server/auth.server.ts:93:  return { ok: true as const, user: currentUser };
+src/server/auth.server.ts:99:  return { ok: true as const };
+src/db/client.server.ts:4:import * as schema from "./schema";
+src/db/client.server.ts:15:      ...(env.DATABASE_SSL === "true" ? { ssl: "require" as const } : {}),
+src/functions/channel.functions.ts:140:    return { ok: true as const };
+src/functions/assignment.functions.ts:102:    return { ok: true as const, assigneeId: user.id };
+src/functions/assignment.functions.ts:142:    return { ok: true as const };
+src/functions/assignment.functions.ts:209:      ok: true as const,
+src/functions/assignment.functions.ts:253:    return { ok: true as const };
+src/functions/assignment.functions.ts:273:    return { ok: true as const };
+src/functions/flow.functions.ts:53:  const parsed: unknown = JSON.parse(graphJson);
+src/functions/flow.functions.ts:54:  return graphSchema.parse(parsed) as FlowGraph;
+src/functions/flow.functions.ts:89:    draftGraphJson: JSON.stringify(flow.draftGraph),
+src/functions/flow.functions.ts:169:    const graph = parseGraph(JSON.stringify(flow.draftGraph));
+src/functions/flow.functions.ts:171:    const canonical = JSON.stringify(compiledGraph);
+src/functions/flow.functions.ts:226:    return { ok: true as const, trace, context: serializableContext };
+src/functions/flow.functions.ts:277:      ok: true as const,
+src/queue/worker.server.ts:27:  if (!effect) return { status: "skipped" as const };
+src/queue/worker.server.ts:34:  if (!claimed) return { status: "race_lost" as const };
+src/queue/worker.server.ts:73:    return { status: "completed" as const };
+src/queue/worker.server.ts:101:      return { status: "ignored" as const };
+
+# Estado opcional e coleções
+src/components/chat/ChatList.tsx:12:const tabs: Array<Contact["stage"] | "Todas"> = ["Todas", "Abertas", "Aguardando", "Resolvidas"];
+src/components/chat/ChatList.tsx:15:  const [query, setQuery] = useState("");
+src/components/chat/ChatList.tsx:16:  const [activeTab, setActiveTab] = useState<Contact["stage"] | "Todas">("Abertas");
+src/components/chat/ChatList.tsx:25:  }, [activeTab, contacts, query]);
+src/components/chat/ChatList.tsx:32:        <div className="flex flex-wrap gap-2 text-xs font-medium">{tabs.map((tab) => <button key={tab} onClick={() => setActiveTab(tab)} className={cn("rounded-full px-3 py-1.5 transition-colors", activeTab === tab ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-600 hover:bg-slate-200")}>{tab}</button>)}</div>
+src/components/chat/ChatList.tsx:36:        {filteredContacts.length === 0 ? <div className="p-6 text-center text-sm text-slate-500">Nenhuma conversa neste filtro.</div> : filteredContacts.map((contact) => <div key={contact.id} onClick={() => onSelect(contact)} className={cn("flex cursor-pointer items-center gap-3 border-b border-l-4 p-4 transition-colors", selectedId === contact.id ? "border-l-blue-600 bg-blue-50" : "border-l-transparent hover:bg-slate-50")}>
+src/components/chat/ChatList.tsx:38:          <div className="min-w-0 flex-1"><div className="mb-1 flex items-start justify-between"><span className="truncate font-semibold text-slate-900">{contact.name}</span><span className="whitespace-nowrap text-xs text-slate-400">{contact.lastMessageTime}</span></div><p className="truncate text-sm text-slate-500">{contact.lastMessage}</p><div className="mt-2 flex gap-1">{contact.tags.slice(0, 2).map((tag) => <span key={tag} className="max-w-24 truncate rounded bg-slate-100 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-slate-500">{tag}</span>)}</div></div>
+src/components/chat/ChatList.tsx:39:          {contact.unreadCount > 0 && <div className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">{contact.unreadCount}</div>}
+src/components/chat/ChatMessageArea.tsx:42:  const [text, setText] = useState("");
+src/components/chat/ChatMessageArea.tsx:47:  }, [messages]);
+src/components/chat/ChatMessageArea.tsx:56:    <div className="relative flex h-full flex-1 flex-col bg-[#f0f2f5]">
+src/components/chat/ChatMessageArea.tsx:103:            {queueOptions.map((queue) => (
+src/components/chat/ChatMessageArea.tsx:130:        className="flex-1 space-y-4 overflow-y-auto bg-[#e5ddd5] p-6 scroll-smooth"
+src/components/chat/ChatMessageArea.tsx:139:          messages.map((msg) => (
+src/components/chat/ChatMessageArea.tsx:146:                  "relative max-w-[70%] rounded-xl p-3 shadow-sm",
+src/components/chat/ChatMessageArea.tsx:148:                    ? "rounded-tr-none bg-[#dcf8c6] text-slate-900"
+src/components/chat/ChatMessageArea.tsx:154:                  <span className="text-[10px] text-slate-500">{msg.timestamp}</span>
+src/components/chat/ChatMessageArea.tsx:156:                    <span className="text-[10px] text-blue-500">
+src/components/chat/ContactDetails.tsx:35:          {contact.tags.map(tag => (
+src/components/chat/ContactDetails.tsx:36:            <Badge key={tag} variant="secondary" className="px-2 py-1 text-[10px] uppercase font-bold tracking-wider bg-blue-50 text-blue-700 hover:bg-blue-100 border-none">
+src/components/chat/ContactDetails.tsx:40:          <button className="px-2 py-1 border border-dashed border-slate-300 rounded-md text-[10px] text-slate-500 hover:bg-slate-50">
+src/components/chat/ContactDetails.tsx:56:                <p className="text-[10px] text-slate-400 uppercase font-bold">Setor</p>
+src/components/chat/ContactDetails.tsx:66:                <p className="text-[10px] text-slate-400 uppercase font-bold">Estágio no Funil</p>
+src/components/chat/ContactDetails.tsx:76:                <p className="text-[10px] text-slate-400 uppercase font-bold">Desde</p>
+src/components/connections/ConnectionsView.tsx:37:  const [connections, setConnections] = useState<ConnectionDTO[]>([]);
+src/components/connections/ConnectionsView.tsx:38:  const [loading, setLoading] = useState(false);
+src/components/connections/ConnectionsView.tsx:39:  const [newName, setNewName] = useState("");
+src/components/connections/ConnectionsView.tsx:40:  const [showQrModal, setShowQrModal] = useState(false);
+src/components/connections/ConnectionsView.tsx:41:  const [qrCodeData, setQrCodeData] = useState<string | null>(null);
+src/components/connections/ConnectionsView.tsx:42:  const [qrConnectionName, setQrConnectionName] = useState("");
+src/components/connections/ConnectionsView.tsx:57:    const name = newName.trim() || window.prompt("Nome do número de WhatsApp:")?.trim() || "";
+src/components/connections/ConnectionsView.tsx:63:      setConnections((current) => [connection, ...current]);
+src/components/connections/ConnectionsView.tsx:81:        current.map((item) =>
+src/components/connections/ConnectionsView.tsx:98:        current.map((item) =>
+src/components/connections/ConnectionsView.tsx:172:            connections.map((connection) => (
+src/components/dashboard/ReportsView.tsx:28:const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
+src/components/dashboard/ReportsView.tsx:32:  const [metrics, setMetrics] = useState<MetricsDTO | null>(null);
+src/components/dashboard/ReportsView.tsx:38:  }, [getMetrics]);
+src/components/dashboard/ReportsView.tsx:42:  const queueData = metrics?.byQueue.length ? metrics.byQueue : [{ name: "Sem dados", value: 0 }];
+src/components/dashboard/ReportsView.tsx:43:  const volumeData = [{ name: "Hoje", atendimentos: metrics?.inboundToday ?? 0 }];
+src/components/dashboard/ReportsView.tsx:58:          value={value(metrics?.totalConversations)}
+src/components/dashboard/ReportsView.tsx:64:          value={value(metrics?.queuedConversations)}
+src/components/dashboard/ReportsView.tsx:70:          value={value(metrics?.resolvedToday)}
+src/components/dashboard/ReportsView.tsx:76:          value={value(metrics?.connectedConnections)}
+src/components/dashboard/ReportsView.tsx:85:          value={value(metrics?.waitingOverSla)}
+src/components/dashboard/ReportsView.tsx:86:          tone={metrics?.waitingOverSla ? "danger" : "default"}
+src/components/dashboard/ReportsView.tsx:93:            metrics?.oldestQueuedMinutes && metrics.oldestQueuedMinutes > 15 ? "warning" : "default"
+src/components/dashboard/ReportsView.tsx:99:          value={value(metrics?.onlineAgents)}
+src/components/dashboard/ReportsView.tsx:105:          value={value(metrics?.assignedConversations)}
+src/components/dashboard/ReportsView.tsx:116:            <div className="h-[300px] w-full">
+src/components/dashboard/ReportsView.tsx:123:                  <Bar dataKey="atendimentos" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+src/components/dashboard/ReportsView.tsx:135:            <div className="h-[300px] w-full">
+src/components/dashboard/ReportsView.tsx:147:                    {queueData.map((entry, index) => (
+src/components/dashboard/ReportsView.tsx:148:                      <Cell key={entry.name} fill={COLORS[index % COLORS.length] ?? "#3b82f6"} />
+src/components/dashboard/ReportsView.tsx:155:                {queueData.map((item, index) => (
+src/components/dashboard/ReportsView.tsx:159:                      style={{ backgroundColor: COLORS[index % COLORS.length] }}
+src/components/dashboard/ReportsView.tsx:176:          value={value(metrics?.activeAutomations)}
+src/components/dashboard/ReportsView.tsx:181:          value={value(metrics?.inboundToday)}
+src/components/dashboard/ReportsView.tsx:214:          className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg ${colors[color]}`}
+src/components/kanban/KanbanBoard.tsx:20:        {columns.map(column => (
+src/components/kanban/KanbanBoard.tsx:36:              {contacts.filter(c => c.stage === column.id).map(contact => (
+src/components/kanban/KanbanBoard.tsx:43:                      <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">
+src/components/kanban/KanbanBoard.tsx:58:                    {contact.tags.map(tag => (
+src/components/kanban/KanbanBoard.tsx:59:                      <Badge key={tag} variant="secondary" className="px-2 py-0.5 text-[9px] uppercase font-bold bg-slate-100 text-slate-500 border-none">
+src/components/kanban/KanbanBoard.tsx:65:                  <div className="flex items-center justify-between pt-3 border-t border-slate-50 text-[10px] text-slate-400 font-bold">
+src/components/ui/accordion.tsx:25:        "flex flex-1 items-center justify-between py-4 text-sm font-medium cursor-pointer transition-all hover:underline text-left [&[data-state=open]>svg]:rotate-180",
+src/components/ui/accordion.tsx:43:    className="overflow-hidden text-sm data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"
+src/components/ui/alert-dialog.tsx:19:      "fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+src/components/ui/alert-dialog.tsx:37:        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-lg",
+src/components/ui/alert.tsx:7:  "relative w-full rounded-lg border px-4 py-3 text-sm [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground [&>svg~*]:pl-7",
+src/components/ui/alert.tsx:13:          "border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive",
+src/components/ui/alert.tsx:45:  <div ref={ref} className={cn("text-sm [&_p]:leading-relaxed", className)} {...props} />
+src/components/ui/breadcrumb.tsx:72:    className={cn("[&>svg]:w-3.5 [&>svg]:h-3.5", className)}
+src/components/ui/button.tsx:8:  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+src/components/ui/calendar.tsx:20:  buttonVariant?: React.ComponentProps<typeof Button>["variant"];
+src/components/ui/calendar.tsx:28:        "bg-background group/calendar p-3 [--cell-size:2rem] [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent",
+src/components/ui/calendar.tsx:29:        String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
+src/components/ui/calendar.tsx:30:        String.raw`rtl:**:[.rdp-button\_previous>svg]:rotate-180`,
+src/components/ui/calendar.tsx:65:          "has-focus:border-ring border-input shadow-xs has-focus:ring-ring/50 has-focus:ring-[3px] relative rounded-md border",
+src/components/ui/calendar.tsx:73:            : "[&>svg]:text-muted-foreground flex h-8 items-center gap-1 rounded-md pl-2 pr-1 text-sm [&>svg]:size-3.5",
+src/components/ui/calendar.tsx:79:          "text-muted-foreground flex-1 select-none rounded-md text-[0.8rem] font-normal",
+src/components/ui/calendar.tsx:85:          "text-muted-foreground select-none text-[0.8rem]",
+src/components/ui/calendar.tsx:89:          "group/day relative aspect-square h-full w-full select-none p-0 text-center [&:first-child[data-selected=true]_button]:rounded-l-md [&:last-child[data-selected=true]_button]:rounded-r-md",
+src/components/ui/calendar.tsx:96:          "bg-accent text-accent-foreground rounded-md data-[selected=true]:rounded-none",
+src/components/ui/calendar.tsx:149:    if (modifiers["focused"]) ref.current?.focus();
+src/components/ui/calendar.tsx:150:  }, [modifiers]);
+src/components/ui/calendar.tsx:159:        modifiers["selected"] &&
+src/components/ui/calendar.tsx:160:        !modifiers["range_start"] &&
+src/components/ui/calendar.tsx:161:        !modifiers["range_end"] &&
+src/components/ui/calendar.tsx:162:        !modifiers["range_middle"]
+src/components/ui/calendar.tsx:164:      data-range-start={modifiers["range_start"]}
+src/components/ui/calendar.tsx:165:      data-range-end={modifiers["range_end"]}
+src/components/ui/calendar.tsx:166:      data-range-middle={modifiers["range_middle"]}
+src/components/ui/calendar.tsx:168:        "data-[selected-single=true]:bg-primary data-[selected-single=true]:text-primary-foreground data-[range-middle=true]:bg-accent data-[range-middle=true]:text-accent-foreground data-[range-start=true]:bg-primary data-[range-start=true]:text-primary-foreground data-[range-end=true]:bg-primary data-[range-end=true]:text-primary-foreground group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-ring/50 flex aspect-square h-auto w-full min-w-(--cell-size) flex-col gap-1 font-normal leading-none data-[range-end=true]:rounded-md data-[range-middle=true]:rounded-none data-[range-start=true]:rounded-md group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:ring-[3px] [&>span]:text-xs [&>span]:opacity-70",
+src/components/ui/carousel.tsx:8:type CarouselApi = UseEmblaCarouselType[1];
+src/components/ui/carousel.tsx:10:type CarouselOptions = UseCarouselParameters[0];
+src/components/ui/carousel.tsx:11:type CarouselPlugin = UseCarouselParameters[1];
+src/components/ui/carousel.tsx:21:  carouselRef: ReturnType<typeof useEmblaCarousel>[0];
+src/components/ui/carousel.tsx:22:  api: ReturnType<typeof useEmblaCarousel>[1];
+src/components/ui/carousel.tsx:45:  const [carouselRef, api] = useEmblaCarousel(
+src/components/ui/carousel.tsx:52:  const [canScrollPrev, setCanScrollPrev] = React.useState(false);
+src/components/ui/carousel.tsx:53:  const [canScrollNext, setCanScrollNext] = React.useState(false);
+src/components/ui/carousel.tsx:65:    api?.scrollPrev();
+src/components/ui/carousel.tsx:66:  }, [api]);
+src/components/ui/carousel.tsx:69:    api?.scrollNext();
+src/components/ui/carousel.tsx:70:  }, [api]);
+src/components/ui/carousel.tsx:82:    [scrollPrev, scrollNext],
+src/components/ui/carousel.tsx:91:  }, [api, setApi]);
+src/components/ui/carousel.tsx:103:      api?.off("select", onSelect);
+src/components/ui/carousel.tsx:105:  }, [api, onSelect]);
+src/components/ui/carousel.tsx:113:        orientation: orientation || (opts?.axis === "y" ? "vertical" : "horizontal"),
+src/components/ui/checkbox.tsx:14:      "grid place-content-center peer h-4 w-4 shrink-0 rounded-sm border border-primary shadow cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground",
+src/components/ui/command.tsx:30:        <Command className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
+src/components/ui/command.tsx:63:    className={cn("max-h-[300px] overflow-y-auto overflow-x-hidden", className)}
+src/components/ui/command.tsx:86:      "overflow-hidden p-1 text-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground",
+src/components/ui/command.tsx:114:      "relative flex cursor-default gap-2 select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none data-[disabled=true]:pointer-events-none data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+src/components/ui/context-menu.tsx:28:      "flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground",
+src/components/ui/context-menu.tsx:47:      "z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-(--radix-context-menu-content-transform-origin)",
+src/components/ui/context-menu.tsx:63:        "z-50 max-h-(--radix-context-menu-content-available-height) min-w-[8rem] overflow-y-auto overflow-x-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-(--radix-context-menu-content-transform-origin)",
+src/components/ui/context-menu.tsx:81:      "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+src/components/ui/context-menu.tsx:97:      "relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+src/components/ui/context-menu.tsx:119:      "relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+src/components/ui/dialog.tsx:24:      "fixed inset-0 z-50 bg-black/80  data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+src/components/ui/dialog.tsx:41:        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-lg",
+src/components/ui/dialog.tsx:47:      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background cursor-pointer transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+src/components/ui/drawer.tsx:41:        "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-[10px] border bg-background",
+src/components/ui/drawer.tsx:46:      <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted" />
+src/components/ui/dropdown-menu.tsx:30:      "flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-accent data-[state=open]:bg-accent [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+src/components/ui/dropdown-menu.tsx:49:      "z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-(--radix-dropdown-menu-content-transform-origin)",
+src/components/ui/dropdown-menu.tsx:66:        "z-50 max-h-[var(--radix-dropdown-menu-content-available-height)] min-w-[8rem] overflow-y-auto overflow-x-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md",
+src/components/ui/dropdown-menu.tsx:67:        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-(--radix-dropdown-menu-content-transform-origin)",
+src/components/ui/dropdown-menu.tsx:85:      "relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&>svg]:size-4 [&>svg]:shrink-0",
+src/components/ui/dropdown-menu.tsx:101:      "relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+src/components/ui/dropdown-menu.tsx:123:      "relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+src/components/ui/form.tsx:131:      className={cn("text-[0.8rem] text-muted-foreground", className)}
+src/components/ui/form.tsx:143:  const body = error ? String(error?.message ?? "") : children;
+src/components/ui/form.tsx:153:      className={cn("text-[0.8rem] font-medium text-destructive", className)}
+src/components/ui/hover-card.tsx:19:      "z-50 w-64 rounded-md border bg-popover p-4 text-popover-foreground shadow-md outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-(--radix-hover-card-content-transform-origin)",
+src/components/ui/input-otp.tsx:14:      "flex items-center gap-2 has-[:disabled]:opacity-50",
+src/components/ui/input-otp.tsx:36:  const { char, hasFakeCaret, isActive } = inputOTPContext.slots[index] ?? {
+src/components/ui/menubar.tsx:49:      "flex cursor-default select-none items-center rounded-sm px-3 py-1 text-sm font-medium outline-none focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground",
+src/components/ui/menubar.tsx:66:      "flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground",
+src/components/ui/menubar.tsx:85:      "z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-(--radix-menubar-content-transform-origin)",
+src/components/ui/menubar.tsx:104:        "z-50 min-w-[12rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-(--radix-menubar-content-transform-origin)",
+src/components/ui/menubar.tsx:122:      "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+src/components/ui/menubar.tsx:138:      "relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+src/components/ui/menubar.tsx:160:      "relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+src/components/ui/navigation-menu.tsx:38:  "group inline-flex h-9 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium cursor-pointer transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed data-[state=open]:text-accent-foreground data-[state=open]:bg-accent/50 data-[state=open]:hover:bg-accent data-[state=open]:focus:bg-accent",
+src/components/ui/navigation-menu.tsx:52:      className="relative top-[1px] ml-1 h-3 w-3 transition duration-300 group-data-[state=open]:rotate-180"
+src/components/ui/navigation-menu.tsx:66:      "left-0 top-0 w-full data-[motion^=from-]:animate-in data-[motion^=to-]:animate-out data-[motion^=from-]:fade-in data-[motion^=to-]:fade-out data-[motion=from-end]:slide-in-from-right-52 data-[motion=from-start]:slide-in-from-left-52 data-[motion=to-end]:slide-out-to-right-52 data-[motion=to-start]:slide-out-to-left-52 md:absolute md:w-auto ",
+src/components/ui/navigation-menu.tsx:83:        "origin-top-center relative mt-1.5 h-[var(--radix-navigation-menu-viewport-height)] w-full overflow-hidden rounded-md border bg-popover text-popover-foreground shadow data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-90 md:w-[var(--radix-navigation-menu-viewport-width)]",
+src/components/ui/navigation-menu.tsx:100:      "top-full z-[1] flex h-1.5 items-end justify-center overflow-hidden data-[state=visible]:animate-in data-[state=hidden]:animate-out data-[state=hidden]:fade-out data-[state=visible]:fade-in",
+src/components/ui/navigation-menu.tsx:105:    <div className="relative top-[60%] h-2 w-2 rotate-45 rounded-tl-sm bg-border shadow-md" />
+src/components/ui/popover.tsx:22:        "z-50 w-72 rounded-md border bg-popover p-4 text-popover-foreground shadow-md outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-(--radix-popover-content-transform-origin)",
+src/components/ui/resizable.tsx:8:    className={cn("flex h-full w-full data-[panel-group-direction=vertical]:flex-col", className)}
+src/components/ui/resizable.tsx:24:      "relative flex w-px items-center justify-center bg-border after:absolute after:inset-y-0 after:left-1/2 after:w-1 after:-translate-x-1/2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 data-[panel-group-direction=vertical]:h-px data-[panel-group-direction=vertical]:w-full data-[panel-group-direction=vertical]:after:left-0 data-[panel-group-direction=vertical]:after:h-1 data-[panel-group-direction=vertical]:after:w-full data-[panel-group-direction=vertical]:after:-translate-y-1/2 data-[panel-group-direction=vertical]:after:translate-x-0 [&[data-panel-group-direction=vertical]>div]:rotate-90",
+src/components/ui/scroll-area.tsx:15:    <ScrollAreaPrimitive.Viewport className="h-full w-full rounded-[inherit]">
+src/components/ui/scroll-area.tsx:33:      orientation === "vertical" && "h-full w-2.5 border-l border-l-transparent p-[1px]",
+src/components/ui/scroll-area.tsx:34:      orientation === "horizontal" && "h-2.5 flex-col border-t border-t-transparent p-[1px]",
+src/components/ui/select.tsx:22:      "flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background cursor-pointer data-[placeholder]:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
+src/components/ui/select.tsx:71:        "relative z-50 max-h-(--radix-select-content-available-height) min-w-[8rem] overflow-y-auto overflow-x-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-(--radix-select-content-transform-origin)",
+src/components/ui/select.tsx:73:          "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
+src/components/ui/select.tsx:84:            "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]",
+src/components/ui/select.tsx:114:      "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+src/components/ui/separator.tsx:16:      orientation === "horizontal" ? "h-[1px] w-full" : "h-full w-[1px]",
+src/components/ui/sheet.tsx:24:      "fixed inset-0 z-50 bg-black/80  data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+src/components/ui/sheet.tsx:34:  "fixed z-50 gap-4 bg-background p-6 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 data-[state=open]:animate-in data-[state=closed]:animate-out",
+src/components/ui/sheet.tsx:38:        top: "inset-x-0 top-0 border-b data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
+src/components/ui/sheet.tsx:40:          "inset-x-0 bottom-0 border-t data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
+src/components/ui/sheet.tsx:41:        left: "inset-y-0 left-0 h-full w-3/4 border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
+src/components/ui/sheet.tsx:43:          "inset-y-0 right-0 h-full w-3/4 border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",
+src/components/ui/sheet.tsx:64:      <SheetPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background cursor-pointer transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
+src/components/ui/sidebar.tsx:70:    const [openMobile, setOpenMobile] = React.useState(false);
+src/components/ui/sidebar.tsx:74:    const [_open, _setOpen] = React.useState(defaultOpen);
+src/components/ui/sidebar.tsx:88:      [setOpenProp, open],
+src/components/ui/sidebar.tsx:94:    }, [isMobile, setOpen, setOpenMobile]);
+src/components/ui/sidebar.tsx:107:    }, [toggleSidebar]);
+src/components/ui/sidebar.tsx:123:      [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar],
+src/components/ui/sidebar.tsx:138:              "group/sidebar-wrapper flex min-h-svh w-full has-[[data-variant=inset]]:bg-sidebar",
+src/components/ui/sidebar.tsx:195:            className="w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
+src/components/ui/sidebar.tsx:225:            "relative w-(--sidebar-width) bg-transparent transition-[width] duration-200 ease-linear",
+src/components/ui/sidebar.tsx:226:            "group-data-[collapsible=offcanvas]:w-0",
+src/components/ui/sidebar.tsx:227:            "group-data-[side=right]:rotate-180",
+src/components/ui/sidebar.tsx:229:              ? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4))]"
+src/components/ui/sidebar.tsx:230:              : "group-data-[collapsible=icon]:w-(--sidebar-width-icon)",
+src/components/ui/sidebar.tsx:235:            "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex",
+src/components/ui/sidebar.tsx:237:              ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
+src/components/ui/sidebar.tsx:238:              : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
+src/components/ui/sidebar.tsx:241:              ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4)_+2px)]"
+src/components/ui/sidebar.tsx:242:              : "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l",
+src/components/ui/sidebar.tsx:249:            className="flex h-full w-full flex-col bg-sidebar group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow"
+src/components/ui/sidebar.tsx:274:        onClick?.(event);
+src/components/ui/sidebar.tsx:299:          "absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] hover:after:bg-sidebar-border group-data-[side=left]:-right-4 group-data-[side=right]:left-0 sm:flex",
+src/components/ui/sidebar.tsx:300:          "[[data-side=left]_&]:cursor-w-resize [[data-side=right]_&]:cursor-e-resize",
+src/components/ui/sidebar.tsx:301:          "[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize",
+src/components/ui/sidebar.tsx:302:          "group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full group-data-[collapsible=offcanvas]:hover:bg-sidebar",
+src/components/ui/sidebar.tsx:303:          "[[data-side=left][data-collapsible=offcanvas]_&]:-right-2",
+src/components/ui/sidebar.tsx:304:          "[[data-side=right][data-collapsible=offcanvas]_&]:-left-2",
+src/components/ui/sidebar.tsx:321:          "md:peer-data-[variant=inset]:m-2 md:peer-data-[state=collapsed]:peer-data-[variant=inset]:ml-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow",
+src/components/ui/sidebar.tsx:399:          "flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden",
+src/components/ui/sidebar.tsx:434:        "flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium text-sidebar-foreground/70 outline-none ring-sidebar-ring transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
+src/components/ui/sidebar.tsx:435:        "group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0",
+src/components/ui/sidebar.tsx:455:        "absolute right-3 top-3.5 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground outline-none ring-sidebar-ring cursor-pointer transition-transform hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
+src/components/ui/sidebar.tsx:458:        "group-data-[collapsible=icon]:hidden",
+src/components/ui/sidebar.tsx:504:  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring cursor-pointer transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
+src/components/ui/sidebar.tsx:510:          "bg-background shadow-[0_0_0_1px_var(--sidebar-border)] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_var(--sidebar-accent)]",
+src/components/ui/sidebar.tsx:515:        lg: "h-12 text-sm group-data-[collapsible=icon]:!p-0",
+src/components/ui/sidebar.tsx:598:        "absolute right-1 top-1.5 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground outline-none ring-sidebar-ring cursor-pointer transition-transform hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 peer-hover/menu-button:text-sidebar-accent-foreground [&>svg]:size-4 [&>svg]:shrink-0",
+src/components/ui/sidebar.tsx:601:        "peer-data-[size=sm]/menu-button:top-1",
+src/components/ui/sidebar.tsx:602:        "peer-data-[size=default]/menu-button:top-1.5",
+src/components/ui/sidebar.tsx:603:        "peer-data-[size=lg]/menu-button:top-2.5",
+src/components/ui/sidebar.tsx:604:        "group-data-[collapsible=icon]:hidden",
+src/components/ui/sidebar.tsx:606:          "group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 peer-data-[active=true]/menu-button:text-sidebar-accent-foreground md:opacity-0",
+src/components/ui/sidebar.tsx:622:        "peer-hover/menu-button:text-sidebar-accent-foreground peer-data-[active=true]/menu-button:text-sidebar-accent-foreground",
+src/components/ui/sidebar.tsx:623:        "peer-data-[size=sm]/menu-button:top-1",
+src/components/ui/sidebar.tsx:624:        "peer-data-[size=default]/menu-button:top-1.5",
+src/components/ui/sidebar.tsx:625:        "peer-data-[size=lg]/menu-button:top-2.5",
+src/components/ui/sidebar.tsx:626:        "group-data-[collapsible=icon]:hidden",
+src/components/ui/sidebar.tsx:675:        "group-data-[collapsible=icon]:hidden",
+src/components/ui/sidebar.tsx:706:        "flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-sidebar-foreground outline-none ring-sidebar-ring cursor-pointer hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-sidebar-accent-foreground",
+src/components/ui/sidebar.tsx:707:        "data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground",
+src/components/ui/sidebar.tsx:710:        "group-data-[collapsible=icon]:hidden",
+src/components/ui/sonner.tsx:12:            "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg",
+src/components/ui/sonner.tsx:13:          description: "group-[.toast]:text-muted-foreground",
+src/components/ui/sonner.tsx:14:          actionButton: "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
+src/components/ui/sonner.tsx:15:          cancelButton: "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
+src/components/ui/switch.tsx:12:      "peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input",
+src/components/ui/switch.tsx:20:        "pointer-events-none block h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0",
+src/components/ui/table.tsx:18:  <thead ref={ref} className={cn("[&_tr]:border-b", className)} {...props} />
+src/components/ui/table.tsx:26:  <tbody ref={ref} className={cn("[&_tr:last-child]:border-0", className)} {...props} />
+src/components/ui/table.tsx:36:    className={cn("border-t bg-muted/50 font-medium [&>tr]:last:border-b-0", className)}
+src/components/ui/table.tsx:47:        "border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
+src/components/ui/table.tsx:63:      "h-10 px-2 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+src/components/ui/table.tsx:78:      "p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+src/components/ui/tabs.tsx:30:      "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow",
+src/components/ui/textarea.tsx:10:          "flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+src/components/ui/toggle.tsx:8:  "inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium cursor-pointer transition-colors hover:bg-muted hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed data-[state=on]:bg-accent data-[state=on]:text-accent-foreground [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+src/components/ui/tooltip.tsx:23:        "z-50 overflow-hidden rounded-md bg-primary px-3 py-1.5 text-xs text-primary-foreground animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-(--radix-tooltip-content-transform-origin)",
+src/components/flows/FlowBuilderView.tsx:60:      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+src/components/flows/FlowBuilderView.tsx:61:        {FLOW_NODE_LABELS[type as FlowNodeKind] ?? type}
+src/components/flows/FlowBuilderView.tsx:69:const nodeTypes = Object.fromEntries(nodeKinds.map((kind) => [kind, AutomationNode]));
+src/components/flows/FlowBuilderView.tsx:80:    nodes: nodes.map((node) => ({
+src/components/flows/FlowBuilderView.tsx:86:    edges: edges.map((edge) => ({
+src/components/flows/FlowBuilderView.tsx:103:  const [flows, setFlows] = useState<FlowDTO[]>([]);
+src/components/flows/FlowBuilderView.tsx:104:  const [connections, setConnections] = useState<ConnectionDTO[]>([]);
+src/components/flows/FlowBuilderView.tsx:105:  const [selectedFlowId, setSelectedFlowId] = useState<string | null>(null);
+src/components/flows/FlowBuilderView.tsx:106:  const [nodes, setNodes, onNodesChange] = useNodesState<CanvasNode>([]);
+src/components/flows/FlowBuilderView.tsx:107:  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+src/components/flows/FlowBuilderView.tsx:108:  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+src/components/flows/FlowBuilderView.tsx:109:  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+src/components/flows/FlowBuilderView.tsx:110:  const [newFlowName, setNewFlowName] = useState("");
+src/components/flows/FlowBuilderView.tsx:111:  const [selectedTemplateId, setSelectedTemplateId] = useState("vendas");
+src/components/flows/FlowBuilderView.tsx:112:  const [selectedConnectionId, setSelectedConnectionId] = useState("");
+src/components/flows/FlowBuilderView.tsx:113:  const [saving, setSaving] = useState(false);
+src/components/flows/FlowBuilderView.tsx:114:  const [simulationOutput, setSimulationOutput] = useState<string[]>([]);
+src/components/flows/FlowBuilderView.tsx:115:  const [simulationInput, setSimulationInput] = useState("Olá, quero saber mais");
+src/components/flows/FlowBuilderView.tsx:118:    () => flows.find((flow) => flow.id === selectedFlowId) ?? null,
+src/components/flows/FlowBuilderView.tsx:119:    [flows, selectedFlowId],
+src/components/flows/FlowBuilderView.tsx:122:    () => nodes.find((node) => node.id === selectedNodeId) ?? null,
+src/components/flows/FlowBuilderView.tsx:123:    [nodes, selectedNodeId],
+src/components/flows/FlowBuilderView.tsx:126:    () => edges.find((edge) => edge.id === selectedEdgeId) ?? null,
+src/components/flows/FlowBuilderView.tsx:127:    [edges, selectedEdgeId],
+src/components/flows/FlowBuilderView.tsx:131:    const [flowRows, connectionRows] = await Promise.all([listFlows(), listConnections()]);
+src/components/flows/FlowBuilderView.tsx:134:    setSelectedConnectionId((current) => current || connectionRows[0]?.id || "");
+src/components/flows/FlowBuilderView.tsx:135:    if (flowRows[0] && !selectedFlowId) {
+src/components/flows/FlowBuilderView.tsx:136:      setSelectedFlowId(flowRows[0].id);
+src/components/flows/FlowBuilderView.tsx:137:      const graph = graphToReactFlow(JSON.parse(flowRows[0].draftGraphJson) as FlowGraph);
+src/components/flows/FlowBuilderView.tsx:141:  }, [listConnections, listFlows, selectedFlowId, setEdges, setNodes]);
+src/components/flows/FlowBuilderView.tsx:147:  }, [load]);
+src/components/flows/FlowBuilderView.tsx:165:      const template = FLOW_TEMPLATES.find((item) => item.id === selectedTemplateId);
+src/components/flows/FlowBuilderView.tsx:166:      const graph = template?.graph ?? starterFlowGraph();
+src/components/flows/FlowBuilderView.tsx:168:        data: { name, category: template?.category ?? "custom", graphJson: JSON.stringify(graph) },
+src/components/flows/FlowBuilderView.tsx:170:      setFlows((current) => [flow, ...current]);
+src/components/flows/FlowBuilderView.tsx:188:      setFlows((current) => current.map((item) => (item.id === flow.id ? flow : item)));
+src/components/flows/FlowBuilderView.tsx:203:      setFlows((current) => current.map((item) => (item.id === flow.id ? flow : item)));
+src/components/flows/FlowBuilderView.tsx:236:      setSimulationOutput(result.trace.map((item) => `${item.type}: ${item.label}`));
+src/components/flows/FlowBuilderView.tsx:247:    [setEdges],
+src/components/flows/FlowBuilderView.tsx:258:        data: { label: FLOW_NODE_LABELS[kind] },
+src/components/flows/FlowBuilderView.tsx:266:      current.map((node) =>
+src/components/flows/FlowBuilderView.tsx:275:      current.map((edge) => (edge.id === selectedEdgeId ? { ...edge, label } : edge)),
+src/components/flows/FlowBuilderView.tsx:280:    <div className="flex h-full min-h-[680px] flex-col bg-slate-50">
+src/components/flows/FlowBuilderView.tsx:298:            {connections.map((connection) => (
+src/components/flows/FlowBuilderView.tsx:367:              {FLOW_TEMPLATES.map((template) => (
+src/components/flows/FlowBuilderView.tsx:383:            {flows.map((flow) => (
+src/components/flows/FlowBuilderView.tsx:390:                <p className="mt-1 text-[10px] uppercase tracking-wider text-slate-400">
+src/components/flows/FlowBuilderView.tsx:450:                {simulationOutput.map((item, index) => (
+src/components/flows/FlowBuilderView.tsx:460:            <div className="absolute bottom-4 left-4 flex max-w-[calc(100%-2rem)] gap-2 overflow-x-auto rounded-xl border bg-white/95 p-2 shadow-lg backdrop-blur">
+src/components/flows/FlowBuilderView.tsx:461:              {nodeKinds.map((kind) => (
+src/components/flows/FlowBuilderView.tsx:467:                  + {FLOW_NODE_LABELS[kind]}
+src/components/flows/FlowBuilderView.tsx:503:                <p className="mt-1 text-[10px] text-slate-400">
+src/components/flows/FlowBuilderView.tsx:556:                  <p className="mt-1 text-[10px] text-slate-400">
+src/components/flows/FlowBuilderView.tsx:602:                  {FLOW_NODE_LABELS[selectedNode.type as FlowNodeKind] ?? selectedNode.type}
+src/hooks/use-mobile.tsx:6:  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined);
+src/hooks/useChat.ts:23:  const stage: Contact["stage"] =
+src/hooks/useChat.ts:41:    tags: [conversation.connectionName, ...(conversation.queueName ? [conversation.queueName] : []), conversation.automationPaused ? "HUMANO" : "AUTOMAÇÃO"],
+src/hooks/useChat.ts:48:  const type: Message["type"] =
+src/hooks/useChat.ts:74:  const [conversations, setConversations] = useState<ConversationDTO[]>([]);
+src/hooks/useChat.ts:75:  const [queues, setQueues] = useState<QueueDTO[]>([]);
+src/hooks/useChat.ts:76:  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+src/hooks/useChat.ts:77:  const [messagesByConversation, setMessagesByConversation] = useState<Record<string, Message[]>>(
+src/hooks/useChat.ts:86:      const fresh = rows.find((row) => row.id === current.id);
+src/hooks/useChat.ts:89:  }, [listConversations]);
+src/hooks/useChat.ts:96:        [conversationId]: rows.map(toMessage),
+src/hooks/useChat.ts:99:    [listMessages],
+src/hooks/useChat.ts:111:  }, [listQueues, loadConversations]);
+src/hooks/useChat.ts:118:    [loadConversations, transferConversationRpc],
+src/hooks/useChat.ts:123:  }, [loadMessages, selectedContact]);
+src/hooks/useChat.ts:125:  const contacts = useMemo(() => conversations.map(toContact), [conversations]);
+src/hooks/useChat.ts:132:    [loadMessages],
+src/hooks/useChat.ts:140:        [conversationId]: [...(current[conversationId] ?? []), toMessage(sent)],
+src/hooks/useChat.ts:144:    [loadConversations, sendMessageRpc],
+src/hooks/useChat.ts:152:    [claimConversationRpc, loadConversations],
+src/hooks/useChat.ts:160:    [loadConversations, releaseConversationRpc],
+src/hooks/useChat.ts:168:    [loadConversations, resolveConversationRpc],
+src/hooks/useChat.ts:176:    [loadConversations, resumeAutomationRpc],
+src/hooks/useChat.ts:182:    messages: selectedContact ? (messagesByConversation[selectedContact.id] ?? []) : [],
+src/lib/error-capture.ts:57:  const expanded = args.map((arg) => {
+src/lib/lovable-error-reporting.ts:28:  window.__lovableEvents?.captureException?.(
+src/lib/lovable-error-reporting.ts:45:  // opaque "[object Response]", so pull out the status and URL instead.
+src/lib/lovable-error-reporting.ts:53:  window.__lovableReportRuntimeError?.({
+src/lib/mocks/chatMocks.ts:12:    tags: ['Lead', 'Interessado'],
+src/lib/mocks/chatMocks.ts:24:    tags: ['Suporte', 'Urgente'],
+src/routes/__root.tsx:42:  }, [error]);
+src/routes/index.tsx:54:  const [activeTab, setActiveTab] = useState<Tab>("Atendimento");
+src/routes/index.tsx:55:  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+src/routes/index.tsx:56:  const [crmContacts, setCrmContacts] = useState(contacts);
+src/routes/index.tsx:84:          {menuItems.map((item) => (
+src/routes/index.tsx:131:            <div className="flex items-center px-3 py-1 rounded-full bg-green-50 text-green-700 text-[10px] font-bold uppercase tracking-wider gap-2">
+src/routes/index.tsx:158:                <p className="text-[10px] text-slate-400 font-medium">Administrador</p>
+src/routes/index.tsx:183:                selectedId={selectedContact?.id}
+src/routes/index.tsx:222:                        <p className="text-[10px] text-slate-400 uppercase font-bold">Aguardando</p>
+src/routes/index.tsx:231:                        <p className="text-[10px] text-slate-400 uppercase font-bold">
+src/routes/api/webhooks/whatsapp.ts:13:    request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+src/routes/login.tsx:15:  const [email, setEmail] = useState("");
+src/routes/login.tsx:16:  const [password, setPassword] = useState("");
+src/routes/login.tsx:17:  const [error, setError] = useState("");
+src/routes/login.tsx:18:  const [loading, setLoading] = useState(false);
+src/services/evolutionApi.ts:15:    console.log(`[EvolutionAPI] Criando instância: ${name}`);
+src/services/evolutionApi.ts:26:    console.log(`[EvolutionAPI] Obtendo QR Code para: ${instanceId}`);
+src/services/evolutionApi.ts:35:    console.log(`[EvolutionAPI] Enviando mensagem via ${instanceId}:`, payload);
+src/services/evolutionApi.ts:41:    console.log(`[EvolutionAPI] Desconectando: ${instanceId}`);
+src/services/whatsapp.server.ts:57:  const nested = asRecord(raw["instance"]);
+src/services/whatsapp.server.ts:59:    stringValue(raw["instanceId"]) ??
+src/services/whatsapp.server.ts:60:    stringValue(raw["instance_id"]) ??
+src/services/whatsapp.server.ts:61:    stringValue(nested["instanceId"]) ??
+src/services/whatsapp.server.ts:62:    stringValue(raw["id"]) ??
+src/services/whatsapp.server.ts:63:    stringValue(raw["name"]) ??
+src/services/whatsapp.server.ts:66:    stringValue(raw["instanceName"]) ??
+src/services/whatsapp.server.ts:67:    stringValue(raw["instance_name"]) ??
+src/services/whatsapp.server.ts:68:    stringValue(nested["instanceName"]) ??
+src/services/whatsapp.server.ts:69:    stringValue(raw["name"]) ??
+src/services/whatsapp.server.ts:72:    stringValue(raw["status"]) ?? stringValue(raw["state"]) ?? stringValue(raw["connectionStatus"]);
+src/services/whatsapp.server.ts:73:  const status: ProviderInstance["status"] =
+src/services/whatsapp.server.ts:82:    stringValue(raw["owner"]) ?? stringValue(raw["phone"]) ?? stringValue(raw["number"]);
+src/services/whatsapp.server.ts:98:    return [...this.instances.values()];
+src/services/whatsapp.server.ts:130:        ...(stringValue(raw["instance"])
+src/services/whatsapp.server.ts:131:          ? { providerInstanceId: stringValue(raw["instance"]) }
+src/services/whatsapp.server.ts:133:        externalEventId: stringValue(raw["id"]) ?? `stub-${crypto.randomUUID()}`,
+src/services/whatsapp.server.ts:134:        eventType: stringValue(raw["event"]) ?? "STUB_EVENT",
+src/services/whatsapp.server.ts:156:    const headers = new Headers(init?.headers);
+src/services/whatsapp.server.ts:183:    const raw = Array.isArray(response) ? response : responseRecord["instances"];
+src/services/whatsapp.server.ts:184:    return (Array.isArray(raw) ? raw : []).map(extractInstance);
+src/services/whatsapp.server.ts:199:    const nested = asRecord(response["qrcode"] ?? response["qr"] ?? response["data"]);
+src/services/whatsapp.server.ts:201:      stringValue(response["base64"]) ??
+src/services/whatsapp.server.ts:202:      stringValue(response["qrCode"]) ??
+src/services/whatsapp.server.ts:203:      stringValue(nested["base64"]) ??
+src/services/whatsapp.server.ts:204:      stringValue(nested["qrcode"]);
+src/services/whatsapp.server.ts:205:    const code = stringValue(response["code"]) ?? stringValue(nested["code"]) ?? "";
+src/services/whatsapp.server.ts:225:    const key = asRecord(raw["key"]);
+src/services/whatsapp.server.ts:226:    const externalId = stringValue(key["id"]) ?? stringValue(raw["id"]);
+src/services/whatsapp.server.ts:235:    const event = stringValue(raw["event"]) ?? stringValue(raw["type"]) ?? "UNKNOWN";
+src/services/whatsapp.server.ts:236:    const data = asRecord(raw["data"] ?? raw);
+src/services/whatsapp.server.ts:237:    const key = asRecord(data["key"]);
+src/services/whatsapp.server.ts:238:    const message = asRecord(data["message"]);
+src/services/whatsapp.server.ts:239:    const remoteJid = stringValue(key["remoteJid"]) ?? stringValue(raw["sender"]);
+src/services/whatsapp.server.ts:240:    const phone = remoteJid?.split("@")[0];
+src/services/whatsapp.server.ts:241:    const externalMessageId = stringValue(key["id"]) ?? stringValue(data["id"]);
+src/services/whatsapp.server.ts:242:    const fromMe = key["fromMe"] === true;
+src/services/whatsapp.server.ts:243:    const timestampValue = data["messageTimestamp"] ?? raw["timestamp"];
+src/services/whatsapp.server.ts:248:    const conversation = asRecord(message["conversation"]);
+src/services/whatsapp.server.ts:249:    const extendedText = asRecord(message["extendedTextMessage"]);
+src/services/whatsapp.server.ts:250:    const image = asRecord(message["imageMessage"]);
+src/services/whatsapp.server.ts:251:    const video = asRecord(message["videoMessage"]);
+src/services/whatsapp.server.ts:253:      stringValue(conversation["body"]) ??
+src/services/whatsapp.server.ts:254:      stringValue(message["conversation"]) ??
+src/services/whatsapp.server.ts:255:      stringValue(extendedText["text"]) ??
+src/services/whatsapp.server.ts:256:      stringValue(image["caption"]) ??
+src/services/whatsapp.server.ts:257:      stringValue(video["caption"]);
+src/services/whatsapp.server.ts:258:    const providerInstanceId = stringValue(raw["instance"]) ?? stringValue(data["instance"]);
+src/services/whatsapp.server.ts:261:      stringValue(raw["id"]) ??
+src/services/whatsapp.server.ts:262:      stringValue(raw["date_time"]) ??
+src/services/whatsapp.server.ts:270:      ...(stringValue(data["pushName"]) ? { name: stringValue(data["pushName"]) } : {}),
+src/services/whatsapp.server.ts:272:      ...(stringValue(data["messageType"])
+src/services/whatsapp.server.ts:273:        ? { messageType: stringValue(data["messageType"]) }
+src/services/whatsapp.server.ts:286:      return [{ ...base, kind: "incoming_message" }];
+src/services/whatsapp.server.ts:289:      const statusRecord = Array.isArray(raw["data"]) ? asRecord(raw["data"][0]) : data;
+src/services/whatsapp.server.ts:290:      const status = stringValue(statusRecord["status"]);
+src/services/whatsapp.server.ts:291:      return [{ ...base, kind: "message_status", ...(status ? { status } : {}) }];
+src/services/whatsapp.server.ts:298:      const status = stringValue(data["state"]) ?? stringValue(data["status"]);
+src/services/whatsapp.server.ts:299:      return [{ ...base, kind: "connection_update", ...(status ? { status } : {}) }];
+src/services/whatsapp.server.ts:302:      return [{ ...base, kind: "qrcode_updated" }];
+src/services/whatsapp.server.ts:304:    return [{ ...base, kind: "unknown" }];
+src/services/webhookProcessor.server.ts:9:  switch (value?.toLowerCase()) {
+src/services/webhookProcessor.server.ts:26:  switch (value?.toLowerCase()) {
+src/services/webhookProcessor.server.ts:60:  return matches[0] ?? null;
+src/services/webhookProcessor.server.ts:78:      existingContact[0] ??
+src/services/webhookProcessor.server.ts:89:      )[0];
+src/services/webhookProcessor.server.ts:108:          notInArray(conversations.status, ["resolved", "closed"]),
+src/services/webhookProcessor.server.ts:115:      openConversations[0] ??
+src/services/webhookProcessor.server.ts:127:      )[0];
+src/services/webhookProcessor.server.ts:161:      messageId: inserted[0]?.id,
+src/services/webhookProcessor.server.ts:226:    const [stored] = await db
+src/services/webhookProcessor.server.ts:229:        organizationId: connection?.organizationId,
+src/services/webhookProcessor.server.ts:230:        channelConnectionId: connection?.id,
+src/services/flowRuntime.server.ts:28:    nodes: Array.isArray(record["nodes"]) ? (record["nodes"] as FlowNode[]) : [],
+src/services/flowRuntime.server.ts:29:    edges: Array.isArray(record["edges"]) ? (record["edges"] as FlowEdge[]) : [],
+src/services/flowRuntime.server.ts:30:    entryNodeId: typeof record["entryNodeId"] === "string" ? record["entryNodeId"] : undefined,
+src/services/flowRuntime.server.ts:41:  const node = graph.nodes.find((item) => item.id === nodeId);
+src/services/flowRuntime.server.ts:42:  if (node?.type !== "condition") return outgoing.map((edge) => edge.target);
+src/services/flowRuntime.server.ts:46:  const match = condition.match(/^([\w.-]+)\s*(===|==|contains)\s*["']?([^"']+)["']?$/i);
+src/services/flowRuntime.server.ts:47:  if (!match) return [outgoing[0]!.target];
+src/services/flowRuntime.server.ts:48:  const [, variable, operator, expected] = match;
+src/services/flowRuntime.server.ts:49:  const actual = String(context[variable!] ?? "");
+src/services/flowRuntime.server.ts:51:    operator?.toLowerCase() === "contains"
+src/services/flowRuntime.server.ts:55:  const labeled = outgoing.find((edge) => String(edge.label ?? "").toLowerCase() === label);
+src/services/flowRuntime.server.ts:56:  return [labeled?.target ?? outgoing[result ? 0 : Math.min(1, outgoing.length - 1)]!.target];
+src/services/flowRuntime.server.ts:60:  return data.text?.trim();
+src/services/flowRuntime.server.ts:64:  const [execution] = await db
+src/services/flowRuntime.server.ts:74:  const [row] = await db
+src/services/flowRuntime.server.ts:108:  const queue = candidateQueues[0];
+src/services/flowRuntime.server.ts:128:    members.map(async (member) => {
+src/services/flowRuntime.server.ts:129:      const [row] = await db
+src/services/flowRuntime.server.ts:136:            inArray(conversations.status, ["in_progress", "waiting_customer"]),
+src/services/flowRuntime.server.ts:139:      return { ...member, load: Number(row?.value ?? 0) };
+src/services/flowRuntime.server.ts:144:    .sort((left, right) => left.load - right.load)[0];
+src/services/flowRuntime.server.ts:165:  return claimed[0]?.id ? eligible.userId : null;
+src/services/flowRuntime.server.ts:171:  const [effect] = await db
+src/services/flowRuntime.server.ts:197:    const [message] = await db
+src/services/flowRuntime.server.ts:262:  )[0];
+src/services/flowRuntime.server.ts:264:  const [nodeRun] = await db
+src/services/flowRuntime.server.ts:289:      nextContext = { ...context, [data.variable ?? node.id]: inputText, lastInput: inputText };
+src/services/flowRuntime.server.ts:300:    const [queue] = await db
+src/services/flowRuntime.server.ts:316:    output = { queueId: queue?.id ?? null };
+src/services/flowRuntime.server.ts:342:    const tag = data.tag?.trim();
+src/services/flowRuntime.server.ts:346:        .set({ tags: [...row.contact.tags, tag], updatedAt: new Date() })
+src/services/flowRuntime.server.ts:369:  const [existingExecution] = await db
+src/services/flowRuntime.server.ts:389:  if (execution?.status === "handoff" || execution?.status === "paused_by_human")
+src/services/flowRuntime.server.ts:393:    const [binding] = await db
+src/services/flowRuntime.server.ts:409:      graph.entryNodeId ?? graph.nodes.find((node) => node.type === "trigger")?.id;
+src/services/flowRuntime.server.ts:422:    execution = createdExecutions[0];
+src/services/flowRuntime.server.ts:424:      const [raceWinner] = await db
+src/services/flowRuntime.server.ts:447:  const [event] = await db
+src/services/flowRuntime.server.ts:466:  )[0];
+src/services/flowRuntime.server.ts:469:  const nodes = new Map(graph.nodes.map((node) => [node.id, node]));
+src/services/flowRuntime.server.ts:496:        const next = nextNodes(graph, node.id, context)[0];
+src/services/flowRuntime.server.ts:506:    const next = nextNodes(graph, node.id, context)[0];
+src/services/flowRuntime.server.ts:540:  const [execution] = await db
+src/start.ts:28:  requestMiddleware: [errorMiddleware, csrfMiddleware],
+src/server/env.server.ts:4:  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+src/server/env.server.ts:8:  DATABASE_SSL: z.enum(["true", "false"]).default("false"),
+src/server/env.server.ts:15:  WHATSAPP_PROVIDER: z.enum(["stub", "evolution", "custom"]).default("stub"),
+src/server/env.server.ts:33:  const nodeEnv = process.env["NODE_ENV"] ?? "development";
+src/server/auth.server.ts:23:  const [user] = await db
+src/server/auth.server.ts:42:    membershipsForUser.find((item) => item.organizationId === preferredOrganizationId) ??
+src/server/auth.server.ts:43:    membershipsForUser[0];
+src/server/auth.server.ts:74:  const [user] = await db
+src/server/audit.server.ts:15:    organizationId: user?.organizationId,
+src/server/audit.server.ts:16:    actorUserId: user?.id,
+src/db/schema.ts:48:export const messageDirectionEnum = pgEnum("message_direction", ["inbound", "outbound", "system"]);
+src/db/schema.ts:59:export const flowStatusEnum = pgEnum("flow_status", ["draft", "published", "paused", "archived"]);
+src/db/schema.ts:92:  (table) => [uniqueIndex("organizations_slug_uq").on(table.slug)],
+src/db/schema.ts:106:  (table) => [uniqueIndex("users_email_uq").on(table.email)],
+src/db/schema.ts:125:    primaryKey({ columns: [table.organizationId, table.userId] }),
+src/db/schema.ts:173:  (table) => [uniqueIndex("queues_org_slug_uq").on(table.organizationId, table.slug)],
+src/db/schema.ts:195:    primaryKey({ columns: [table.queueId, table.userId] }),
+src/db/schema.ts:352:  (table) => [uniqueIndex("flows_org_slug_uq").on(table.organizationId, table.slug)],
+src/db/schema.ts:567:  (table) => [index("audit_logs_org_time_idx").on(table.organizationId, table.createdAt)],
+src/db/client.server.ts:13:      max: Number(process.env["DATABASE_POOL_MAX"] ?? 10),
+src/functions/channel.functions.ts:36:    connectedAt: connection.connectedAt?.toISOString() ?? null,
+src/functions/channel.functions.ts:37:    lastSeenAt: connection.lastSeenAt?.toISOString() ?? null,
+src/functions/channel.functions.ts:44:    .replace(/[\u0300-\u036f]/g, "")
+src/functions/channel.functions.ts:46:    .replace(/[^a-z0-9]+/g, "-")
+src/functions/channel.functions.ts:57:  return rows.map(toConnectionDto);
+src/functions/channel.functions.ts:71:    const [connection] = await db
+src/functions/channel.functions.ts:94:    const [connection] = await db
+src/functions/channel.functions.ts:122:    const [connection] = await db
+src/functions/chat.functions.ts:57:    queueName: row.queue?.name ?? null,
+src/functions/chat.functions.ts:85:    .selectDistinctOn([messages.conversationId], {
+src/functions/chat.functions.ts:94:  const [rows, unreadRows] = await Promise.all([
+src/functions/chat.functions.ts:111:          notInArray(conversations.status, ["closed"]),
+src/functions/chat.functions.ts:128:    unreadRows.map((row) => [row.conversationId, Number(row.value)]),
+src/functions/chat.functions.ts:130:  return rows.map((row) =>
+src/functions/chat.functions.ts:139:    const [conversation] = await db
+src/functions/chat.functions.ts:156:    return rows.map(messageDto);
+src/functions/chat.functions.ts:165:    const [row] = await db
+src/functions/chat.functions.ts:180:    const [pendingMessage] = await db
+src/functions/chat.functions.ts:202:      const [sentMessage] = await db
+src/functions/assignment.functions.ts:35:  const [member] = await db
+src/functions/assignment.functions.ts:50:  const [conversation] = await db
+src/functions/assignment.functions.ts:65:    const [updated] = await db
+src/functions/assignment.functions.ts:112:      ["owner", "admin", "manager", "supervisor"].includes(user.role);
+src/functions/assignment.functions.ts:153:      const [queue] = await db
+src/functions/assignment.functions.ts:167:    const [updated] = await db
+src/functions/assignment.functions.ts:222:      ["owner", "admin", "manager", "supervisor"].includes(user.role);
+src/functions/assignment.functions.ts:263:      !["owner", "admin", "manager", "supervisor"].includes(user.role)
+src/functions/flow.functions.ts:58:  const nodeIds = new Set(graph.nodes.map((node) => node.id));
+src/functions/flow.functions.ts:71:  for (const edge of graph.edges) adjacency.get(edge.source)?.push(edge.target);
+src/functions/flow.functions.ts:75:    entryNodeId: graph.nodes.find((node) => node.type === "trigger")?.id,
+src/functions/flow.functions.ts:95:  const [flow] = await db
+src/functions/flow.functions.ts:105:  const [version] = await db
+src/functions/flow.functions.ts:111:  return version?.version ?? null;
+src/functions/flow.functions.ts:121:  return Promise.all(rows.map(async (flow) => flowDto(flow, await latestVersion(flow.id))));
+src/functions/flow.functions.ts:131:      .replace(/[^a-z0-9]+/g, "-")
+src/functions/flow.functions.ts:134:    const [flow] = await db
+src/functions/flow.functions.ts:155:    const [flow] = await db
+src/functions/flow.functions.ts:175:    const [version] = await db
+src/functions/flow.functions.ts:189:    const [updated] = await db
+src/functions/flow.functions.ts:212:    const nodes = new Map(compiled.nodes.map((node) => [node.id, node]));
+src/functions/flow.functions.ts:218:      if (node.type === "question") context[node.data.variable ?? node.id] = data.inputText;
+src/functions/flow.functions.ts:220:      currentId = compiled.edges.find((edge) => edge.source === node.id)?.target;
+src/functions/flow.functions.ts:224:      Object.entries(context).map(([key, value]) => [key, String(value)]),
+src/functions/flow.functions.ts:242:    const published = version[0];
+src/functions/flow.functions.ts:245:    const [connection] = await db
+src/functions/metrics.functions.ts:59:          notInArray(conversations.status, ["resolved", "closed"]),
+src/functions/metrics.functions.ts:121:        and(eq(conversations.queueId, queues.id), notInArray(conversations.status, ["closed"])),
+src/functions/metrics.functions.ts:154:          notInArray(conversations.status, ["resolved", "closed"]),
+src/functions/metrics.functions.ts:160:  const totalConversations = Number(total[0]?.value ?? 0);
+src/functions/metrics.functions.ts:161:  const resolved = Number(resolvedToday[0]?.value ?? 0);
+src/functions/metrics.functions.ts:169:        ...queueAgeRows.map((row) => Math.floor((now - row.lastMessageAt.getTime()) / 60_000)),
+src/functions/metrics.functions.ts:174:    openConversations: Number(open[0]?.value ?? 0),
+src/functions/metrics.functions.ts:175:    queuedConversations: Number(queued[0]?.value ?? 0),
+src/functions/metrics.functions.ts:177:    inboundToday: Number(inboundToday[0]?.value ?? 0),
+src/functions/metrics.functions.ts:178:    connectedConnections: Number(connected[0]?.value ?? 0),
+src/functions/metrics.functions.ts:179:    activeAutomations: Number(active[0]?.value ?? 0),
+src/functions/metrics.functions.ts:185:    onlineAgents: Number(onlineAgentRows[0]?.value ?? 0),
+src/functions/metrics.functions.ts:186:    assignedConversations: Number(assigned[0]?.value ?? 0),
+src/functions/metrics.functions.ts:187:    byQueue: queueRows.map((row) => ({ name: row.name, value: Number(row.value) })),
+src/queue/worker.server.ts:16:  const [effect] = await db
+src/queue/worker.server.ts:22:        inArray(flowEffects.status, ["pending", "failed"]),
+src/queue/worker.server.ts:29:  const [claimed] = await db
+src/queue/worker.server.ts:32:    .where(and(eq(flowEffects.id, effect.id), inArray(flowEffects.status, ["pending", "failed"])))
+src/queue/worker.server.ts:38:    const [connection] = await db
+src/queue/worker.server.ts:41:      .where(eq(channelConnections.id, stringValue(payload["connectionId"])))
+src/queue/worker.server.ts:47:      stringValue(payload["phone"]),
+src/queue/worker.server.ts:48:      stringValue(payload["text"]),
+src/queue/worker.server.ts:54:        conversationId: stringValue(payload["conversationId"]),
+src/queue/worker.server.ts:61:        text: stringValue(payload["text"]),
+src/queue/worker.server.ts:72:      .where(eq(conversations.id, stringValue(payload["conversationId"])));
+
+# Fronteiras de rede
+src/routeTree.gen.ts:15:import { Route as ApiWebhooksWhatsappRouteImport } from './routes/api/webhooks/whatsapp'
+src/routeTree.gen.ts:33:  id: '/api/webhooks/whatsapp',
+src/routeTree.gen.ts:34:  path: '/api/webhooks/whatsapp',
+src/routeTree.gen.ts:42:  '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
+src/routeTree.gen.ts:48:  '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
+src/routeTree.gen.ts:55:  '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
+src/routeTree.gen.ts:59:  fullPaths: '/' | '/login' | '/api/health' | '/api/webhooks/whatsapp'
+src/routeTree.gen.ts:61:  to: '/' | '/login' | '/api/health' | '/api/webhooks/whatsapp'
+src/routeTree.gen.ts:62:  id: '__root__' | '/' | '/login' | '/api/health' | '/api/webhooks/whatsapp'
+src/routeTree.gen.ts:95:    '/api/webhooks/whatsapp': {
+src/routeTree.gen.ts:96:      id: '/api/webhooks/whatsapp'
+src/routeTree.gen.ts:97:      path: '/api/webhooks/whatsapp'
+src/routeTree.gen.ts:98:      fullPath: '/api/webhooks/whatsapp'
+src/routes/api/webhooks/whatsapp.ts:5:import { processWebhookEvents } from "@/services/webhookProcessor.server";
+src/routes/api/webhooks/whatsapp.ts:8:function isAuthorized(request: Request) {
+src/routes/api/webhooks/whatsapp.ts:11:    request.headers.get("x-webhook-secret") ??
+src/routes/api/webhooks/whatsapp.ts:17:export const Route = createFileRoute("/api/webhooks/whatsapp")({
+src/routes/api/webhooks/whatsapp.ts:30:        return Response.json({ ok: true, service: "mago-bot-webhook" });
+src/routes/api/webhooks/whatsapp.ts:34:          return Response.json({ error: "Webhook não autorizado" }, { status: 401 });
+src/routes/api/webhooks/whatsapp.ts:37:        await assertLicense("whatsapp:webhook");
+src/routes/api/webhooks/whatsapp.ts:42:        return Response.json({ ok: true, received: events.length, results });
+src/routes/api/health.ts:34:        return Response.json(
+src/server.ts:7:  fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
+src/server.ts:48:  async fetch(request: Request, env: unknown, ctx: unknown) {
+src/server.ts:51:      const response = await handler.fetch(request, env, ctx);
+src/services/evolutionApi.ts:14:  createInstance: async (name: string): Promise<Instance> => {
+src/services/evolutionApi.ts:25:  getQrCode: async (instanceId: string): Promise<QrCodeResponse> => {
+src/services/license.server.ts:3:export type LicenseScope = "whatsapp:connect" | "whatsapp:send" | "whatsapp:webhook";
+src/services/license.server.ts:34:    const response = await fetch(`${env.LICENSE_API_BASE_URL}/v1/licenses/validate`, {
+src/services/whatsapp.server.ts:31:  listInstances(): Promise<ProviderInstance[]>;
+src/services/whatsapp.server.ts:32:  createInstance(name: string): Promise<ProviderInstance>;
+src/services/whatsapp.server.ts:33:  getQrCode(instanceId: string): Promise<{ code: string; base64: string }>;
+src/services/whatsapp.server.ts:35:  sendText(
+src/services/whatsapp.server.ts:97:  async listInstances() {
+src/services/whatsapp.server.ts:101:  async createInstance(name: string) {
+src/services/whatsapp.server.ts:108:  async getQrCode(instanceId: string) {
+src/services/whatsapp.server.ts:121:  async sendText(instanceId: string, number: string, text: string) {
+src/services/whatsapp.server.ts:155:  private async request(path: string, init?: RequestInit): Promise<unknown> {
+src/services/whatsapp.server.ts:161:    const response = await fetch(`${this.baseUrl}${path}`, {
+src/services/whatsapp.server.ts:180:  async listInstances() {
+src/services/whatsapp.server.ts:187:  async createInstance(name: string) {
+src/services/whatsapp.server.ts:195:  async getQrCode(instanceId: string) {
+src/services/whatsapp.server.ts:216:  async sendText(instanceId: string, number: string, text: string) {
+src/services/webhookProcessor.server.ts:4:import { channelConnections, contacts, conversations, messages, webhookEvents } from "@/db/schema";
+src/services/webhookProcessor.server.ts:227:      .insert(webhookEvents)
+src/services/webhookProcessor.server.ts:238:      .returning({ id: webhookEvents.id });
+src/services/webhookProcessor.server.ts:248:        .update(webhookEvents)
+src/services/webhookProcessor.server.ts:250:        .where(eq(webhookEvents.id, stored.id));
+src/services/webhookProcessor.server.ts:255:        .update(webhookEvents)
+src/services/webhookProcessor.server.ts:257:        .where(eq(webhookEvents.id, stored.id));
+src/services/flowRuntime.server.ts:192:    const result = await getWhatsAppAdapter().sendText(
+src/types/evolution.ts:5:  webhookUrl?: string;
+src/server/env.server.ts:22:  EVOLUTION_SEND_TEXT_PATH: z.string().default("/message/sendText/{instance}"),
+src/server/env.server.ts:40:          WHATSAPP_WEBHOOK_SECRET: "development-webhook-secret",
+src/db/schema.ts:302:export const webhookEvents = pgTable(
+src/db/schema.ts:303:  "webhook_events",
+src/db/schema.ts:323:    uniqueIndex("webhook_events_provider_external_uq").on(table.provider, table.externalEventId),
+src/db/schema.ts:324:    index("webhook_events_status_idx").on(table.status, table.receivedAt),
+src/functions/channel.functions.ts:67:    const providerInstance = await adapter.createInstance(data.name);
+src/functions/channel.functions.ts:106:    const qr = await getWhatsAppAdapter().getQrCode(connection.providerInstanceId ?? connection.id);
+src/functions/chat.functions.ts:197:      const result = await getWhatsAppAdapter().sendText(
+src/queue/redis.server.ts:10:      maxRetriesPerRequest: null,
+src/queue/worker.server.ts:45:    const result = await getWhatsAppAdapter().sendText(

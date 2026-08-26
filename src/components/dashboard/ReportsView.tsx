@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { useCallback, useEffect, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -24,18 +24,34 @@ import {
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getMetricsFn, type MetricsDTO } from "@/functions/metrics.functions";
+import { captureDiagnostic } from "@/lib/diagnostics";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
 export function ReportsView() {
   const getMetrics = useServerFn(getMetricsFn);
   const [metrics, setMetrics] = useState<MetricsDTO | null>(null);
+  const [metricsError, setMetricsError] = useState<string | null>(null);
+
+  const loadMetrics = useCallback(async () => {
+    try {
+      const result = await getMetrics();
+      setMetrics(result);
+      setMetricsError(null);
+    } catch (error) {
+      setMetricsError("Não foi possível atualizar os indicadores");
+      captureDiagnostic(error, {
+        source: "async",
+        component: "ReportsView",
+        payload: { operation: "load_metrics" },
+        recoverable: true,
+      });
+    }
+  }, [getMetrics]);
 
   useEffect(() => {
-    void getMetrics()
-      .then(setMetrics)
-      .catch(() => undefined);
-  }, [getMetrics]);
+    void loadMetrics();
+  }, [loadMetrics]);
 
   const value = (number: number | undefined) =>
     number === undefined ? "—" : number.toLocaleString("pt-BR");
@@ -49,6 +65,21 @@ export function ReportsView() {
         <p className="text-muted-foreground">
           Dados da sua organização, sem número inventado para impressionar apresentação.
         </p>
+        {metricsError && (
+          <div
+            className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+            role="alert"
+          >
+            <span>{metricsError}. Exibindo o último estado disponível.</span>
+            <button
+              type="button"
+              onClick={() => void loadMetrics()}
+              className="font-bold underline"
+            >
+              Tentar novamente
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">

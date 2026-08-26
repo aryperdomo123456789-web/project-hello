@@ -10,6 +10,8 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
+import { DiagnosticProvider, ResilientBoundary } from "../components/resilience/ResilienceLayer";
+import { captureDiagnostic } from "../lib/diagnostics";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
 function NotFoundComponent() {
@@ -38,6 +40,12 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
+    captureDiagnostic(error, {
+      source: "render",
+      component: "TanStackRootErrorComponent",
+      handled: true,
+      recoverable: true,
+    });
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
@@ -119,8 +127,12 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <DiagnosticProvider>
+        <ResilientBoundary boundaryName="route-outlet">
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <Outlet />
+        </ResilientBoundary>
+      </DiagnosticProvider>
     </QueryClientProvider>
   );
 }

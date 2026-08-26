@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { captureDiagnostic } from "@/lib/diagnostics";
 import {
   createConnectionFn,
   disconnectConnectionFn,
@@ -16,10 +17,28 @@ import {
   type ConnectionDTO,
 } from "@/functions/channel.functions";
 
-function qrSrc(value: string) {
-  if (value.startsWith("data:") || value.startsWith("http://") || value.startsWith("https://"))
-    return value;
-  return `data:image/png;base64,${value}`;
+function qrSrc(value: string | null | undefined): string | null {
+  const normalized = value?.trim();
+  if (!normalized) return null;
+  if (normalized.startsWith("data:image/")) return normalized;
+  if (normalized.startsWith("https://")) return normalized;
+  if (/^[A-Za-z0-9+/=\s]+$/.test(normalized)) {
+    return `data:image/png;base64,${normalized.replace(/\s/g, "")}`;
+  }
+  return null;
+}
+
+function reportConnectionError(
+  error: unknown,
+  operation: string,
+  payload: Record<string, unknown> = {},
+) {
+  captureDiagnostic(error, {
+    source: "network",
+    component: "ConnectionsView",
+    payload: { operation, ...payload },
+    recoverable: true,
+  });
 }
 
 function statusLabel(status: string) {
@@ -40,11 +59,16 @@ export function ConnectionsView() {
   const [showQrModal, setShowQrModal] = useState(false);
   const [qrCodeData, setQrCodeData] = useState<string | null>(null);
   const [qrConnectionName, setQrConnectionName] = useState("");
+  const [viewError, setViewError] = useState<string | null>(null);
 
   async function loadConnections() {
     try {
-      setConnections(await listConnections());
+      const rows = await listConnections();
+      setConnections(Array.isArray(rows) ? rows : []);
+      setViewError(null);
     } catch (error) {
+      setViewError("Não foi possível carregar as conexões");
+      reportConnectionError(error, "list_connections");
       toast.error(error instanceof Error ? error.message : "Erro ao carregar conexões");
     }
   }
@@ -64,6 +88,7 @@ export function ConnectionsView() {
       setNewName("");
       toast.success("Conexão criada. Gere o QR Code para parear o WhatsApp.");
     } catch (error) {
+      reportConnectionError(error, "create_connection", { nameLength: name.length });
       toast.error(error instanceof Error ? error.message : "Erro ao criar conexão");
     } finally {
       setLoading(false);
@@ -74,7 +99,9 @@ export function ConnectionsView() {
     setLoading(true);
     try {
       const qr = await getConnectionQr({ data: { connectionId: connection.id } });
-      setQrCodeData(qr.base64);
+      const imageSource = qrSrc(qr.base64);
+      if (!imageSource) throw new Error("O provedor retornou um QR Code inválido");
+      setQrCodeData(imageSource);
       setQrConnectionName(connection.name);
       setShowQrModal(true);
       setConnections((current) =>
@@ -83,6 +110,7 @@ export function ConnectionsView() {
         ),
       );
     } catch (error) {
+      reportConnectionError(error, "get_connection_qr", { connectionId: connection.id });
       toast.error(error instanceof Error ? error.message : "Erro ao obter QR Code");
     } finally {
       setLoading(false);
@@ -101,6 +129,7 @@ export function ConnectionsView() {
       );
       toast.success("Conexão desconectada.");
     } catch (error) {
+      reportConnectionError(error, "disconnect_connection", { connectionId: connection.id });
       toast.error(error instanceof Error ? error.message : "Erro ao desconectar");
     } finally {
       setLoading(false);
@@ -109,6 +138,18 @@ export function ConnectionsView() {
 
   return (
     <div className="space-y-8 p-8 animate-in fade-in duration-500">
+      {viewError && (
+        <div
+          className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+          role="alert"
+        >
+          <span>{viewError}</span>
+          <Button variant="outline" size="sm" onClick={() => void loadConnections()}>
+            Tentar novamente
+          </Button>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Conexões & Números</h2>
@@ -242,7 +283,7 @@ export function ConnectionsView() {
             <CardContent className="flex flex-col items-center pb-6">
               <div className="mb-6 rounded-xl border bg-white p-4 shadow-inner">
                 <img
-                  src={qrSrc(qrCodeData)}
+                  src={qrSrc(qrCodeData) ?? ""}
                   alt={`QR Code de ${qrConnectionName}`}
                   className="h-64 w-64"
                 />

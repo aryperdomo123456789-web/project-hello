@@ -2,6 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { ConnectionsView } from "@/components/connections/ConnectionsView";
 import { Toaster } from "@/components/ui/sonner";
+import { ComponentFallback, ResilientBoundary } from "@/components/resilience/ResilienceLayer";
 import { ChatList } from "@/components/chat/ChatList";
 import { ChatMessageArea } from "@/components/chat/ChatMessageArea";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
@@ -50,6 +51,7 @@ function Dashboard() {
     resumeAutomation,
     transferConversation,
     queues,
+    syncError,
   } = useChat();
   const [activeTab, setActiveTab] = useState<Tab>("Atendimento");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -164,43 +166,109 @@ function Dashboard() {
           </div>
         </header>
 
+        {syncError && (
+          <div
+            className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-8 py-2 text-xs text-amber-900"
+            role="status"
+          >
+            <span>{syncError}. Os dados exibidos podem estar desatualizados.</span>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="font-bold underline"
+            >
+              Recarregar painel
+            </button>
+          </div>
+        )}
+
         {/* Content Area */}
         <div className="flex-1 flex overflow-hidden">
           {activeTab === "Conexões" ? (
             <div className="flex-1 overflow-y-auto bg-slate-50/50">
-              <ConnectionsView />
+              <ResilientBoundary
+                boundaryName="connections-screen"
+                fallback={(retry) => (
+                  <ComponentFallback title="Conexões indisponíveis" onRetry={retry} />
+                )}
+              >
+                <ConnectionsView />
+              </ResilientBoundary>
             </div>
           ) : activeTab === "Contatos/CRM" ? (
-            <KanbanBoard contacts={crmContacts} />
+            <ResilientBoundary
+              boundaryName="crm-screen"
+              fallback={(retry) => <ComponentFallback title="CRM indisponível" onRetry={retry} />}
+            >
+              <KanbanBoard contacts={crmContacts} />
+            </ResilientBoundary>
           ) : activeTab === "Relatórios" ? (
-            <ReportsView />
+            <ResilientBoundary
+              boundaryName="reports-screen"
+              fallback={(retry) => (
+                <ComponentFallback title="Relatórios indisponíveis" onRetry={retry} />
+              )}
+            >
+              <ReportsView />
+            </ResilientBoundary>
           ) : activeTab === "Automações" ? (
-            <FlowBuilderView />
+            <ResilientBoundary
+              boundaryName="flows-screen"
+              fallback={(retry) => (
+                <ComponentFallback title="Automações indisponíveis" onRetry={retry} />
+              )}
+            >
+              <FlowBuilderView />
+            </ResilientBoundary>
           ) : activeTab === "Atendimento" ? (
             <div className="flex-1 flex overflow-hidden w-full">
-              <ChatList
-                contacts={contacts}
-                selectedId={selectedContact?.id}
-                onSelect={setSelectedContact}
-              />
+              <ResilientBoundary
+                boundaryName="chat-list"
+                fallback={(retry) => (
+                  <ComponentFallback title="Lista de conversas indisponível" onRetry={retry} />
+                )}
+              >
+                <ChatList
+                  contacts={contacts}
+                  selectedId={selectedContact?.id}
+                  onSelect={setSelectedContact}
+                />
+              </ResilientBoundary>
 
               {selectedContact ? (
                 <>
-                  <ChatMessageArea
-                    contact={selectedContact}
-                    messages={messages}
-                    onSendMessage={(text) => void sendMessage(selectedContact.id, text)}
-                    automationPaused={selectedContact.tags.includes("HUMANO")}
-                    onClaim={() => void claimConversation(selectedContact.id)}
-                    onRelease={() => void releaseConversation(selectedContact.id)}
-                    onResolve={() => void resolveConversation(selectedContact.id)}
-                    onResumeAutomation={() => void resumeAutomation(selectedContact.id)}
-                    queueOptions={queues}
-                    onTransferToQueue={(queueId) =>
-                      void transferConversation(selectedContact.id, queueId)
-                    }
-                  />
-                  <ContactDetails contact={selectedContact} />
+                  <ResilientBoundary
+                    boundaryName="chat-message-area"
+                    fallback={(retry) => (
+                      <ComponentFallback title="Área da conversa indisponível" onRetry={retry} />
+                    )}
+                  >
+                    <ChatMessageArea
+                      contact={selectedContact}
+                      messages={messages}
+                      onSendMessage={(text) => sendMessage(selectedContact.id, text)}
+                      automationPaused={selectedContact.tags.includes("HUMANO")}
+                      onClaim={() => claimConversation(selectedContact.id)}
+                      onRelease={() => releaseConversation(selectedContact.id)}
+                      onResolve={() => resolveConversation(selectedContact.id)}
+                      onResumeAutomation={() => resumeAutomation(selectedContact.id)}
+                      queueOptions={queues}
+                      onTransferToQueue={(queueId) =>
+                        transferConversation(selectedContact.id, queueId)
+                      }
+                    />
+                  </ResilientBoundary>
+                  <ResilientBoundary
+                    boundaryName="contact-details"
+                    fallback={(retry) => (
+                      <ComponentFallback
+                        title="Detalhes do contato indisponíveis"
+                        onRetry={retry}
+                      />
+                    )}
+                  >
+                    <ContactDetails contact={selectedContact} />
+                  </ResilientBoundary>
                 </>
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 p-12 text-center">

@@ -37,6 +37,7 @@ import {
   type FlowNodeKind,
 } from "@/flows/types";
 import { FLOW_TEMPLATES } from "@/flows/templates";
+import { captureDiagnostic } from "@/lib/diagnostics";
 
 const nodeKinds = Object.keys(FLOW_NODE_LABELS) as FlowNodeKind[];
 
@@ -92,6 +93,29 @@ function reactFlowToGraph(nodes: CanvasNode[], edges: Edge[]): FlowGraph {
   };
 }
 
+function parseFlowGraph(value: string, context: string): FlowGraph {
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!parsed || typeof parsed !== "object") throw new Error("Grafo não é um objeto");
+    const graph = parsed as { nodes?: unknown; edges?: unknown };
+    if (!Array.isArray(graph.nodes) || !Array.isArray(graph.edges)) {
+      throw new Error("Grafo precisa conter arrays nodes e edges");
+    }
+    return parsed as FlowGraph;
+  } catch (error) {
+    captureDiagnostic(error, {
+      source: "async",
+      component: "FlowBuilderView",
+      payload: { operation: "parse_flow_graph", context },
+      recoverable: true,
+    });
+    toast.error(
+      "O rascunho estava inválido; carregamos um fluxo vazio para você recuperar o trabalho.",
+    );
+    return starterFlowGraph();
+  }
+}
+
 export function FlowBuilderView() {
   const listFlows = useServerFn(listFlowsFn);
   const createFlow = useServerFn(createFlowFn);
@@ -134,22 +158,28 @@ export function FlowBuilderView() {
     setSelectedConnectionId((current) => current || connectionRows[0]?.id || "");
     if (flowRows[0] && !selectedFlowId) {
       setSelectedFlowId(flowRows[0].id);
-      const graph = graphToReactFlow(JSON.parse(flowRows[0].draftGraphJson) as FlowGraph);
+      const graph = graphToReactFlow(parseFlowGraph(flowRows[0].draftGraphJson, "initial_load"));
       setNodes(graph.nodes);
       setEdges(graph.edges);
     }
   }, [listConnections, listFlows, selectedFlowId, setEdges, setNodes]);
 
   useEffect(() => {
-    void load().catch((error) =>
-      toast.error(error instanceof Error ? error.message : "Falha ao carregar automações"),
-    );
+    void load().catch((error) => {
+      captureDiagnostic(error, {
+        source: "async",
+        component: "FlowBuilderView",
+        payload: { operation: "load_flows" },
+        recoverable: true,
+      });
+      toast.error(error instanceof Error ? error.message : "Falha ao carregar automações");
+    });
   }, [load]);
 
   function selectFlow(flow: FlowDTO) {
     setSelectedFlowId(flow.id);
     setSelectedNodeId(null);
-    const graph = graphToReactFlow(JSON.parse(flow.draftGraphJson) as FlowGraph);
+    const graph = graphToReactFlow(parseFlowGraph(flow.draftGraphJson, "select_flow"));
     setNodes(graph.nodes);
     setEdges(graph.edges);
   }
@@ -172,14 +202,20 @@ export function FlowBuilderView() {
       setNewFlowName("");
       toast.success("Especialista criado como rascunho");
     } catch (error) {
+      captureDiagnostic(error, {
+        source: "async",
+        component: "FlowBuilderView",
+        payload: { operation: "create_flow", templateId: selectedTemplateId },
+        recoverable: true,
+      });
       toast.error(error instanceof Error ? error.message : "Falha ao criar especialista");
     } finally {
       setSaving(false);
     }
   }
 
-  async function handleSave() {
-    if (!selectedFlowId) return;
+  async function handleSave(): Promise<boolean> {
+    if (!selectedFlowId) return false;
     setSaving(true);
     try {
       const flow = await saveDraft({
@@ -187,8 +223,17 @@ export function FlowBuilderView() {
       });
       setFlows((current) => current.map((item) => (item.id === flow.id ? flow : item)));
       toast.success("Rascunho salvo");
+      return true;
     } catch (error) {
+      captureDiagnostic(error, {
+        source: "async",
+        component: "FlowBuilderView",
+        state: { selectedFlowId, nodeCount: nodes.length, edgeCount: edges.length },
+        payload: { operation: "save_flow_draft" },
+        recoverable: true,
+      });
       toast.error(error instanceof Error ? error.message : "Falha ao salvar");
+      return false;
     } finally {
       setSaving(false);
     }
@@ -196,13 +241,20 @@ export function FlowBuilderView() {
 
   async function handlePublish() {
     if (!selectedFlowId) return;
-    await handleSave();
+    const saved = await handleSave();
+    if (!saved) return;
     setSaving(true);
     try {
       const flow = await publishFlow({ data: { flowId: selectedFlowId } });
       setFlows((current) => current.map((item) => (item.id === flow.id ? flow : item)));
       toast.success(`Versão ${flow.publishedVersion} publicada`);
     } catch (error) {
+      captureDiagnostic(error, {
+        source: "async",
+        component: "FlowBuilderView",
+        payload: { operation: "publish_flow", flowId: selectedFlowId },
+        recoverable: true,
+      });
       toast.error(error instanceof Error ? error.message : "Falha ao publicar");
     } finally {
       setSaving(false);
@@ -220,6 +272,16 @@ export function FlowBuilderView() {
       });
       toast.success(`Fluxo ${result.version} vinculado ao número`);
     } catch (error) {
+      captureDiagnostic(error, {
+        source: "async",
+        component: "FlowBuilderView",
+        payload: {
+          operation: "bind_flow",
+          flowId: selectedFlowId,
+          connectionId: selectedConnectionId,
+        },
+        recoverable: true,
+      });
       toast.error(error instanceof Error ? error.message : "Falha ao vincular");
     }
   }
@@ -236,6 +298,13 @@ export function FlowBuilderView() {
       setSimulationOutput(result.trace.map((item) => `${item.type}: ${item.label}`));
       toast.success("Simulação concluída sem envio real");
     } catch (error) {
+      captureDiagnostic(error, {
+        source: "async",
+        component: "FlowBuilderView",
+        state: { selectedFlowId, nodeCount: nodes.length, edgeCount: edges.length },
+        payload: { operation: "simulate_flow", inputLength: simulationInput.length },
+        recoverable: true,
+      });
       toast.error(error instanceof Error ? error.message : "Falha na simulação");
     }
   }
