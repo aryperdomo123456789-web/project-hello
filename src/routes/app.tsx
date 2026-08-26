@@ -1,5 +1,5 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import avatarUrl from "@/assets/brand/mago-bot-avatar.png";
 import { ConnectionsView } from "@/components/connections/ConnectionsView";
@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logoutFn, meFn } from "@/functions/auth.functions";
+import { getMetricsFn, type MetricsDTO } from "@/functions/metrics.functions";
 import { canAccessTab, roleLabel } from "@/permissions/roles";
 
 const LazyCRMWorkspace = lazy(() =>
@@ -101,10 +102,45 @@ type Tab =
   | "Macros"
   | "Sequências";
 
+type MetricTone = "green" | "blue" | "cyan" | "violet";
+
+function MetricCard({
+  icon,
+  value,
+  label,
+  tone,
+}: {
+  icon: ReactNode;
+  value: number;
+  label: string;
+  tone: MetricTone;
+}) {
+  const toneClasses: Record<MetricTone, string> = {
+    green: "bg-green-50 text-green-600",
+    blue: "bg-blue-50 text-blue-600",
+    cyan: "bg-cyan-50 text-cyan-600",
+    violet: "bg-violet-50 text-violet-600",
+  };
+
+  return (
+    <div className="flex items-center gap-3 rounded-2xl border bg-white p-4 shadow-sm">
+      <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg", toneClasses[tone])}>
+        {icon}
+      </div>
+      <div className="text-left">
+        <p className="text-lg font-bold tabular-nums">{value}</p>
+        <p className="text-[10px] font-bold uppercase text-slate-400">{label}</p>
+      </div>
+    </div>
+  );
+}
+
 function Dashboard() {
   const navigate = useNavigate();
   const logout = useServerFn(logoutFn);
+  const getMetrics = useServerFn(getMetricsFn);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [metrics, setMetrics] = useState<MetricsDTO | null>(null);
   const {
     contacts,
     selectedContact,
@@ -126,6 +162,18 @@ function Dashboard() {
   const [activeTab, setActiveTab] = useState<Tab>("Atendimento");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [crmContacts, setCrmContacts] = useState(contacts);
+
+  useEffect(() => {
+    let mounted = true;
+    void getMetrics()
+      .then((value) => {
+        if (mounted) setMetrics(value);
+      })
+      .catch(() => undefined);
+    return () => {
+      mounted = false;
+    };
+  }, [getMetrics]);
 
   const menuItems = [
     { id: "Atendimento", label: "Chat", icon: MessageSquare },
@@ -492,27 +540,31 @@ function Dashboard() {
                     Selecione uma conversa na lista lateral para visualizar o histórico e responder
                     seus clientes em tempo real.
                   </p>
-                  <div className="grid grid-cols-2 gap-4 w-full max-w-md">
-                    <div className="p-4 bg-white rounded-2xl border shadow-sm flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-green-50 text-green-600 flex items-center justify-center">
-                        <Users className="w-4 h-4" />
-                      </div>
-                      <div className="text-left">
-                        <p className="text-lg font-bold">12</p>
-                        <p className="text-[10px] text-slate-400 uppercase font-bold">Aguardando</p>
-                      </div>
-                    </div>
-                    <div className="p-4 bg-white rounded-2xl border shadow-sm flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                        <Zap className="w-4 h-4" />
-                      </div>
-                      <div className="text-left">
-                        <p className="text-lg font-bold">45</p>
-                        <p className="text-[10px] text-slate-400 uppercase font-bold">
-                          Resolvidos hoje
-                        </p>
-                      </div>
-                    </div>
+                  <div className="grid w-full max-w-2xl grid-cols-2 gap-4 md:grid-cols-4">
+                    <MetricCard
+                      icon={<Users className="h-4 w-4" />}
+                      value={metrics?.queuedConversations ?? 0}
+                      label="Aguardando"
+                      tone="green"
+                    />
+                    <MetricCard
+                      icon={<Zap className="h-4 w-4" />}
+                      value={metrics?.resolvedToday ?? 0}
+                      label="Resolvidos hoje"
+                      tone="blue"
+                    />
+                    <MetricCard
+                      icon={<Link2 className="h-4 w-4" />}
+                      value={metrics?.connectedConnections ?? 0}
+                      label="Canais ativos"
+                      tone="cyan"
+                    />
+                    <MetricCard
+                      icon={<Users className="h-4 w-4" />}
+                      value={metrics?.onlineAgents ?? 0}
+                      label="Agentes online"
+                      tone="violet"
+                    />
                   </div>
                 </div>
               )}
