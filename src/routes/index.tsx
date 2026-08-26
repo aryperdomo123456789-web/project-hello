@@ -27,6 +27,7 @@ import {
   Megaphone,
   BookOpen,
   Ticket as TicketIcon,
+  Clock3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { meFn } from "@/functions/auth.functions";
@@ -63,6 +64,11 @@ const LazyMacrosView = lazy(() =>
     default: module.MacrosView,
   })),
 );
+const LazySequencesView = lazy(() =>
+  import("@/components/sequences/SequencesView").then((module) => ({
+    default: module.SequencesView,
+  })),
+);
 
 export const Route = createFileRoute("/")({
   beforeLoad: async () => {
@@ -86,7 +92,8 @@ type Tab =
   | "Equipe"
   | "Campanhas"
   | "Conhecimento"
-  | "Macros";
+  | "Macros"
+  | "Sequências";
 
 function Dashboard() {
   const {
@@ -124,6 +131,7 @@ function Dashboard() {
     { id: "Campanhas", label: "Campanhas", icon: Megaphone },
     { id: "Conhecimento", label: "Conhecimento", icon: BookOpen },
     { id: "Macros", label: "Macros", icon: Zap },
+    { id: "Sequências", label: "Sequências", icon: Clock3 },
     { id: "Configurações", label: "Ajustes", icon: Settings },
   ].filter((item) => canAccessTab(user.role, item.id));
 
@@ -328,6 +336,17 @@ function Dashboard() {
             >
               <Suspense fallback={<ComponentFallback title="Carregando conhecimento" />}>
                 <LazyKnowledgeView />
+              </Suspense>
+            </ResilientBoundary>
+          ) : activeTab === "Sequências" ? (
+            <ResilientBoundary
+              boundaryName="sequences-screen"
+              fallback={(retry) => (
+                <ComponentFallback title="Sequências indisponíveis" onRetry={retry} />
+              )}
+            >
+              <Suspense fallback={<ComponentFallback title="Carregando sequências" />}>
+                <LazySequencesView />
               </Suspense>
             </ResilientBoundary>
           ) : activeTab === "Macros" ? (

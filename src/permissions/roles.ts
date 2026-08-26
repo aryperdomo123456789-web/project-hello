@@ -20,6 +20,7 @@ export const NAVIGATION_ROLES: Record<string, UiRole[]> = {
   Equipe: ["owner", "admin", "manager"],
   Conhecimento: ["owner", "admin", "manager"],
   Macros: ["owner", "admin", "manager", "supervisor", "agent"],
+  Sequências: ["owner", "admin", "manager", "supervisor", "agent"],
   Configurações: ["owner", "admin"],
 };
 

@@ -1002,3 +1002,133 @@ export const billingEvents = pgTable(
     index("billing_events_org_created_idx").on(table.organizationId, table.createdAt),
   ],
 );
+
+export const sequenceStatusEnum = pgEnum("sequence_status", [
+  "draft",
+  "active",
+  "paused",
+  "archived",
+]);
+
+export const sequenceStepTypeEnum = pgEnum("sequence_step_type", [
+  "message",
+  "task",
+  "tag",
+  "handoff",
+]);
+
+export const sequenceEnrollmentStatusEnum = pgEnum("sequence_enrollment_status", [
+  "active",
+  "paused",
+  "completed",
+  "cancelled",
+]);
+
+export const sequences = pgTable(
+  "sequences",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    description: text("description"),
+    status: sequenceStatusEnum("status").notNull().default("draft"),
+    trigger: text("trigger").notNull().default("manual"),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("sequences_org_status_idx").on(table.organizationId, table.status)],
+);
+
+export const sequenceSteps = pgTable(
+  "sequence_steps",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    sequenceId: uuid("sequence_id")
+      .notNull()
+      .references(() => sequences.id, { onDelete: "cascade" }),
+    position: integer("position").notNull(),
+    delayMinutes: integer("delay_minutes").notNull().default(0),
+    type: sequenceStepTypeEnum("type").notNull(),
+    body: text("body"),
+    config: jsonb("config")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("sequence_steps_sequence_position_uq").on(table.sequenceId, table.position),
+    index("sequence_steps_org_sequence_idx").on(table.organizationId, table.sequenceId),
+  ],
+);
+
+export const sequenceEnrollments = pgTable(
+  "sequence_enrollments",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    sequenceId: uuid("sequence_id")
+      .notNull()
+      .references(() => sequences.id, { onDelete: "cascade" }),
+    contactId: uuid("contact_id")
+      .notNull()
+      .references(() => contacts.id, { onDelete: "cascade" }),
+    conversationId: uuid("conversation_id").references(() => conversations.id, {
+      onDelete: "set null",
+    }),
+    status: sequenceEnrollmentStatusEnum("status").notNull().default("active"),
+    currentStep: integer("current_step").notNull().default(0),
+    nextRunAt: timestamp("next_run_at", { withTimezone: true }),
+    lastRunAt: timestamp("last_run_at", { withTimezone: true }),
+    context: jsonb("context")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("sequence_enrollments_active_contact_uq")
+      .on(table.sequenceId, table.contactId)
+      .where(sql`${table.status} in ('active', 'paused')`),
+    index("sequence_enrollments_ready_idx").on(table.status, table.nextRunAt),
+    index("sequence_enrollments_org_contact_idx").on(table.organizationId, table.contactId),
+  ],
+);
+
+export const sequenceEvents = pgTable(
+  "sequence_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    enrollmentId: uuid("enrollment_id")
+      .notNull()
+      .references(() => sequenceEnrollments.id, { onDelete: "cascade" }),
+    stepId: uuid("step_id")
+      .notNull()
+      .references(() => sequenceSteps.id, { onDelete: "cascade" }),
+    idempotencyKey: text("idempotency_key").notNull(),
+    status: text("status").notNull().default("pending"),
+    detail: jsonb("detail")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("sequence_events_idempotency_uq").on(table.idempotencyKey),
+    index("sequence_events_org_created_idx").on(table.organizationId, table.createdAt),
+  ],
+);

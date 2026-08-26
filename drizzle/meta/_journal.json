@@ -85,6 +85,13 @@
       "when": 1787749502973,
       "tag": "0011_medical_freak",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1787750405260,
+      "tag": "0012_lethal_zaladane",
+      "breakpoints": true
     }
   ]
 }
