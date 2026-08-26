@@ -15,6 +15,7 @@ import {
   simulateInbound,
   simulateProviderFailure,
   simulateReply,
+  SIMULATION_SCENARIOS,
   type SimulationChannel,
   type SimulationEvent,
 } from "@/simulator/simulation";
@@ -40,6 +41,16 @@ export function SimulationLab() {
   function handleReceive() {
     if (!selectedChannel) return;
     pushEvent(simulateInbound(selectedChannel, message));
+  }
+
+  function handleScenario(scenario: (typeof SIMULATION_SCENARIOS)[number]) {
+    const channel = channels.find((item) => item.id === scenario.channelId);
+    if (!channel) return;
+    const inbound = simulateInbound(channel, scenario.message);
+    const reply = simulateReply(inbound, scenario.reply);
+    setSelectedChannelId(channel.id);
+    setMessage(scenario.message);
+    setEvents((current) => [reply, inbound, ...current].slice(0, 50));
   }
 
   function handleReply(event: SimulationEvent) {
@@ -85,6 +96,38 @@ export function SimulationLab() {
             Limpar laboratório
           </button>
         </div>
+
+        <section className="rounded-2xl border bg-white p-5 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-cyan-700">
+                Demonstração rápida
+              </p>
+              <h3 className="mt-1 text-lg font-bold text-slate-900">
+                Mostre o especialista certo em ação
+              </h3>
+            </div>
+            <span className="text-xs font-semibold text-slate-400">
+              Sem canal real · dados temporários
+            </span>
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            {SIMULATION_SCENARIOS.map((scenario) => (
+              <button
+                key={scenario.id}
+                type="button"
+                onClick={() => handleScenario(scenario)}
+                className="rounded-xl border border-slate-200 p-4 text-left transition hover:-translate-y-0.5 hover:border-cyan-300 hover:shadow-md"
+              >
+                <p className="text-sm font-bold text-slate-900">{scenario.label}</p>
+                <p className="mt-1 text-xs leading-5 text-slate-500">{scenario.description}</p>
+                <span className="mt-3 inline-flex items-center rounded-full bg-cyan-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-cyan-700">
+                  Rodar demonstração
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
 
         <div className="grid gap-6 lg:grid-cols-[20rem_1fr]">
           <section className="space-y-4 rounded-2xl border bg-white p-5 shadow-sm">

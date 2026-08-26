@@ -21,6 +21,42 @@ export type SimulationEvent = {
   trace: string[];
 };
 
+export type SimulationScenario = {
+  id: string;
+  label: string;
+  description: string;
+  channelId: string;
+  message: string;
+  reply: string;
+};
+
+export const SIMULATION_SCENARIOS: SimulationScenario[] = [
+  {
+    id: "sales-qualification",
+    label: "Venda consultiva",
+    description: "Qualifica interesse e envia para Comercial.",
+    channelId: "sim-comercial",
+    message: "Quero saber o preço do plano Growth",
+    reply: "Vou te mostrar o plano ideal e chamar um especialista comercial.",
+  },
+  {
+    id: "technical-support",
+    label: "Suporte técnico",
+    description: "Detecta problema e roteia para Suporte N1.",
+    channelId: "sim-suporte",
+    message: "Estou com problema para acessar minha conta",
+    reply: "Entendi. Vou encaminhar seu caso para o Suporte N1.",
+  },
+  {
+    id: "finance-request",
+    label: "Financeiro",
+    description: "Preserva o contexto e direciona para Financeiro.",
+    channelId: "sim-financeiro",
+    message: "Preciso da segunda via da minha cobrança",
+    reply: "Vou encaminhar sua solicitação para a fila Financeiro.",
+  },
+];
+
 export const DEFAULT_SIMULATION_CHANNELS: SimulationChannel[] = [
   {
     id: "sim-comercial",
