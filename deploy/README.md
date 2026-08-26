@@ -19,11 +19,13 @@ npm run db:seed
 npm run build:production
 pm2 start deploy/mago-bot.ecosystem.config.cjs
 pm2 save
+pm2 status
+curl -fsS http://127.0.0.1:3080/api/health
 ```
 
 ## Proxy e HTTPS
 
-No aaPanel, o domínio `mago-bot.com` deve apontar para `127.0.0.1:3080` com proxy reverso. O certificado deve ser emitido pelo painel antes de testar login e webhook. O endpoint público esperado é `/api/webhooks/whatsapp`.
+No aaPanel, o domínio `mago-bot.com` deve apontar para `127.0.0.1:3080` com proxy reverso. O certificado deve ser emitido pelo painel antes de testar login e webhook. O endpoint público esperado é `/api/webhooks/whatsapp`, e o health check operacional é `/api/health`. O arquivo PM2 sobe dois processos: `mago-bot-web` para HTTP e `mago-bot-worker` para retries e retomada de timers; ambos precisam aparecer como `online`.
 
 ## Variáveis que precisam existir
 
@@ -31,16 +33,18 @@ No aaPanel, o domínio `mago-bot.com` deve apontar para `127.0.0.1:3080` com pro
 
 ## Segurança operacional
 
-Não coloque chave da Evolution, segredo de sessão ou token de licença no frontend, no Git ou em mensagens do webhook. Restrinja PostgreSQL e Redis ao loopback ou à rede privada, faça backup diário do banco, monitore os logs do PM2 e mantenha o webhook atrás de HTTPS. O endpoint valida segredo e deduplica eventos; ainda assim, a API operacional precisa ser homologada com payloads reais antes de abrir o beta.
+Não coloque chave da Evolution, segredo de sessão ou token de licença no frontend, no Git ou em mensagens do webhook. Restrinja PostgreSQL e Redis ao loopback ou à rede privada, faça backup diário do banco, monitore os logs dos dois processos PM2 e mantenha o webhook atrás de HTTPS. Configure rotação dos arquivos em `/www/wwwlogs` e alerte quando `/api/health` responder `503`. O endpoint valida segredo e deduplica eventos; ainda assim, a API operacional precisa ser homologada com payloads reais antes de abrir o beta.
 
 ## Smoke test pós-deploy
 
-1. Acesse `/login` e entre com o administrador criado pelo seed.
-2. Crie uma conexão em **Conexões & Números** e valide QR Code.
-3. Crie um especialista comercial em **Automações**, simule, salve, publique e vincule ao número.
-4. Envie uma mensagem de teste para o WhatsApp conectado.
-5. Confirme no banco que o webhook criou contato, conversa e mensagem somente uma vez.
-6. Assuma a conversa, envie resposta, transfira para outra fila e resolva.
-7. Reenvie o mesmo webhook e confirme que nenhuma mensagem ou execução duplicada foi criada.
+1. Rode `curl -fsS https://mago-bot.com/api/health` e confirme `ok: true`, banco e Redis saudáveis.
+2. Acesse `/login` e entre com o administrador criado pelo seed.
+3. Crie uma conexão em **Conexões & Números** e valide QR Code.
+4. Crie um especialista comercial em **Automações**, simule, salve, publique e vincule ao número.
+5. Envie uma mensagem de teste para o WhatsApp conectado.
+6. Confirme no banco que o webhook criou contato, conversa e mensagem somente uma vez.
+7. Assuma a conversa, envie resposta, transfira para outra fila e resolva.
+8. Reenvie o mesmo webhook e confirme que nenhuma mensagem ou execução duplicada foi criada.
+9. Force um efeito falho em ambiente de homologação e confirme que o `mago-bot-worker` agenda retry sem duplicar a mensagem.
 
 A aplicação não deve ser considerada pronta para cliente pagante enquanto esse smoke test não passar com uma conexão operacional real.
