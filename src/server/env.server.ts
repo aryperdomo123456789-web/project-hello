@@ -36,6 +36,12 @@ const envSchema = z.object({
   GROQ_API_KEY: z.string().optional(),
   DEEPSEEK_API_KEY: z.string().optional(),
   GEMINI_API_KEY: z.string().optional(),
+  JINA_API_KEY: z.string().optional(),
+  FIRECRAWL_API_KEY: z.string().optional(),
+  TAVILY_API_KEY: z.string().optional(),
+  LANGFUSE_PUBLIC_KEY: z.string().optional(),
+  LANGFUSE_SECRET_KEY: z.string().optional(),
+  LANGFUSE_BASE_URL: z.string().url().optional(),
 });
 
 export type ServerEnv = z.infer<typeof envSchema>;

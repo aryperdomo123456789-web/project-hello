@@ -790,3 +790,56 @@ export type FlowVersion = typeof flowVersions.$inferSelect;
 export type FlowExecution = typeof flowExecutions.$inferSelect;
 export type ConversationNote = typeof conversationNotes.$inferSelect;
 export type QuickReply = typeof quickReplies.$inferSelect;
+
+export const knowledgeDocuments = pgTable(
+  "knowledge_documents",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    flowId: uuid("flow_id").references(() => flows.id, { onDelete: "set null" }),
+    title: text("title").notNull(),
+    sourceUrl: text("source_url"),
+    sourceType: text("source_type").notNull().default("manual"),
+    status: text("status").notNull().default("draft"),
+    contentHash: text("content_hash").notNull(),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("knowledge_documents_org_status_idx").on(table.organizationId, table.status),
+    uniqueIndex("knowledge_documents_org_hash_uq").on(table.organizationId, table.contentHash),
+  ],
+);
+
+export const knowledgeChunks = pgTable(
+  "knowledge_chunks",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    documentId: uuid("document_id")
+      .notNull()
+      .references(() => knowledgeDocuments.id, { onDelete: "cascade" }),
+    position: integer("position").notNull(),
+    content: text("content").notNull(),
+    embedding: jsonb("embedding")
+      .$type<number[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    metadata: jsonb("metadata")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("knowledge_chunks_document_position_uq").on(table.documentId, table.position),
+    index("knowledge_chunks_org_document_idx").on(table.organizationId, table.documentId),
+  ],
+);

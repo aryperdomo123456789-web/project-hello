@@ -25,6 +25,7 @@ import {
   Monitor,
   FlaskConical,
   Megaphone,
+  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { meFn } from "@/functions/auth.functions";
@@ -44,6 +45,11 @@ const LazyFlowBuilderView = lazy(() =>
 const LazySimulationLab = lazy(() =>
   import("@/components/simulator/SimulationLab").then((module) => ({
     default: module.SimulationLab,
+  })),
+);
+const LazyKnowledgeView = lazy(() =>
+  import("@/components/knowledge/KnowledgeView").then((module) => ({
+    default: module.KnowledgeView,
   })),
 );
 
@@ -66,7 +72,8 @@ type Tab =
   | "Laboratório"
   | "Saúde"
   | "Equipe"
-  | "Campanhas";
+  | "Campanhas"
+  | "Conhecimento";
 
 function Dashboard() {
   const {
@@ -101,6 +108,7 @@ function Dashboard() {
     { id: "Saúde", label: "Saúde", icon: Monitor },
     { id: "Equipe", label: "Equipe", icon: Users },
     { id: "Campanhas", label: "Campanhas", icon: Megaphone },
+    { id: "Conhecimento", label: "Conhecimento", icon: BookOpen },
     { id: "Configurações", label: "Ajustes", icon: Settings },
   ].filter((item) => canAccessTab(user.role, item.id));
 
@@ -283,6 +291,17 @@ function Dashboard() {
             >
               <Suspense fallback={<ComponentFallback title="Carregando laboratório" />}>
                 <LazySimulationLab />
+              </Suspense>
+            </ResilientBoundary>
+          ) : activeTab === "Conhecimento" ? (
+            <ResilientBoundary
+              boundaryName="knowledge-base"
+              fallback={(retry) => (
+                <ComponentFallback title="Base de conhecimento indisponível" onRetry={retry} />
+              )}
+            >
+              <Suspense fallback={<ComponentFallback title="Carregando conhecimento" />}>
+                <LazyKnowledgeView />
               </Suspense>
             </ResilientBoundary>
           ) : activeTab === "Configurações" ? (

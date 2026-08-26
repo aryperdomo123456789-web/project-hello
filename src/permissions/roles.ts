@@ -17,6 +17,7 @@ export const NAVIGATION_ROLES: Record<string, UiRole[]> = {
   Laboratório: ["owner", "admin", "manager", "supervisor"],
   Saúde: ["owner", "admin", "manager"],
   Equipe: ["owner", "admin", "manager"],
+  Conhecimento: ["owner", "admin", "manager"],
   Configurações: ["owner", "admin"],
 };
 

@@ -50,6 +50,13 @@
       "when": 1787734728987,
       "tag": "0006_mute_thunderbolts",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787736874175,
+      "tag": "0007_stale_red_wolf",
+      "breakpoints": true
     }
   ]
 }
