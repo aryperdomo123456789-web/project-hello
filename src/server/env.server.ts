@@ -23,6 +23,18 @@ const envSchema = z.object({
   WHATSAPP_WEBHOOK_SECRET: z.string().min(16),
   RATE_LIMIT_WEBHOOK_PER_MINUTE: z.coerce.number().int().min(10).max(10000).default(120),
   RATE_LIMIT_LOGIN_PER_MINUTE: z.coerce.number().int().min(3).max(1000).default(10),
+  AI_PRIMARY_PROVIDER: z.enum(["stub", "openrouter", "groq", "deepseek", "gemini"]).default("stub"),
+  AI_FALLBACK_PROVIDER: z
+    .enum(["stub", "openrouter", "groq", "deepseek", "gemini"])
+    .default("stub"),
+  AI_PRIMARY_MODEL: z.string().min(1).default("openai/gpt-oss-20b"),
+  AI_FALLBACK_MODEL: z.string().min(1).default("openai/gpt-oss-20b"),
+  AI_TIMEOUT_MS: z.coerce.number().int().min(1000).max(120000).default(12000),
+  AI_MAX_OUTPUT_TOKENS: z.coerce.number().int().min(32).max(4096).default(512),
+  OPENROUTER_API_KEY: z.string().optional(),
+  GROQ_API_KEY: z.string().optional(),
+  DEEPSEEK_API_KEY: z.string().optional(),
+  GEMINI_API_KEY: z.string().optional(),
 });
 
 export type ServerEnv = z.infer<typeof envSchema>;
