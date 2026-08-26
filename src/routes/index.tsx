@@ -59,6 +59,9 @@ function Dashboard() {
     resumeAutomation,
     transferConversation,
     queues,
+    quickReplies,
+    notes,
+    addNote,
     syncError,
   } = useChat();
   const [activeTab, setActiveTab] = useState<Tab>("Atendimento");
@@ -274,6 +277,9 @@ function Dashboard() {
                       onTransferToQueue={(queueId) =>
                         transferConversation(selectedContact.id, queueId)
                       }
+                      quickReplies={quickReplies}
+                      notes={notes}
+                      onAddNote={(body) => addNote(selectedContact.id, body)}
                     />
                   </ResilientBoundary>
                   <ResilientBoundary

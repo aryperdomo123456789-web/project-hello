@@ -546,6 +546,52 @@ export const assignmentEvents = pgTable(
   ],
 );
 
+export const conversationNotes = pgTable(
+  "conversation_notes",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    conversationId: uuid("conversation_id")
+      .notNull()
+      .references(() => conversations.id, { onDelete: "cascade" }),
+    authorUserId: uuid("author_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("conversation_notes_conversation_idx").on(table.conversationId, table.createdAt),
+  ],
+);
+
+export const quickReplies = pgTable(
+  "quick_replies",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    shortcut: text("shortcut").notNull(),
+    body: text("body").notNull(),
+    category: text("category").notNull().default("geral"),
+    isActive: boolean("is_active").notNull().default(true),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("quick_replies_org_shortcut_uq").on(table.organizationId, table.shortcut),
+    index("quick_replies_org_active_idx").on(table.organizationId, table.isActive),
+  ],
+);
+
 export const auditLogs = pgTable(
   "audit_logs",
   {
@@ -577,3 +623,5 @@ export type Message = typeof messages.$inferSelect;
 export type Flow = typeof flows.$inferSelect;
 export type FlowVersion = typeof flowVersions.$inferSelect;
 export type FlowExecution = typeof flowExecutions.$inferSelect;
+export type ConversationNote = typeof conversationNotes.$inferSelect;
+export type QuickReply = typeof quickReplies.$inferSelect;

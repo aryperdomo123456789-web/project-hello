@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   Bot,
   CheckCircle2,
+  StickyNote,
   MoreVertical,
   Paperclip,
   Phone,
@@ -11,6 +12,7 @@ import {
   Video,
 } from "lucide-react";
 
+import type { ConversationNoteDTO, QuickReplyDTO } from "@/functions/inbox.functions";
 import type { Contact, Message } from "@/types/chat";
 import { captureDiagnostic } from "@/lib/diagnostics";
 import { cn } from "@/lib/utils";
@@ -26,6 +28,9 @@ interface ChatMessageAreaProps {
   onResumeAutomation: () => Promise<void> | void;
   queueOptions: Array<{ id: string; name: string }>;
   onTransferToQueue: (queueId: string) => Promise<void> | void;
+  quickReplies: QuickReplyDTO[];
+  notes: ConversationNoteDTO[];
+  onAddNote: (body: string) => Promise<void> | void;
 }
 
 export function ChatMessageArea({
@@ -39,8 +44,12 @@ export function ChatMessageArea({
   onResumeAutomation,
   queueOptions,
   onTransferToQueue,
+  quickReplies,
+  notes,
+  onAddNote,
 }: ChatMessageAreaProps) {
   const [text, setText] = useState("");
+  const [composerMode, setComposerMode] = useState<"message" | "note">("message");
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -73,8 +82,10 @@ export function ChatMessageArea({
   function handleSend() {
     const message = text.trim();
     if (!message || pendingAction) return;
-    void runAction("send_message", async () => {
-      await onSendMessage(message);
+    const actionName = composerMode === "note" ? "add_internal_note" : "send_message";
+    void runAction(actionName, async () => {
+      if (composerMode === "note") await onAddNote(message);
+      else await onSendMessage(message);
       setText("");
     });
   }
@@ -170,6 +181,19 @@ export function ChatMessageArea({
             {actionError}
           </div>
         )}
+        {notes.length > 0 && (
+          <section className="space-y-2 rounded-xl border border-amber-200 bg-amber-50 p-3">
+            <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-amber-800">
+              <StickyNote className="h-3.5 w-3.5" /> Notas internas da equipe
+            </p>
+            {notes.map((note) => (
+              <div key={note.id} className="rounded-lg bg-white/70 p-2 text-xs text-amber-950">
+                <p>{note.body}</p>
+                <p className="mt-1 text-[10px] text-amber-700">{note.authorName}</p>
+              </div>
+            ))}
+          </section>
+        )}
         {safeMessages.length === 0 ? (
           <div className="flex h-full items-center justify-center">
             <div className="rounded-full bg-white/80 px-6 py-3 text-sm text-slate-500 shadow-sm">
@@ -205,23 +229,60 @@ export function ChatMessageArea({
         )}
       </div>
 
-      <footer className="flex items-center gap-3 border-t bg-white p-4">
-        <button className="rounded-full p-2 text-slate-500 transition-colors hover:bg-slate-100">
+      <footer className="flex flex-wrap items-center gap-3 border-t bg-white p-4">
+        {quickReplies.length > 0 && (
+          <select
+            defaultValue=""
+            aria-label="Inserir resposta rápida"
+            onChange={(event) => {
+              if (event.target.value) {
+                setText(event.target.value);
+                event.currentTarget.value = "";
+              }
+            }}
+            className="h-9 max-w-44 rounded-lg border bg-white px-2 text-xs text-slate-600"
+          >
+            <option value="">Resposta rápida</option>
+            {quickReplies.map((reply) => (
+              <option key={reply.id} value={reply.body}>
+                {reply.shortcut} · {reply.name}
+              </option>
+            ))}
+          </select>
+        )}
+        <button
+          type="button"
+          aria-pressed={composerMode === "note"}
+          aria-label={composerMode === "note" ? "Voltar para mensagem" : "Adicionar nota interna"}
+          onClick={() => setComposerMode((current) => (current === "note" ? "message" : "note"))}
+          className={`rounded-full p-2 transition-colors ${composerMode === "note" ? "bg-amber-100 text-amber-700" : "text-slate-500 hover:bg-slate-100"}`}
+        >
+          <StickyNote className="h-5 w-5" />
+        </button>
+        <button
+          type="button"
+          className="rounded-full p-2 text-slate-500 transition-colors hover:bg-slate-100"
+        >
           <Smile className="h-6 w-6" />
         </button>
-        <button className="rounded-full p-2 text-slate-500 transition-colors hover:bg-slate-100">
+        <button
+          type="button"
+          className="rounded-full p-2 text-slate-500 transition-colors hover:bg-slate-100"
+        >
           <Paperclip className="h-6 w-6" />
         </button>
-        <div className="relative flex-1">
+        <div className="relative min-w-[12rem] flex-1">
           <input
             type="text"
-            placeholder="Digite uma mensagem..."
+            placeholder={
+              composerMode === "note" ? "Escreva uma nota interna..." : "Digite uma mensagem..."
+            }
             value={text}
             onChange={(event) => setText(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter") handleSend();
             }}
-            className="w-full rounded-full bg-slate-100 py-3 pl-4 pr-12 text-sm outline-none transition-all focus:ring-2 focus:ring-blue-500"
+            className={`w-full rounded-full py-3 pl-4 pr-12 text-sm outline-none transition-all focus:ring-2 focus:ring-blue-500 ${composerMode === "note" ? "bg-amber-50" : "bg-slate-100"}`}
           />
         </div>
         {text.trim() ? (
@@ -230,7 +291,11 @@ export function ChatMessageArea({
             disabled={Boolean(pendingAction)}
             className="rounded-full bg-blue-600 p-3 text-white shadow-lg transition-transform hover:bg-blue-700 active:scale-95"
           >
-            <Send className="h-5 w-5" />
+            {composerMode === "note" ? (
+              <StickyNote className="h-5 w-5" />
+            ) : (
+              <Send className="h-5 w-5" />
+            )}
           </button>
         ) : (
           <button className="cursor-not-allowed rounded-full bg-slate-200 p-3 text-slate-500">

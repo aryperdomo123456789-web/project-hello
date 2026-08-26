@@ -17,6 +17,13 @@ import {
   transferConversationFn,
   type QueueDTO,
 } from "@/functions/assignment.functions";
+import {
+  createConversationNoteFn,
+  listConversationNotesFn,
+  listQuickRepliesFn,
+  type ConversationNoteDTO,
+  type QuickReplyDTO,
+} from "@/functions/inbox.functions";
 import { captureDiagnostic } from "@/lib/diagnostics";
 import type { Contact, Message } from "@/types/chat";
 
@@ -96,6 +103,9 @@ export function useChat() {
   const resolveConversationRpc = useServerFn(resolveConversationFn);
   const resumeAutomationRpc = useServerFn(resumeAutomationFn);
   const transferConversationRpc = useServerFn(transferConversationFn);
+  const listQuickRepliesRpc = useServerFn(listQuickRepliesFn);
+  const listConversationNotesRpc = useServerFn(listConversationNotesFn);
+  const createConversationNoteRpc = useServerFn(createConversationNoteFn);
   const [conversations, setConversations] = useState<ConversationDTO[]>([]);
   const [queues, setQueues] = useState<QueueDTO[]>([]);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
@@ -103,6 +113,10 @@ export function useChat() {
     {},
   );
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [quickReplies, setQuickReplies] = useState<QuickReplyDTO[]>([]);
+  const [notesByConversation, setNotesByConversation] = useState<
+    Record<string, ConversationNoteDTO[]>
+  >({});
 
   const loadConversations = useCallback(async () => {
     try {
@@ -137,8 +151,26 @@ export function useChat() {
     [listMessages],
   );
 
+  const loadNotes = useCallback(
+    async (conversationId: string) => {
+      try {
+        const rows = await listConversationNotesRpc({ data: { conversationId } });
+        setNotesByConversation((current) => ({
+          ...current,
+          [conversationId]: Array.isArray(rows) ? rows : [],
+        }));
+      } catch (error) {
+        reportAsyncError(error, "list_conversation_notes", { conversationId });
+      }
+    },
+    [listConversationNotesRpc],
+  );
+
   useEffect(() => {
     void loadConversations().catch(() => undefined);
+    void listQuickRepliesRpc()
+      .then((rows) => setQuickReplies(Array.isArray(rows) ? rows : []))
+      .catch((error) => reportAsyncError(error, "list_quick_replies"));
     void listQueues()
       .then((rows) => setQueues(Array.isArray(rows) ? rows : []))
       .catch((error) => {
@@ -149,7 +181,7 @@ export function useChat() {
       void loadConversations().catch(() => undefined);
     }, 10000);
     return () => window.clearInterval(interval);
-  }, [listQueues, loadConversations]);
+  }, [listQueues, listQuickRepliesRpc, loadConversations]);
 
   const transferConversation = useCallback(
     async (conversationId: string, queueId: string) => {
@@ -165,8 +197,11 @@ export function useChat() {
   );
 
   useEffect(() => {
-    if (selectedContact) void loadMessages(selectedContact.id).catch(() => undefined);
-  }, [loadMessages, selectedContact]);
+    if (selectedContact) {
+      void loadMessages(selectedContact.id).catch(() => undefined);
+      void loadNotes(selectedContact.id);
+    }
+  }, [loadMessages, loadNotes, selectedContact]);
 
   const contacts = useMemo(() => conversations.map(toContact), [conversations]);
 
@@ -193,6 +228,25 @@ export function useChat() {
       }
     },
     [loadConversations, sendMessageRpc],
+  );
+
+  const addNote = useCallback(
+    async (conversationId: string, body: string) => {
+      try {
+        const note = await createConversationNoteRpc({ data: { conversationId, body } });
+        setNotesByConversation((current) => ({
+          ...current,
+          [conversationId]: [...(current[conversationId] ?? []), note],
+        }));
+      } catch (error) {
+        reportAsyncError(error, "create_conversation_note", {
+          conversationId,
+          bodyLength: body.length,
+        });
+        throw error;
+      }
+    },
+    [createConversationNoteRpc],
   );
 
   const claimConversation = useCallback(
@@ -259,6 +313,9 @@ export function useChat() {
     transferConversation,
     queues,
     contacts,
+    quickReplies,
+    notes: selectedContact ? (notesByConversation[selectedContact.id] ?? []) : [],
+    addNote,
     syncError,
   };
 }
