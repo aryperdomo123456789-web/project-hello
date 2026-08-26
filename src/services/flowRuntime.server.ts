@@ -82,7 +82,7 @@ async function getConversationContext(conversationId: string) {
   return row;
 }
 
-async function dispatchBestAgent(
+export async function dispatchBestAgent(
   organizationId: string,
   conversationId: string,
   queueId: string | null,

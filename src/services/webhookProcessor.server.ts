@@ -3,7 +3,7 @@ import { and, desc, eq, notInArray, or } from "drizzle-orm";
 import { db } from "@/db/client.server";
 import { channelConnections, contacts, conversations, messages, webhookEvents } from "@/db/schema";
 import type { NormalizedWebhookEvent } from "./whatsapp.server";
-import { startOrResumeFlow } from "./flowRuntime.server";
+import { dispatchBestAgent, startOrResumeFlow } from "./flowRuntime.server";
 
 function mapMessageStatus(value?: string) {
   switch (value?.toLowerCase()) {
@@ -165,7 +165,11 @@ async function processIncomingMessage(
 
   if (result.kind === "message" && result.created && event.text && !event.fromMe) {
     const flow = await startOrResumeFlow(result.conversationId, event.text, event.externalEventId);
-    return { ...result, flow };
+    const assignedUserId =
+      flow.status === "no_flow"
+        ? await dispatchBestAgent(connection.organizationId, result.conversationId, null)
+        : null;
+    return { ...result, flow, assignedUserId };
   }
 
   return result;
