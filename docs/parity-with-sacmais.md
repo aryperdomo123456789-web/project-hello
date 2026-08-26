@@ -116,3 +116,25 @@ O conteúdo de relatórios recomenda volume, primeira resposta, tempo total, con
 ### Backlog derivado
 
 Sem depender da Evolution, o Mago Bot deve priorizar onboarding sem ajuda, triagem híbrida, campos de jornada no CRM, tarefas e follow-up, métricas acionáveis, metas por fila/agente, controle de custo de IA, aprovação humana e treinamento guiado. Os diferenciais próprios permanecem replay idempotente, diagnóstico de falhas, versionamento, rollback, auditoria e isolamento multiempresa.
+
+
+## Referências externas adicionais — Zendesk, Intercom e respond.io
+
+A página oficial do Zendesk apresenta uma plataforma de resolução com agentes de IA, copilot, garantia de qualidade, workforce management, relatórios, ticketing, base de conhecimento, integrações, segurança e experiência omnichannel. O padrão relevante para o Mago Bot é transformar cada atendimento em ciclo mensurável: resolver, avaliar, aprender e ajustar a operação. Fonte: https://www.zendesk.com/service/
+
+O guia oficial de omnichannel do Zendesk diferencia canal único, multicanal e omnichannel: a diferença crítica é manter contexto conectado entre canais, departamentos e dispositivos. O mesmo material recomenda CRM como centro de dados, IA/chatbots, KPIs de resolução e CSAT, workspace unificado, busca de contexto e análise contínua. Fonte: https://www.zendesk.com/blog/customer-experience/expectations/omnichannel-experience/
+
+A página oficial do Intercom combina inbox omnichannel, ticketing com IA, copilot em tempo real, automações no-code, customer intelligence, insights, QA contínuo, relatórios customizáveis, onboarding guiado, notificações outbound, sequências baseadas em comportamento e integrações. O padrão aplicável é transformar conhecimento, comportamento e operação em uma única jornada, sem obrigar o agente a trocar de ferramenta. Fonte: https://www.intercom.com/
+
+A página oficial do respond.io posiciona a operação em três estágios: capturar leads em canais diferentes, converter com IA/analytics e reter com follow-ups, lembretes, CSAT e contexto unificado. A plataforma destaca team inbox, lead management, campanhas, chamadas, troca de canal, agendamento, integração com CRM, agentes de IA que executam tarefas e análises de ROI por anúncio, agente e canal. Fonte: https://respond.io/
+
+### Backlog derivado das referências
+
+1. Criar ticketing interno separado da conversa, com prioridade, categoria, SLA, status, responsável e histórico.
+2. Criar QA assistido por IA para avaliar conversas, aderência a políticas, sentimento, motivo, resolução e oportunidade de treinamento.
+3. Criar visão de customer intelligence com atributos, eventos, origem, uso, valor, histórico e próxima melhor ação.
+4. Criar sequências comportamentais e notificações internas do produto para onboarding, alertas e ativação.
+5. Criar catálogo de integrações via webhook/API, com receitas para CRM, pagamentos, agenda e help desk.
+6. Criar métricas de conversão e ROI por campanha, canal, número, fila e agente.
+7. Criar modelo de retenção com renovação, lembrete, follow-up e pesquisa CSAT.
+8. Criar centro de recomendações operacionais: filas com SLA rompido, macros faltantes, intents sem resposta e conteúdos de conhecimento com baixa cobertura.

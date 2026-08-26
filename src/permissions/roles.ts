@@ -10,6 +10,7 @@ export const ROLE_LABELS: Record<UiRole, string> = {
 
 export const NAVIGATION_ROLES: Record<string, UiRole[]> = {
   Atendimento: ["owner", "admin", "manager", "supervisor", "agent"],
+  Tickets: ["owner", "admin", "manager", "supervisor", "agent"],
   "Contatos/CRM": ["owner", "admin", "manager", "supervisor", "agent"],
   Automações: ["owner", "admin", "manager", "supervisor"],
   Conexões: ["owner", "admin", "manager"],

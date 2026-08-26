@@ -844,7 +844,6 @@ export const knowledgeChunks = pgTable(
   ],
 );
 
-
 export const internalTeamMessages = pgTable(
   "internal_team_messages",
   {
@@ -868,3 +867,71 @@ export const internalTeamMessages = pgTable(
 );
 
 export type InternalTeamMessage = typeof internalTeamMessages.$inferSelect;
+
+export const tickets = pgTable(
+  "tickets",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    conversationId: uuid("conversation_id").references(() => conversations.id, {
+      onDelete: "set null",
+    }),
+    contactId: uuid("contact_id")
+      .notNull()
+      .references(() => contacts.id, { onDelete: "cascade" }),
+    queueId: uuid("queue_id").references(() => queues.id, { onDelete: "set null" }),
+    assigneeId: uuid("assignee_id").references(() => users.id, { onDelete: "set null" }),
+    number: integer("number").notNull(),
+    subject: text("subject").notNull(),
+    category: text("category").notNull().default("outros"),
+    priority: integer("priority").notNull().default(0),
+    status: text("status").notNull().default("open"),
+    slaDueAt: timestamp("sla_due_at", { withTimezone: true }),
+    firstResponseAt: timestamp("first_response_at", { withTimezone: true }),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("tickets_org_number_uq").on(table.organizationId, table.number),
+    index("tickets_org_status_priority_idx").on(
+      table.organizationId,
+      table.status,
+      table.priority,
+      table.slaDueAt,
+    ),
+    index("tickets_contact_idx").on(table.organizationId, table.contactId, table.createdAt),
+    index("tickets_assignee_idx").on(table.organizationId, table.assigneeId, table.status),
+  ],
+);
+
+export const ticketEvents = pgTable(
+  "ticket_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    ticketId: uuid("ticket_id")
+      .notNull()
+      .references(() => tickets.id, { onDelete: "cascade" }),
+    actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+    eventType: text("event_type").notNull(),
+    fromValue: text("from_value"),
+    toValue: text("to_value"),
+    metadata: jsonb("metadata")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("ticket_events_ticket_time_idx").on(table.ticketId, table.createdAt)],
+);
+
+export type Ticket = typeof tickets.$inferSelect;
+export type TicketEvent = typeof ticketEvents.$inferSelect;

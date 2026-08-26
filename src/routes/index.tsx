@@ -26,6 +26,7 @@ import {
   FlaskConical,
   Megaphone,
   BookOpen,
+  Ticket as TicketIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { meFn } from "@/functions/auth.functions";
@@ -52,6 +53,11 @@ const LazyKnowledgeView = lazy(() =>
     default: module.KnowledgeView,
   })),
 );
+const LazyTicketsView = lazy(() =>
+  import("@/components/tickets/TicketsView").then((module) => ({
+    default: module.TicketsView,
+  })),
+);
 
 export const Route = createFileRoute("/")({
   beforeLoad: async () => {
@@ -64,6 +70,7 @@ export const Route = createFileRoute("/")({
 
 type Tab =
   | "Atendimento"
+  | "Tickets"
   | "Contatos/CRM"
   | "Automações"
   | "Conexões"
@@ -100,6 +107,7 @@ function Dashboard() {
 
   const menuItems = [
     { id: "Atendimento", label: "Chat", icon: MessageSquare },
+    { id: "Tickets", label: "Tickets", icon: TicketIcon },
     { id: "Contatos/CRM", label: "CRM", icon: Users },
     { id: "Automações", label: "Chatbots", icon: Zap },
     { id: "Conexões", label: "Conexões", icon: Link2 },
@@ -251,6 +259,17 @@ function Dashboard() {
                 <ConnectionsView />
               </ResilientBoundary>
             </div>
+          ) : activeTab === "Tickets" ? (
+            <ResilientBoundary
+              boundaryName="tickets-screen"
+              fallback={(retry) => (
+                <ComponentFallback title="Tickets indisponíveis" onRetry={retry} />
+              )}
+            >
+              <Suspense fallback={<ComponentFallback title="Carregando tickets" />}>
+                <LazyTicketsView />
+              </Suspense>
+            </ResilientBoundary>
           ) : activeTab === "Contatos/CRM" ? (
             <ResilientBoundary
               boundaryName="crm-screen"
