@@ -89,8 +89,8 @@ const plans = [
 
 function MarketingHome() {
   return (
-    <main className="min-h-screen overflow-hidden bg-[#f7f9fc] text-slate-900">
-      <header className="sticky top-0 z-30 border-b border-white/10 bg-slate-950/95 text-white backdrop-blur">
+    <main className="min-h-screen overflow-x-hidden bg-[#f7f9fc] text-slate-900">
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-slate-950/95 text-white shadow-lg shadow-slate-950/10 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 lg:px-8">
           <a href="#top" className="flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-slate-800 shadow-lg shadow-cyan-400/20 ring-1 ring-cyan-300/40">
@@ -131,7 +131,7 @@ function MarketingHome() {
         </div>
       </header>
 
-      <section id="top" className="relative bg-slate-950 pb-20 pt-16 text-white lg:pb-28 lg:pt-24">
+      <section id="top" className="relative bg-slate-950 pb-20 pt-28 text-white lg:pb-28 lg:pt-36">
         <div className="absolute -left-32 top-20 h-72 w-72 rounded-full bg-cyan-500/20 blur-3xl" />
         <div className="absolute -right-32 bottom-0 h-96 w-96 rounded-full bg-violet-500/20 blur-3xl" />
         <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-5 lg:grid-cols-[1.02fr_0.98fr] lg:px-8">
