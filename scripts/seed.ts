@@ -1,7 +1,6 @@
-import "dotenv/config";
 import { eq } from "drizzle-orm";
 
-import { db } from "@/db/client.server";
+import { db, getSqlClient } from "@/db/client.server";
 import { hashPassword } from "@/server/auth.server";
 import { memberships, organizations, queues, users } from "@/db/schema";
 
@@ -16,57 +15,63 @@ if (!adminPassword || adminPassword.length < 12) {
 }
 
 async function main() {
-  const existingOrganization = await db
-    .select()
-    .from(organizations)
-    .where(eq(organizations.slug, orgSlug))
-    .limit(1);
+  try {
+    const existingOrganization = await db
+      .select()
+      .from(organizations)
+      .where(eq(organizations.slug, orgSlug))
+      .limit(1);
 
-  const organization =
-    existingOrganization[0] ??
-    (await db.insert(organizations).values({ name: orgName, slug: orgSlug }).returning())[0];
+    const organization =
+      existingOrganization[0] ??
+      (await db.insert(organizations).values({ name: orgName, slug: orgSlug }).returning())[0];
 
-  if (!organization) throw new Error("Não foi possível criar a organização");
+    if (!organization) throw new Error("Não foi possível criar a organização");
 
-  const existingUser = await db.select().from(users).where(eq(users.email, adminEmail)).limit(1);
+    const existingUser = await db.select().from(users).where(eq(users.email, adminEmail)).limit(1);
 
-  const user =
-    existingUser[0] ??
-    (
-      await db
-        .insert(users)
-        .values({
-          email: adminEmail,
-          passwordHash: await hashPassword(adminPassword),
-          fullName: adminName,
-        })
-        .returning()
-    )[0];
+    const user =
+      existingUser[0] ??
+      (
+        await db
+          .insert(users)
+          .values({
+            email: adminEmail,
+            passwordHash: await hashPassword(adminPassword),
+            fullName: adminName,
+          })
+          .returning()
+      )[0];
 
-  if (!user) throw new Error("Não foi possível criar o administrador");
+    if (!user) throw new Error("Não foi possível criar o administrador");
 
-  await db
-    .insert(memberships)
-    .values({
-      organizationId: organization.id,
-      userId: user.id,
-      role: "owner",
-      availability: "online",
-    })
-    .onConflictDoNothing();
-
-  for (const queue of [
-    { name: "Comercial", slug: "comercial" },
-    { name: "Suporte", slug: "suporte" },
-    { name: "Financeiro", slug: "financeiro" },
-  ]) {
     await db
-      .insert(queues)
-      .values({ organizationId: organization.id, ...queue })
+      .insert(memberships)
+      .values({
+        organizationId: organization.id,
+        userId: user.id,
+        role: "owner",
+        availability: "online",
+      })
       .onConflictDoNothing();
-  }
 
-  console.log(JSON.stringify({ organizationId: organization.id, adminEmail, queues: 3 }, null, 2));
+    for (const queue of [
+      { name: "Comercial", slug: "comercial" },
+      { name: "Suporte", slug: "suporte" },
+      { name: "Financeiro", slug: "financeiro" },
+    ]) {
+      await db
+        .insert(queues)
+        .values({ organizationId: organization.id, ...queue })
+        .onConflictDoNothing();
+    }
+
+    console.log(
+      JSON.stringify({ organizationId: organization.id, adminEmail, queues: 3 }, null, 2),
+    );
+  } finally {
+    await getSqlClient().end({ timeout: 5 });
+  }
 }
 
 main().catch((error) => {
