@@ -1,0 +1,114 @@
+## Estado Git
+## [32mfeat/saas-multiwhatsapp-flow-builder[m...[31morigin/feat/saas-multiwhatsapp-flow-builder[m
+[31m??[m docs/parity-state-audit.txt
+[33m8bf46cd[m docs: deepen sacmais parity benchmark
+[33m9dc21ac[m docs: define whatsapp provider contract
+[33m49f398b[m fix: enforce tenant ownership for task assignees
+[33m7929b07[m test: add deterministic event replay lab
+[33m6a345ca[m feat: show customer satisfaction metrics
+[33m9e6b80e[m feat: add crm feedback and identity guards
+[33m41e704f[m feat: enforce plan capacity server side
+[33m5ffaef3[m feat: expand automation flow blocks
+[33mcd005ee[m feat: expose queue policy settings
+[33me8df66d[m feat: add persistent crm follow ups
+[33mb10686f[m feat: add team governance workspace
+[33mc3eb9b3[m test: add multi-channel simulation load coverage
+## Contagens
+rotas=5
+componentes=59
+funcoes=11
+servicos=5
+testes=6
+migrations=6
+## Arquivos
+src/components/chat/ChatList.tsx
+src/components/chat/ChatMessageArea.tsx
+src/components/chat/ContactDetails.tsx
+src/components/connections/ConnectionsView.tsx
+src/components/crm/CRMWorkspace.tsx
+src/components/crm/ContactTasks.tsx
+src/components/dashboard/ReportsView.tsx
+src/components/flows/FlowBuilderView.tsx
+src/components/kanban/KanbanBoard.tsx
+src/components/operations/OperationalHealthView.tsx
+src/components/resilience/ResilienceLayer.tsx
+src/components/settings/PlanOverview.tsx
+src/components/simulator/SimulationLab.tsx
+src/components/team/TeamWorkspace.tsx
+src/components/ui/accordion.tsx
+src/components/ui/alert-dialog.tsx
+src/components/ui/alert.tsx
+src/components/ui/aspect-ratio.tsx
+src/components/ui/avatar.tsx
+src/components/ui/badge.tsx
+src/components/ui/breadcrumb.tsx
+src/components/ui/button.tsx
+src/components/ui/calendar.tsx
+src/components/ui/card.tsx
+src/components/ui/carousel.tsx
+src/components/ui/checkbox.tsx
+src/components/ui/collapsible.tsx
+src/components/ui/command.tsx
+src/components/ui/context-menu.tsx
+src/components/ui/dialog.tsx
+src/components/ui/drawer.tsx
+src/components/ui/dropdown-menu.tsx
+src/components/ui/form.tsx
+src/components/ui/hover-card.tsx
+src/components/ui/input-otp.tsx
+src/components/ui/input.tsx
+src/components/ui/label.tsx
+src/components/ui/menubar.tsx
+src/components/ui/navigation-menu.tsx
+src/components/ui/pagination.tsx
+src/components/ui/popover.tsx
+src/components/ui/progress.tsx
+src/components/ui/radio-group.tsx
+src/components/ui/resizable.tsx
+src/components/ui/scroll-area.tsx
+src/components/ui/select.tsx
+src/components/ui/separator.tsx
+src/components/ui/sheet.tsx
+src/components/ui/sidebar.tsx
+src/components/ui/skeleton.tsx
+src/components/ui/slider.tsx
+src/components/ui/sonner.tsx
+src/components/ui/switch.tsx
+src/components/ui/table.tsx
+src/components/ui/tabs.tsx
+src/components/ui/textarea.tsx
+src/components/ui/toggle-group.tsx
+src/components/ui/toggle.tsx
+src/components/ui/tooltip.tsx
+src/entitlements/limits.server.ts
+src/entitlements/plans.ts
+src/functions/assignment.functions.ts
+src/functions/auth.functions.ts
+src/functions/channel.functions.ts
+src/functions/chat.functions.ts
+src/functions/flow.functions.ts
+src/functions/inbox.functions.ts
+src/functions/metrics.functions.ts
+src/functions/organization.functions.ts
+src/functions/rating.functions.ts
+src/functions/task.functions.ts
+src/functions/team.functions.ts
+src/queues/policy.ts
+src/routes/README.md
+src/routes/__root.tsx
+src/routes/api/health.ts
+src/routes/api/webhooks/whatsapp.ts
+src/routes/index.tsx
+src/routes/login.tsx
+src/services/evolutionApi.ts
+src/services/flowRuntime.server.ts
+src/services/license.server.ts
+src/services/webhookProcessor.server.ts
+src/services/whatsapp.server.ts
+src/simulator/simulation.ts
+tests/diagnostics.test.ts
+tests/flows.test.ts
+tests/queue-policy.test.ts
+tests/simulation-load.test.ts
+tests/simulation.test.ts
+tests/whatsapp-adapter.test.ts
