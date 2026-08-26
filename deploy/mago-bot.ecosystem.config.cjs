@@ -1,8 +1,12 @@
+const path = require("node:path");
+
+const appRoot = path.resolve(__dirname, "..");
+
 module.exports = {
   apps: [
     {
       name: "mago-bot-web",
-      cwd: "/www/wwwroot/mago-bot.com",
+      cwd: appRoot,
       script: ".output/server/index.mjs",
       interpreter: "node",
       instances: 1,
@@ -22,7 +26,7 @@ module.exports = {
     },
     {
       name: "mago-bot-worker",
-      cwd: "/www/wwwroot/mago-bot.com",
+      cwd: appRoot,
       script: "node_modules/.bin/tsx",
       args: "scripts/worker.ts",
       interpreter: "none",
