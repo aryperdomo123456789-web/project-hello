@@ -8,6 +8,7 @@ export type SimulationChannel = {
 
 export type SimulationEvent = {
   id: string;
+  externalId: string;
   channelId: string;
   channelName: string;
   phone: string;
@@ -81,6 +82,7 @@ export function simulateInbound(
   const safeText = text.trim() || "Mensagem vazia de teste";
   return {
     id: createId(),
+    externalId: `sim-inbound-${channel.id}-${now.getTime()}`,
     channelId: channel.id,
     channelName: channel.name,
     phone: channel.displayPhone,
@@ -101,6 +103,7 @@ export function simulateReply(
   return {
     ...event,
     id: createId(),
+    externalId: `sim-outbound-${event.externalId}`,
     direction: "outbound" as const,
     text,
     status: "replied" as const,
@@ -139,4 +142,74 @@ export function simulateProviderFailure(event: SimulationEvent) {
       "Efeito encaminhado para retry do worker",
     ],
   };
+}
+
+export type SimulationReplay = {
+  accepted: SimulationEvent[];
+  duplicates: SimulationEvent[];
+  failed: SimulationEvent[];
+  channels: string[];
+};
+
+export function replaySimulation(events: SimulationEvent[]): SimulationReplay {
+  const seen = new Set<string>();
+  const accepted: SimulationEvent[] = [];
+  const duplicates: SimulationEvent[] = [];
+  const failed: SimulationEvent[] = [];
+  for (const event of events) {
+    if (event.status === "failed") {
+      failed.push(event);
+      continue;
+    }
+    if (seen.has(event.externalId)) {
+      duplicates.push({
+        ...event,
+        status: "duplicated",
+        trace: [...event.trace, "Replay descartado por externalId idempotente"],
+      });
+      continue;
+    }
+    seen.add(event.externalId);
+    accepted.push(event);
+  }
+  return {
+    accepted,
+    duplicates,
+    failed,
+    channels: [...new Set(events.map((event) => event.channelId))],
+  };
+}
+
+export type ChaosScenarioInput = {
+  channels?: SimulationChannel[];
+  rounds: number;
+  duplicateEvery?: number;
+  failureEvery?: number;
+};
+
+export function runChaosScenario({
+  channels = DEFAULT_SIMULATION_CHANNELS,
+  rounds,
+  duplicateEvery = 0,
+  failureEvery = 0,
+}: ChaosScenarioInput): SimulationReplay {
+  const events: SimulationEvent[] = [];
+  for (let index = 0; index < Math.max(0, rounds); index += 1) {
+    const channel = channels[index % channels.length];
+    if (!channel) continue;
+    const inbound = simulateInbound(
+      channel,
+      `Evento de teste ${index + 1}`,
+      new Date(1_700_000_000_000 + index * 1_000),
+    );
+    events.push(
+      failureEvery > 0 && (index + 1) % failureEvery === 0
+        ? simulateProviderFailure(inbound)
+        : inbound,
+    );
+    if (duplicateEvery > 0 && (index + 1) % duplicateEvery === 0) {
+      events.push(simulateDuplicate(inbound));
+    }
+  }
+  return replaySimulation(events);
 }
