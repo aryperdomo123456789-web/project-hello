@@ -111,6 +111,7 @@ export function FlowBuilderView() {
   const [selectedConnectionId, setSelectedConnectionId] = useState("");
   const [saving, setSaving] = useState(false);
   const [simulationOutput, setSimulationOutput] = useState<string[]>([]);
+  const [simulationInput, setSimulationInput] = useState("Olá, quero saber mais");
 
   const selectedFlow = useMemo(
     () => flows.find((flow) => flow.id === selectedFlowId) ?? null,
@@ -222,7 +223,10 @@ export function FlowBuilderView() {
     if (!selectedFlowId) return;
     try {
       const result = await simulateFlow({
-        data: { graphJson: JSON.stringify(reactFlowToGraph(nodes, edges)), inputText: "sim" },
+        data: {
+          graphJson: JSON.stringify(reactFlowToGraph(nodes, edges)),
+          inputText: simulationInput.trim() || "sim",
+        },
       });
       setSimulationOutput(result.trace.map((item) => `${item.type}: ${item.label}`));
       toast.success("Simulação concluída sem envio real");
@@ -292,13 +296,22 @@ export function FlowBuilderView() {
           >
             Vincular fluxo
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => void handleSimulate()}
-            disabled={!selectedFlowId || saving}
-          >
-            Simular
-          </Button>
+          <div className="hidden items-center gap-2 rounded-md border bg-slate-50 p-1 lg:flex">
+            <Input
+              className="h-8 w-48 border-0 bg-transparent text-xs shadow-none focus-visible:ring-0"
+              value={simulationInput}
+              onChange={(event) => setSimulationInput(event.target.value)}
+              placeholder="Mensagem de teste..."
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void handleSimulate()}
+              disabled={!selectedFlowId || saving}
+            >
+              Simular conversa
+            </Button>
+          </div>
           <Button
             variant="outline"
             onClick={() => void handleSave()}
