@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Filter, Search, Tag, UserRound } from "lucide-react";
 
 import type { Contact } from "@/types/chat";
+import { ContactImportButton } from "@/components/crm/ContactImportButton";
 
 const stages: Array<{ id: Contact["stage"]; label: string; color: string }> = [
   { id: "Abertas", label: "Novas conversas", color: "bg-blue-500" },
@@ -56,6 +57,7 @@ export function CRMWorkspace({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <ContactImportButton />
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
