@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
-import { Check, CreditCard, Rocket, ShieldCheck } from "lucide-react";
+import { ArrowRight, Check, CheckCircle2, CreditCard, Rocket, ShieldCheck } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 
 import { getWorkspacePlanFn, type WorkspacePlanDTO } from "@/functions/organization.functions";
 import { captureDiagnostic } from "@/lib/diagnostics";
 import { usageRatio } from "@/entitlements/plans";
 
-export function PlanOverview() {
+type OnboardingTab = "Conexões" | "Automações" | "Laboratório" | "Equipe";
+
+export function PlanOverview({ onNavigate }: { onNavigate?: (tab: OnboardingTab) => void }) {
   const getWorkspacePlan = useServerFn(getWorkspacePlanFn);
   const [data, setData] = useState<WorkspacePlanDTO | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +56,37 @@ export function PlanOverview() {
     { label: "Agentes", used: data.usage.agents, limit: data.limits.agents },
     { label: "Fluxos publicados", used: data.usage.activeFlows, limit: data.limits.activeFlows },
   ];
+  const onboardingSteps: Array<{
+    label: string;
+    description: string;
+    tab: OnboardingTab;
+    done: boolean;
+  }> = [
+    {
+      label: "Conectar um número",
+      description: "Crie ou conecte uma entrada de atendimento.",
+      tab: "Conexões",
+      done: data.usage.connections > 0,
+    },
+    {
+      label: "Publicar um especialista",
+      description: "Escolha vendas, suporte, financeiro ou outro fluxo.",
+      tab: "Automações",
+      done: data.usage.activeFlows > 0,
+    },
+    {
+      label: "Testar a jornada",
+      description: "Rode o laboratório antes do canal real.",
+      tab: "Laboratório",
+      done: false,
+    },
+    {
+      label: "Preparar a equipe",
+      description: "Convide agentes e configure a operação.",
+      tab: "Equipe",
+      done: data.usage.agents > 1,
+    },
+  ];
 
   return (
     <div className="h-full overflow-y-auto bg-slate-50 p-8">
@@ -91,23 +124,35 @@ export function PlanOverview() {
               <ShieldCheck className="h-5 w-5 text-emerald-600" />
               <h3 className="font-bold text-slate-900">Ativação recomendada</h3>
             </div>
-            <ol className="mt-5 space-y-4 text-sm text-slate-600">
-              <li>
-                <strong className="text-slate-900">1.</strong> Crie ou conecte um número na área de
-                Conexões.
-              </li>
-              <li>
-                <strong className="text-slate-900">2.</strong> Vincule um especialista no construtor
-                de Automações.
-              </li>
-              <li>
-                <strong className="text-slate-900">3.</strong> Rode o Laboratório e valide a jornada
-                antes do canal real.
-              </li>
-              <li>
-                <strong className="text-slate-900">4.</strong> Convide a equipe e configure fila,
-                SLA e capacidade.
-              </li>
+            <ol className="mt-5 space-y-3 text-sm text-slate-600">
+              {onboardingSteps.map((step, index) => (
+                <li key={step.label}>
+                  <button
+                    type="button"
+                    onClick={() => onNavigate?.(step.tab)}
+                    className="group flex w-full items-center gap-3 rounded-xl p-2 text-left transition hover:bg-slate-50"
+                  >
+                    {step.done ? (
+                      <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
+                    ) : (
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-bold text-slate-400">
+                        {index + 1}
+                      </span>
+                    )}
+                    <span className="flex-1">
+                      <strong
+                        className={step.done ? "text-emerald-700 line-through" : "text-slate-900"}
+                      >
+                        {step.label}
+                      </strong>
+                      <span className="mt-0.5 block text-xs text-slate-500">
+                        {step.description}
+                      </span>
+                    </span>
+                    <ArrowRight className="h-4 w-4 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-blue-600" />
+                  </button>
+                </li>
+              ))}
             </ol>
           </section>
         </div>

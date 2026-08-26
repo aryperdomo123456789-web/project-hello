@@ -267,7 +267,7 @@ function Dashboard() {
                 <ComponentFallback title="Configurações indisponíveis" onRetry={retry} />
               )}
             >
-              <PlanOverview />
+              <PlanOverview onNavigate={(tab) => setActiveTab(tab)} />
             </ResilientBoundary>
           ) : activeTab === "Saúde" ? (
             <ResilientBoundary
