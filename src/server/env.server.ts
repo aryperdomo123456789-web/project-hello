@@ -21,6 +21,8 @@ const envSchema = z.object({
   EVOLUTION_LOGOUT_PATH: z.string().default("/instance/logout/{instance}"),
   EVOLUTION_SEND_TEXT_PATH: z.string().default("/message/sendText/{instance}"),
   WHATSAPP_WEBHOOK_SECRET: z.string().min(16),
+  RATE_LIMIT_WEBHOOK_PER_MINUTE: z.coerce.number().int().min(10).max(10000).default(120),
+  RATE_LIMIT_LOGIN_PER_MINUTE: z.coerce.number().int().min(3).max(1000).default(10),
 });
 
 export type ServerEnv = z.infer<typeof envSchema>;

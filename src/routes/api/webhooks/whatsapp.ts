@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { getServerEnv } from "@/server/env.server";
+import { consumeRateLimit } from "@/server/rate-limit.server";
 import { assertLicense } from "@/services/license.server";
 import { processWebhookEvents } from "@/services/webhookProcessor.server";
 import { getWhatsAppAdapter } from "@/services/whatsapp.server";
@@ -30,6 +31,28 @@ export const Route = createFileRoute("/api/webhooks/whatsapp")({
         return Response.json({ ok: true, service: "mago-bot-webhook" });
       },
       POST: async ({ request }) => {
+        const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+        const clientKey = forwardedFor || request.headers.get("x-real-ip") || "unknown";
+        try {
+          const rate = await consumeRateLimit(
+            `webhook:${clientKey}`,
+            getServerEnv().RATE_LIMIT_WEBHOOK_PER_MINUTE,
+            60,
+          );
+          if (!rate.allowed) {
+            return Response.json(
+              {
+                error: "Limite de requisições atingido",
+                retryAfterSeconds: rate.retryAfterSeconds,
+              },
+              { status: 429, headers: { "retry-after": String(rate.retryAfterSeconds) } },
+            );
+          }
+        } catch (error) {
+          console.error("webhook rate limiter unavailable", error);
+          return Response.json({ error: "Proteção temporariamente indisponível" }, { status: 503 });
+        }
+
         if (!isAuthorized(request)) {
           return Response.json({ error: "Webhook não autorizado" }, { status: 401 });
         }

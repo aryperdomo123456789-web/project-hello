@@ -3,6 +3,8 @@ import { compare, hash } from "bcryptjs";
 
 import { db } from "@/db/client.server";
 import { memberships, organizations, users } from "@/db/schema";
+import { consumeRateLimit } from "@/server/rate-limit.server";
+import { getServerEnv } from "./env.server";
 import { getAppSession } from "./session.server";
 
 export type AppRole = "owner" | "admin" | "manager" | "supervisor" | "agent";
@@ -71,6 +73,13 @@ export async function requireRole(...allowedRoles: AppRole[]): Promise<AuthUser>
 
 export async function loginUser(emailInput: string, password: string, organizationId?: string) {
   const email = emailInput.trim().toLowerCase();
+  const rate = await consumeRateLimit(
+    `login:${email}`,
+    getServerEnv().RATE_LIMIT_LOGIN_PER_MINUTE,
+    60,
+  );
+  if (!rate.allowed)
+    return { ok: false as const, error: "Muitas tentativas. Tente novamente em instantes" };
   const [user] = await db
     .select({ id: users.id, passwordHash: users.passwordHash, isActive: users.isActive })
     .from(users)
