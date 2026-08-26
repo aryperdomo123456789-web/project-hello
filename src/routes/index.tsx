@@ -9,6 +9,7 @@ import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import { ContactDetails } from "@/components/chat/ContactDetails";
 import { ReportsView } from "@/components/dashboard/ReportsView";
 import { FlowBuilderView } from "@/components/flows/FlowBuilderView";
+import { SimulationLab } from "@/components/simulator/SimulationLab";
 import { useChat } from "@/hooks/useChat";
 import {
   MessageSquare,
@@ -22,6 +23,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Monitor,
+  FlaskConical,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { meFn } from "@/functions/auth.functions";
@@ -36,7 +38,13 @@ export const Route = createFileRoute("/")({
 });
 
 type Tab =
-  "Atendimento" | "Contatos/CRM" | "Automações" | "Conexões" | "Configurações" | "Relatórios";
+  | "Atendimento"
+  | "Contatos/CRM"
+  | "Automações"
+  | "Conexões"
+  | "Configurações"
+  | "Relatórios"
+  | "Laboratório";
 
 function Dashboard() {
   const {
@@ -63,6 +71,7 @@ function Dashboard() {
     { id: "Automações", label: "Chatbots", icon: Zap },
     { id: "Conexões", label: "Conexões", icon: Link2 },
     { id: "Relatórios", label: "Relatórios", icon: BarChart3 },
+    { id: "Laboratório", label: "Laboratório", icon: FlaskConical },
     { id: "Configurações", label: "Ajustes", icon: Settings },
   ];
 
@@ -219,6 +228,15 @@ function Dashboard() {
               )}
             >
               <FlowBuilderView />
+            </ResilientBoundary>
+          ) : activeTab === "Laboratório" ? (
+            <ResilientBoundary
+              boundaryName="simulation-lab"
+              fallback={(retry) => (
+                <ComponentFallback title="Laboratório indisponível" onRetry={retry} />
+              )}
+            >
+              <SimulationLab />
             </ResilientBoundary>
           ) : activeTab === "Atendimento" ? (
             <div className="flex-1 flex overflow-hidden w-full">
