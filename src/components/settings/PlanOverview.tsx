@@ -3,7 +3,11 @@ import { ArrowRight, Check, CheckCircle2, CreditCard, Rocket, ShieldCheck } from
 import { useServerFn } from "@tanstack/react-start";
 
 import { getWorkspacePlanFn, type WorkspacePlanDTO } from "@/functions/organization.functions";
-import { getBillingSummaryFn, setCancelAtPeriodEndFn } from "@/functions/billing.functions";
+import {
+  createMercadoPagoCheckoutFn,
+  getBillingSummaryFn,
+  setCancelAtPeriodEndFn,
+} from "@/functions/billing.functions";
 import {
   getLatestRetentionRunFn,
   getRetentionPolicyFn,
@@ -20,6 +24,7 @@ export function PlanOverview({ onNavigate }: { onNavigate?: (tab: OnboardingTab)
   const getWorkspacePlan = useServerFn(getWorkspacePlanFn);
   const getBillingSummary = useServerFn(getBillingSummaryFn);
   const setCancelAtPeriodEnd = useServerFn(setCancelAtPeriodEndFn);
+  const createMercadoPagoCheckout = useServerFn(createMercadoPagoCheckoutFn);
   const getRetentionPolicy = useServerFn(getRetentionPolicyFn);
   const updateRetentionPolicy = useServerFn(updateRetentionPolicyFn);
   const runRetentionDryRun = useServerFn(runRetentionDryRunFn);
@@ -29,6 +34,7 @@ export function PlanOverview({ onNavigate }: { onNavigate?: (tab: OnboardingTab)
     null,
   );
   const [billingAction, setBillingAction] = useState(false);
+  const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retention, setRetention] = useState<RetentionPolicyDTO | null>(null);
   const [retentionRun, setRetentionRun] =
@@ -152,38 +158,69 @@ export function PlanOverview({ onNavigate }: { onNavigate?: (tab: OnboardingTab)
                     : "A assinatura é controlada pelo provedor de billing configurado."}
               </p>
             </div>
-            <button
-              type="button"
-              disabled={billingAction}
-              onClick={async () => {
-                setBillingAction(true);
-                try {
-                  const next = await setCancelAtPeriodEnd({
-                    data: { cancel: !billing.cancelAtPeriodEnd },
-                  });
-                  setBilling((current) =>
-                    current ? { ...current, cancelAtPeriodEnd: next.cancelAtPeriodEnd } : current,
-                  );
-                } catch (cause) {
-                  captureDiagnostic(cause, {
-                    source: "async",
-                    component: "PlanOverview",
-                    payload: { operation: "toggle_cancel_at_period_end" },
-                    recoverable: true,
-                  });
-                  setError("Não foi possível atualizar a assinatura");
-                } finally {
-                  setBillingAction(false);
-                }
-              }}
-              className="rounded-lg border border-cyan-300 bg-white px-3 py-2 text-xs font-bold text-cyan-800 hover:bg-cyan-100 disabled:opacity-50"
-            >
-              {billingAction
-                ? "Salvando"
-                : billing.cancelAtPeriodEnd
-                  ? "Reverter cancelamento"
-                  : "Programar cancelamento"}
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={checkoutBusy}
+                onClick={async () => {
+                  setCheckoutBusy(true);
+                  try {
+                    const checkout = await createMercadoPagoCheckout({
+                      data: { plan: billing.plan },
+                    });
+                    if (checkout.initPoint) window.location.assign(checkout.initPoint);
+                    else setError("Mercado Pago não retornou o link de checkout");
+                  } catch (cause) {
+                    setError(
+                      "Não foi possível abrir o Checkout Mercado Pago. Verifique configuração e preços do sandbox.",
+                    );
+                    captureDiagnostic(cause, {
+                      source: "async",
+                      component: "PlanOverview",
+                      payload: { operation: "create_mercadopago_checkout", plan: billing.plan },
+                      recoverable: true,
+                    });
+                  } finally {
+                    setCheckoutBusy(false);
+                  }
+                }}
+                className="rounded-lg border border-emerald-300 bg-white px-3 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-100 disabled:opacity-50"
+              >
+                {checkoutBusy ? "Abrindo..." : "Abrir checkout de teste"}
+              </button>
+              <button
+                type="button"
+                disabled={billingAction}
+                onClick={async () => {
+                  setBillingAction(true);
+                  try {
+                    const next = await setCancelAtPeriodEnd({
+                      data: { cancel: !billing.cancelAtPeriodEnd },
+                    });
+                    setBilling((current) =>
+                      current ? { ...current, cancelAtPeriodEnd: next.cancelAtPeriodEnd } : current,
+                    );
+                  } catch (cause) {
+                    captureDiagnostic(cause, {
+                      source: "async",
+                      component: "PlanOverview",
+                      payload: { operation: "toggle_cancel_at_period_end" },
+                      recoverable: true,
+                    });
+                    setError("Não foi possível atualizar a assinatura");
+                  } finally {
+                    setBillingAction(false);
+                  }
+                }}
+                className="rounded-lg border border-cyan-300 bg-white px-3 py-2 text-xs font-bold text-cyan-800 hover:bg-cyan-100 disabled:opacity-50"
+              >
+                {billingAction
+                  ? "Salvando"
+                  : billing.cancelAtPeriodEnd
+                    ? "Reverter cancelamento"
+                    : "Programar cancelamento"}
+              </button>
+            </div>
           </section>
         )}
 

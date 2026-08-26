@@ -76,3 +76,13 @@ O monitor não substitui o health check nem reinicia processos automaticamente; 
 A política por organização é criada com defaults conservadores e pode ser ajustada no painel **Configurações** por owner/admin. O sistema aplica pisos de segurança, permite `legalHold`, registra alterações em auditoria e oferece **Executar dry-run** para contar candidatos sem excluir nada. O worker só executa limpeza quando a política está fora de dry-run, sem legal hold, e `RETENTION_CLEANUP_ENABLED=true` no ambiente server-side.
 
 Não ative a limpeza destrutiva diretamente no VPS. Primeiro faça backup verificável do PostgreSQL, execute dry-run, revise os contadores e confirme o período de retenção com a operação. Sem essa sequência, mantenha `RETENTION_CLEANUP_ENABLED=false`.
+
+## Mercado Pago sandbox
+
+O billing Mercado Pago usa `POST /preapproval` no backend para gerar assinatura mensal e devolve o `init_point` ao owner/admin somente após clique explícito em **Abrir checkout de teste**. O Access Token, Public Key e segredo de webhook são exclusivamente server-side; nunca coloque valores reais no GitHub, `.env.example`, frontend ou logs.
+
+Configure `MP_ENVIRONMENT=test`, `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET` e valores positivos para `MP_STARTER_AMOUNT_CENTS`, `MP_GROWTH_AMOUNT_CENTS` e `MP_SCALE_AMOUNT_CENTS`. O checkout permanece bloqueado quando o preço é zero. `MP_LIVE_ENABLED=false` impede uso produtivo mesmo que o ambiente seja alterado por engano.
+
+O endpoint público é `/api/webhooks/mercadopago`. Ele valida `x-signature`/`x-request-id`, consulta o recurso Mercado Pago com o Access Token, persiste evento idempotente e só então atualiza o billing da organização. Sem `MP_WEBHOOK_SECRET`, a rota responde 503 e não aceita notificações.
+
+Para homologar, use uma conta vendedor e uma conta comprador de teste do Mercado Pago, configure a URL de teste de webhook no painel, crie o checkout e verifique `pending`/`authorized`, replay do mesmo evento e falhas de assinatura. A integração publicada não considera uma aprovação sandbox como cobrança real.

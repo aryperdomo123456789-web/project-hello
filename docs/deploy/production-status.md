@@ -91,3 +91,9 @@ Todo código e documentação devem ser enviados à branch de desenvolvimento an
 ## Limites honestos do go-live
 
 A solução **não deve ser vendida como WhatsApp real** enquanto a API Evolution operacional não tiver base URL, autenticação, paths, payloads de QR, conexão, inbound, outbound, mídia, status e reconexão homologados. Da mesma forma, trial não equivale a cobrança: checkout, customer portal, assinatura e webhook assinado dependem do gateway escolhido.
+
+## Mercado Pago sandbox
+
+O adapter Mercado Pago foi adicionado server-side para assinatura mensal via `/preapproval`, com checkout explícito na tela de Configurações, referências externas por organização, HMAC `x-signature`, consulta posterior do recurso e eventos de billing idempotentes. A aplicação não afirma cobrança real: `MP_ENVIRONMENT=test` e `MP_LIVE_ENABLED=false` são os limites padrão.
+
+O Access Token/Public Key fornecidos pelo proprietário não entram no GitHub, frontend, documentação ou logs. O segredo específico de Webhooks ainda precisa ser criado/confirmado no painel Mercado Pago para que `/api/webhooks/mercadopago` aceite notificações; sem ele a rota responde 503 por segurança. Os preços dos três planos também precisam ser definidos no ambiente antes de abrir checkout.
