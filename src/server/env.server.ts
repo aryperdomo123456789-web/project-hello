@@ -51,6 +51,7 @@ const envSchema = z.object({
   LANGFUSE_PUBLIC_KEY: z.string().optional(),
   LANGFUSE_SECRET_KEY: z.string().optional(),
   LANGFUSE_BASE_URL: z.string().url().optional(),
+  RETENTION_CLEANUP_ENABLED: z.coerce.boolean().default(false),
 });
 
 export type ServerEnv = z.infer<typeof envSchema>;
