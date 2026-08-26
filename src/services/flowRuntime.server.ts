@@ -17,6 +17,7 @@ import {
   queues,
 } from "@/db/schema";
 import type { FlowEdge, FlowGraph, FlowNode, FlowNodeData } from "@/flows/types";
+import { enqueueFlowEffect } from "@/queue/jobs.server";
 import { getWhatsAppAdapter } from "./whatsapp.server";
 
 type RuntimeGraph = FlowGraph & { entryNodeId?: string | undefined };
@@ -224,9 +225,15 @@ async function dispatchMessageEffect(executionId: string, nodeRunId: string, tex
       .set({
         status: "failed",
         attempts: 1,
+        nextAttemptAt: new Date(),
         lastError: error instanceof Error ? error.message : "Falha no envio",
       })
       .where(eq(flowEffects.id, effect.id));
+    try {
+      await enqueueFlowEffect(effect.id);
+    } catch {
+      // Redis pode estar indisponível durante desenvolvimento; o erro do provedor permanece a causa principal.
+    }
     throw error;
   }
 }
