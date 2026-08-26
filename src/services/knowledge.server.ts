@@ -1,13 +1,22 @@
 import { createHash } from "node:crypto";
 
-import { and, desc, eq, ilike } from "drizzle-orm";
+import { and, desc, eq, ilike, or } from "drizzle-orm";
 
 import { db } from "@/db/client.server";
 import { knowledgeChunks, knowledgeDocuments } from "@/db/schema";
+import {
+  configuredEmbeddingProvider,
+  embedTexts,
+  normalizedCosineSimilarity,
+  rerankDocuments,
+} from "@/services/embedding.server";
 import { getServerEnv } from "@/server/env.server";
 
 const CHUNK_SIZE = 1200;
 const MAX_SOURCE_LENGTH = 200_000;
+const EMBEDDING_BATCH_SIZE = 32;
+const MAX_CANDIDATES = 200;
+const MAX_RERANK_CANDIDATES = 20;
 
 export type KnowledgeHit = {
   id: string;
@@ -16,6 +25,7 @@ export type KnowledgeHit = {
   content: string;
   sourceUrl?: string;
   score: number;
+  ranking: "lexical" | "hybrid";
 };
 
 function normalize(value: string) {
@@ -62,6 +72,43 @@ export function knowledgeHash(title: string, content: string, sourceUrl?: string
     .digest("hex");
 }
 
+async function populateEmbeddings(
+  organizationId: string,
+  chunks: Array<{ id: string; content: string }>,
+) {
+  if (!configuredEmbeddingProvider()) return;
+  for (let start = 0; start < chunks.length; start += EMBEDDING_BATCH_SIZE) {
+    const batch = chunks.slice(start, start + EMBEDDING_BATCH_SIZE);
+    try {
+      const vectors = await embedTexts(batch.map((chunk) => chunk.content));
+      if (!vectors) return;
+      await Promise.all(
+        batch.map((chunk, index) => {
+          const embedding = vectors[index];
+          return embedding
+            ? db
+                .update(knowledgeChunks)
+                .set({ embedding })
+                .where(
+                  and(
+                    eq(knowledgeChunks.id, chunk.id),
+                    eq(knowledgeChunks.organizationId, organizationId),
+                  ),
+                )
+            : Promise.resolve();
+        }),
+      );
+    } catch (error) {
+      console.warn(
+        `[knowledge] embedding unavailable; lexical fallback preserved: ${
+          error instanceof Error ? error.message : "provider error"
+        }`,
+      );
+      return;
+    }
+  }
+}
+
 export async function saveKnowledgeDocument(input: {
   organizationId: string;
   userId: string;
@@ -91,16 +138,20 @@ export async function saveKnowledgeDocument(input: {
     })
     .returning({ id: knowledgeDocuments.id });
   if (!document) return { created: false, chunks: 0, contentHash };
-  await db.insert(knowledgeChunks).values(
-    chunks.map((chunk, position) => ({
-      organizationId: input.organizationId,
-      documentId: document.id,
-      position,
-      content: chunk,
-      metadata: { tokenizer: "character-window", version: 1 },
-    })),
-  );
-  return { created: true, documentId: document.id, chunks: chunks.length, contentHash };
+  const insertedChunks = await db
+    .insert(knowledgeChunks)
+    .values(
+      chunks.map((chunk, position) => ({
+        organizationId: input.organizationId,
+        documentId: document.id,
+        position,
+        content: chunk,
+        metadata: { tokenizer: "character-window", version: 1 },
+      })),
+    )
+    .returning({ id: knowledgeChunks.id, content: knowledgeChunks.content });
+  await populateEmbeddings(input.organizationId, insertedChunks);
+  return { created: true, documentId: document.id, chunks: insertedChunks.length, contentHash };
 }
 
 export async function ingestKnowledgeUrl(url: string) {
@@ -131,17 +182,22 @@ export async function searchKnowledge(input: {
   limit?: number;
 }) {
   const query = normalize(input.query);
+  if (!query) return [];
   const terms = query
     .split(" ")
     .filter((term) => term.length >= 3)
     .slice(0, 8);
-  if (!terms.length) return [];
+  const providerEnabled = Boolean(configuredEmbeddingProvider());
+  const lexicalFilter = terms.length
+    ? or(...terms.map((term) => ilike(knowledgeChunks.content, `%${term}%`)))
+    : undefined;
   const candidates = await db
     .select({
       id: knowledgeChunks.id,
       documentId: knowledgeChunks.documentId,
       title: knowledgeDocuments.title,
       content: knowledgeChunks.content,
+      embedding: knowledgeChunks.embedding,
       sourceUrl: knowledgeDocuments.sourceUrl,
       createdAt: knowledgeChunks.createdAt,
     })
@@ -151,25 +207,74 @@ export async function searchKnowledge(input: {
       and(
         eq(knowledgeChunks.organizationId, input.organizationId),
         eq(knowledgeDocuments.status, "published"),
-        ilike(knowledgeChunks.content, `%${terms[0]}%`),
+        ...(providerEnabled || !lexicalFilter ? [] : [lexicalFilter]),
       ),
     )
     .orderBy(desc(knowledgeChunks.createdAt))
-    .limit(200);
-  return candidates
+    .limit(MAX_CANDIDATES);
+
+  let queryEmbedding: number[] | null = null;
+  if (providerEnabled) {
+    try {
+      queryEmbedding = (await embedTexts([input.query]))?.[0] ?? null;
+    } catch (error) {
+      console.warn(
+        `[knowledge] query embedding unavailable; lexical fallback preserved: ${
+          error instanceof Error ? error.message : "provider error"
+        }`,
+      );
+    }
+  }
+
+  const scored = candidates
     .map((candidate) => {
       const haystack = normalize(`${candidate.title} ${candidate.content}`);
       const matched = terms.filter((term) => haystack.includes(term)).length;
+      const lexicalScore = terms.length ? matched / terms.length : 0;
+      const semanticScore =
+        queryEmbedding && candidate.embedding.length
+          ? normalizedCosineSimilarity(queryEmbedding, candidate.embedding)
+          : 0;
+      const score = queryEmbedding ? lexicalScore * 0.35 + semanticScore * 0.65 : lexicalScore;
       return {
         id: candidate.id,
         documentId: candidate.documentId,
         title: candidate.title,
         content: candidate.content,
         ...(candidate.sourceUrl ? { sourceUrl: candidate.sourceUrl } : {}),
-        score: Math.round((matched / terms.length) * 100) / 100,
-      } satisfies KnowledgeHit;
+        score,
+        lexicalScore,
+        ranking: queryEmbedding ? ("hybrid" as const) : ("lexical" as const),
+      };
     })
     .filter((candidate) => candidate.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, input.limit ?? 5);
+    .sort((left, right) => right.score - left.score);
+
+  const rerankCandidates = scored.slice(0, MAX_RERANK_CANDIDATES);
+  try {
+    const reranked = await rerankDocuments(
+      input.query,
+      rerankCandidates.map((candidate) => `${candidate.title}\n${candidate.content}`),
+    );
+    if (reranked?.length) {
+      const rerankByIndex = new Map(reranked.map((item) => [item.index, item.score]));
+      for (const [index, candidate] of rerankCandidates.entries()) {
+        const rerankScore = rerankByIndex.get(index);
+        if (rerankScore !== undefined)
+          candidate.score = candidate.score * 0.75 + rerankScore * 0.25;
+      }
+      rerankCandidates.sort((left, right) => right.score - left.score);
+    }
+  } catch (error) {
+    console.warn(
+      `[knowledge] reranker unavailable; hybrid ranking preserved: ${
+        error instanceof Error ? error.message : "provider error"
+      }`,
+    );
+  }
+
+  return scored.slice(0, input.limit ?? 5).map(({ lexicalScore: _lexicalScore, ...candidate }) => ({
+    ...candidate,
+    score: Math.round(candidate.score * 100) / 100,
+  })) satisfies KnowledgeHit[];
 }

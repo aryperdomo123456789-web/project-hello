@@ -29,7 +29,7 @@ No aaPanel, o domínio `mago-bot.com` deve apontar para `127.0.0.1:3080` com pro
 
 ## Variáveis que precisam existir
 
-`DATABASE_URL`, `SESSION_SECRET` com pelo menos 32 caracteres, `WHATSAPP_WEBHOOK_SECRET` com pelo menos 16 caracteres, `WHATSAPP_PROVIDER=evolution`, `WHATSAPP_API_BASE_URL`, `WHATSAPP_API_KEY` quando o provedor exigir, e os cinco paths `EVOLUTION_*_PATH` compatíveis com a API operacional. O token de licenciamento deve entrar em `WHATSAPP_LICENSE_TOKEN` quando os scopes forem ativados.
+`DATABASE_URL`, `SESSION_SECRET` com pelo menos 32 caracteres, `WHATSAPP_WEBHOOK_SECRET` com pelo menos 16 caracteres, `WHATSAPP_PROVIDER=evolution`, `WHATSAPP_API_BASE_URL`, `WHATSAPP_API_KEY` quando o provedor exigir, e os cinco paths `EVOLUTION_*_PATH` compatíveis com a API operacional. O token de licenciamento deve entrar em `WHATSAPP_LICENSE_TOKEN` quando os scopes forem ativados. Para RAG semântico, `EMBEDDING_PROVIDER` permanece `none` até uma chave válida; depois pode ser `jina` ou `openai-compatible` com modelo e endpoint server-side. `RERANK_PROVIDER=jina` é opcional e usa a chave Jina.
 
 ## Segurança operacional
 

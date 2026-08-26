@@ -70,12 +70,7 @@ async function claimEnrollment(now: Date) {
       context: sequenceEnrollments.context,
     })
     .from(sequenceEnrollments)
-    .where(
-      and(
-        eq(sequenceEnrollments.status, "active"),
-        lte(sequenceEnrollments.nextRunAt, now),
-      ),
-    )
+    .where(and(eq(sequenceEnrollments.status, "active"), lte(sequenceEnrollments.nextRunAt, now)))
     .orderBy(asc(sequenceEnrollments.nextRunAt), asc(sequenceEnrollments.createdAt))
     .limit(1);
   if (!candidate) return null;
@@ -108,7 +103,10 @@ async function findStep(enrollment: {
     })
     .from(sequences)
     .where(
-      and(eq(sequences.id, enrollment.sequenceId), eq(sequences.organizationId, enrollment.organizationId)),
+      and(
+        eq(sequences.id, enrollment.sequenceId),
+        eq(sequences.organizationId, enrollment.organizationId),
+      ),
     )
     .limit(1);
   if (!sequence) return null;
@@ -222,7 +220,10 @@ async function loadContactPolicy(organizationId: string, contactId: string) {
     .select()
     .from(contactPolicies)
     .where(
-      and(eq(contactPolicies.organizationId, organizationId), eq(contactPolicies.contactId, contactId)),
+      and(
+        eq(contactPolicies.organizationId, organizationId),
+        eq(contactPolicies.contactId, contactId),
+      ),
     )
     .limit(1);
   return policy;
@@ -253,7 +254,10 @@ async function resolveTarget(
         .innerJoin(channelConnections, eq(channelConnections.id, conversations.channelConnectionId))
         .innerJoin(contacts, eq(contacts.id, conversations.contactId))
         .where(
-          and(eq(conversations.organizationId, organizationId), eq(conversations.contactId, contactId)),
+          and(
+            eq(conversations.organizationId, organizationId),
+            eq(conversations.contactId, contactId),
+          ),
         )
         .orderBy(desc(conversations.updatedAt))
         .limit(1);
@@ -279,7 +283,8 @@ async function processInternalStep(
   const context: SequenceContext = { ...enrollment.context, [`step_${step.position}`]: step.type };
 
   if (step.type === "task") {
-    const title = stringValue(config["title"]) || stringValue(step.body) || `Tarefa: ${sequence.name}`;
+    const title =
+      stringValue(config["title"]) || stringValue(step.body) || `Tarefa: ${sequence.name}`;
     await db.transaction(async (tx) => {
       await tx.insert(contactTasks).values({
         organizationId: enrollment.organizationId,
@@ -311,14 +316,24 @@ async function processInternalStep(
     const [contact] = await db
       .select({ tags: contacts.tags })
       .from(contacts)
-      .where(and(eq(contacts.id, enrollment.contactId), eq(contacts.organizationId, enrollment.organizationId)))
+      .where(
+        and(
+          eq(contacts.id, enrollment.contactId),
+          eq(contacts.organizationId, enrollment.organizationId),
+        ),
+      )
       .limit(1);
     if (!contact) throw new Error("Contato da sequência não encontrado");
     await db.transaction(async (tx) => {
       await tx
         .update(contacts)
         .set({ tags: mergeContactTags(contact.tags, tag), updatedAt: now })
-        .where(and(eq(contacts.id, enrollment.contactId), eq(contacts.organizationId, enrollment.organizationId)));
+        .where(
+          and(
+            eq(contacts.id, enrollment.contactId),
+            eq(contacts.organizationId, enrollment.organizationId),
+          ),
+        );
       await tx
         .update(sequenceEvents)
         .set({ status: "completed", detail: { type: "tag", tag } })
@@ -338,8 +353,18 @@ async function processInternalStep(
   if (step.type === "handoff") {
     const queueId = stringValue(config["queueId"]);
     if (!queueId || !enrollment.conversationId) {
-      await updateEvent(event.id, "skipped", { type: "handoff", reason: "queue_or_conversation_missing" });
-      await completeEnrollment(enrollment.id, enrollment.organizationId, enrollment.sequenceId, enrollment.currentStep, context, now);
+      await updateEvent(event.id, "skipped", {
+        type: "handoff",
+        reason: "queue_or_conversation_missing",
+      });
+      await completeEnrollment(
+        enrollment.id,
+        enrollment.organizationId,
+        enrollment.sequenceId,
+        enrollment.currentStep,
+        context,
+        now,
+      );
       return "skipped";
     }
     const [queue] = await db
@@ -400,16 +425,31 @@ async function processMessageStep(
       mode: "sandbox",
       reason: "WHATSAPP_PROVIDER=stub",
     });
-    await completeEnrollment(enrollment.id, enrollment.organizationId, enrollment.sequenceId, enrollment.currentStep, { ...enrollment.context, lastMessage: "sandbox" }, now);
+    await completeEnrollment(
+      enrollment.id,
+      enrollment.organizationId,
+      enrollment.sequenceId,
+      enrollment.currentStep,
+      { ...enrollment.context, lastMessage: "sandbox" },
+      now,
+    );
     return "skipped";
   }
 
-  const target = await resolveTarget(enrollment.organizationId, enrollment.contactId, enrollment.conversationId);
+  const target = await resolveTarget(
+    enrollment.organizationId,
+    enrollment.contactId,
+    enrollment.conversationId,
+  );
   const phone = target?.contact.phone ?? target?.contact.waId ?? "";
   if (!target || !phone || target.connection.status !== "connected") {
     await updateEvent(event.id, "pending", {
       type: "message",
-      reason: !target ? "conversation_missing" : !phone ? "phone_missing" : "connection_not_connected",
+      reason: !target
+        ? "conversation_missing"
+        : !phone
+          ? "phone_missing"
+          : "connection_not_connected",
       retryAt: nextRetryAt(now).toISOString(),
     });
     await db
@@ -424,12 +464,19 @@ async function processMessageStep(
     .select({ id: messages.id })
     .from(messages)
     .where(
-      and(eq(messages.organizationId, enrollment.organizationId), eq(messages.clientMessageId, idempotencyKey)),
+      and(
+        eq(messages.organizationId, enrollment.organizationId),
+        eq(messages.clientMessageId, idempotencyKey),
+      ),
     )
     .limit(1);
   if (!existingMessage) {
     const adapter = getWhatsAppAdapter();
-    const result = await adapter.sendText(target.connection.providerInstanceId ?? target.connection.id, phone, body);
+    const result = await adapter.sendText(
+      target.connection.providerInstanceId ?? target.connection.id,
+      phone,
+      body,
+    );
     await db.transaction(async (tx) => {
       await tx
         .insert(messages)
@@ -463,7 +510,10 @@ async function processMessageStep(
         });
       await tx
         .update(sequenceEvents)
-        .set({ status: "completed", detail: { type: "message", conversationId: target.conversation.id } })
+        .set({
+          status: "completed",
+          detail: { type: "message", conversationId: target.conversation.id },
+        })
         .where(eq(sequenceEvents.id, event.id));
     });
     await completeEnrollment(
@@ -476,7 +526,14 @@ async function processMessageStep(
     );
   } else {
     await updateEvent(event.id, "completed", { type: "message", idempotentReplay: true });
-    await completeEnrollment(enrollment.id, enrollment.organizationId, enrollment.sequenceId, enrollment.currentStep, { ...enrollment.context, lastMessage: "replayed" }, now);
+    await completeEnrollment(
+      enrollment.id,
+      enrollment.organizationId,
+      enrollment.sequenceId,
+      enrollment.currentStep,
+      { ...enrollment.context, lastMessage: "replayed" },
+      now,
+    );
   }
   return "completed";
 }
@@ -497,7 +554,11 @@ export async function processOneSequenceEnrollment(now = new Date()): Promise<Se
     if (sequence.status !== "active" || !step) {
       await db
         .update(sequenceEnrollments)
-        .set({ status: sequence.status === "archived" ? "cancelled" : "paused", nextRunAt: null, updatedAt: now })
+        .set({
+          status: sequence.status === "archived" ? "cancelled" : "paused",
+          nextRunAt: null,
+          updatedAt: now,
+        })
         .where(eq(sequenceEnrollments.id, enrollment.id));
       return "skipped";
     }
@@ -506,7 +567,12 @@ export async function processOneSequenceEnrollment(now = new Date()): Promise<Se
     if (policy?.optedOut) {
       await db
         .update(sequenceEnrollments)
-        .set({ status: "cancelled", nextRunAt: null, updatedAt: now, context: { ...enrollment.context, cancelled: "opted_out" } })
+        .set({
+          status: "cancelled",
+          nextRunAt: null,
+          updatedAt: now,
+          context: { ...enrollment.context, cancelled: "opted_out" },
+        })
         .where(eq(sequenceEnrollments.id, enrollment.id));
       return "skipped";
     }
@@ -554,18 +620,28 @@ export async function processOneSequenceEnrollment(now = new Date()): Promise<Se
       .select({ id: sequenceSteps.id })
       .from(sequenceSteps)
       .where(
-        and(eq(sequenceSteps.sequenceId, enrollment.sequenceId), eq(sequenceSteps.position, enrollment.currentStep)),
+        and(
+          eq(sequenceSteps.sequenceId, enrollment.sequenceId),
+          eq(sequenceSteps.position, enrollment.currentStep),
+        ),
       )
       .limit(1);
     if (step[0]) {
       await db
         .update(sequenceEvents)
-        .set({ status: "failed", detail: { error: message.slice(0, 500), retryAt: nextRetryAt(now).toISOString() } })
+        .set({
+          status: "failed",
+          detail: { error: message.slice(0, 500), retryAt: nextRetryAt(now).toISOString() },
+        })
         .where(eq(sequenceEvents.idempotencyKey, sequenceEventKey(id, step[0].id)));
     }
     await db
       .update(sequenceEnrollments)
-      .set({ nextRunAt: nextRetryAt(now), updatedAt: now, context: { ...enrollment.context, lastError: message.slice(0, 500) } })
+      .set({
+        nextRunAt: nextRetryAt(now),
+        updatedAt: now,
+        context: { ...enrollment.context, lastError: message.slice(0, 500) },
+      })
       .where(eq(sequenceEnrollments.id, id));
     console.error(`[sequence-worker] enrollment=${id} failed: ${message}`);
     return "failed";

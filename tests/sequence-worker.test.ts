@@ -5,6 +5,7 @@ import {
   nextSequenceRunAt,
   sequenceEventKey,
 } from "@/queue/sequence-worker.server";
+import { cosineSimilarity, normalizedCosineSimilarity } from "@/services/embedding.server";
 
 describe("sequence worker primitives", () => {
   it("creates a stable event key per enrollment and step", () => {
@@ -27,6 +28,18 @@ describe("sequence worker primitives", () => {
     expect(mergeContactTags(["lead", "vip"], " vip ")).toEqual(["lead", "vip"]);
     expect(mergeContactTags(undefined, "novo-lead")).toEqual(["novo-lead"]);
     expect(mergeContactTags(["lead"], "")).toEqual(["lead"]);
-    expect(mergeContactTags(Array.from({ length: 100 }, (_, index) => `tag-${index}`), "overflow")).toHaveLength(100);
+    expect(
+      mergeContactTags(
+        Array.from({ length: 100 }, (_, index) => `tag-${index}`),
+        "overflow",
+      ),
+    ).toHaveLength(100);
+  });
+
+  it("scores embeddings with cosine similarity and clamps to a usable range", () => {
+    expect(cosineSimilarity([1, 0], [1, 0])).toBe(1);
+    expect(cosineSimilarity([1, 0], [0, 1])).toBe(0);
+    expect(normalizedCosineSimilarity([1, 0], [0, 1])).toBe(0.5);
+    expect(cosineSimilarity([1], [1, 0])).toBe(0);
   });
 });

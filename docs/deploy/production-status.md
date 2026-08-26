@@ -11,34 +11,34 @@
 
 ## Estado verificado
 
-| Item | Estado |
-|---|---|
-| Login público | HTTP 200 em `/login` |
-| Health público | HTTP 200 em `/api/health` |
-| PostgreSQL | Saudável pelo health check |
-| Redis | Saudável pelo health check |
-| Processo web | PM2 online como usuário `www` |
-| Processo worker | PM2 online como usuário `www` |
-| Node | 22.16.0 isolado do Node global |
-| Nginx | Proxy HTTPS para `127.0.0.1:3080` |
-| HTTP | Redireciona para HTTPS |
-| Arquivos sensíveis | `.env` retorna 404 |
-| Migration | Aplicada, incluindo chat interno e sequências |
-| Pasta de estudo | `/www/wwwroot/mago-bot.com/isonado` preservada |
-| Monitor systemd | Timer ativo a cada 5 minutos; serviço oneshot conclui com `status=0/SUCCESS` |
+| Item               | Estado                                                                       |
+| ------------------ | ---------------------------------------------------------------------------- |
+| Login público      | HTTP 200 em `/login`                                                         |
+| Health público     | HTTP 200 em `/api/health`                                                    |
+| PostgreSQL         | Saudável pelo health check                                                   |
+| Redis              | Saudável pelo health check                                                   |
+| Processo web       | PM2 online como usuário `www`                                                |
+| Processo worker    | PM2 online como usuário `www`                                                |
+| Node               | 22.16.0 isolado do Node global                                               |
+| Nginx              | Proxy HTTPS para `127.0.0.1:3080`                                            |
+| HTTP               | Redireciona para HTTPS                                                       |
+| Arquivos sensíveis | `.env` retorna 404                                                           |
+| Migration          | Aplicada, incluindo chat interno e sequências                                |
+| Pasta de estudo    | `/www/wwwroot/mago-bot.com/isonado` preservada                               |
+| Monitor systemd    | Timer ativo a cada 5 minutos; serviço oneshot conclui com `status=0/SUCCESS` |
 
 ## Entregas operacionais
 
-| Área | Estado | Observação |
-| --- | --- | --- |
-| Autenticação, sessão e RBAC multiempresa | Operacional | Owner, admin, manager, supervisor e agent com validação server-side. |
-| Inbox, filas, posse, transferência e SLA | Operacional em sandbox | A persistência está ativa; mensagens reais dependem do contrato operacional do provedor. |
-| Fluxos e templates | Operacional em sandbox | Runtime determinístico com efeitos e retomada por timer. |
-| Sequências comportamentais | Operacional | Scheduler integrado ao `mago-bot-worker` a cada 30 segundos; enrollment com lease, eventos idempotentes, delays, opt-out, janela silenciosa, frequência, tarefas, tags e handoff. |
-| Mensagens de sequência | Bloqueadas com segurança no stub | Com `WHATSAPP_PROVIDER=stub`, o passo é marcado como `skipped` em modo sandbox; nenhum falso envio é apresentado como real. |
-| Billing/trial | Preparado | Trial e ciclo de cancelamento existem; cobrança real ainda exige gateway e webhooks assinados. |
-| Monitoramento | Operacional local | Timer systemd a cada 5 minutos, estado em `/var/lib/mago-bot/health.state` e journald; webhook externo só será usado quando uma URL de destino for fornecida. |
-| Pasta `isonado/whatsender` | Preservada | Mantida isolada e fora do fluxo de execução. |
+| Área                                     | Estado                           | Observação                                                                                                                                                                        |
+| ---------------------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Autenticação, sessão e RBAC multiempresa | Operacional                      | Owner, admin, manager, supervisor e agent com validação server-side.                                                                                                              |
+| Inbox, filas, posse, transferência e SLA | Operacional em sandbox           | A persistência está ativa; mensagens reais dependem do contrato operacional do provedor.                                                                                          |
+| Fluxos e templates                       | Operacional em sandbox           | Runtime determinístico com efeitos e retomada por timer.                                                                                                                          |
+| Sequências comportamentais               | Operacional                      | Scheduler integrado ao `mago-bot-worker` a cada 30 segundos; enrollment com lease, eventos idempotentes, delays, opt-out, janela silenciosa, frequência, tarefas, tags e handoff. |
+| Mensagens de sequência                   | Bloqueadas com segurança no stub | Com `WHATSAPP_PROVIDER=stub`, o passo é marcado como `skipped` em modo sandbox; nenhum falso envio é apresentado como real.                                                       |
+| Billing/trial                            | Preparado                        | Trial e ciclo de cancelamento existem; cobrança real ainda exige gateway e webhooks assinados.                                                                                    |
+| Monitoramento                            | Operacional local                | Timer systemd a cada 5 minutos, estado em `/var/lib/mago-bot/health.state` e journald; webhook externo só será usado quando uma URL de destino for fornecida.                     |
+| Pasta `isonado/whatsender`               | Preservada                       | Mantida isolada e fora do fluxo de execução.                                                                                                                                      |
 
 ## Executor de sequências
 
