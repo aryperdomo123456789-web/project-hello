@@ -5,9 +5,9 @@
 
 **Branch:** `feat/saas-multiwhatsapp-flow-builder`
 
-**Último commit do aplicativo no VPS:** `e0a0c2f`
+**Último commit do aplicativo no VPS:** `59eb099`
 
-**Migration de retenção:** `0015_lyrical_scream.sql` aplicada; `retention_policies` e `retention_runs` existem.
+**Migrations recentes:** `0015_lyrical_scream.sql` e `0016_brown_sunset_bain.sql` aplicadas; retenção e catálogo comercial existem.
 
 ## Estado verificado
 
@@ -36,7 +36,7 @@
 | Fluxos e templates                       | Operacional em sandbox           | Runtime determinístico com efeitos e retomada por timer.                                                                                                                          |
 | Sequências comportamentais               | Operacional                      | Scheduler integrado ao `mago-bot-worker` a cada 30 segundos; enrollment com lease, eventos idempotentes, delays, opt-out, janela silenciosa, frequência, tarefas, tags e handoff. |
 | Mensagens de sequência                   | Bloqueadas com segurança no stub | Com `WHATSAPP_PROVIDER=stub`, o passo é marcado como `skipped` em modo sandbox; nenhum falso envio é apresentado como real.                                                       |
-| Billing/trial                            | Preparado                        | Trial e ciclo de cancelamento existem; cobrança real ainda exige gateway e webhooks assinados.                                                                                    |
+| Billing/trial                            | Sandbox preparado                | Trial, catálogo editável e checkout Mercado Pago de teste existem; cobrança real ainda exige segredo de webhook homologado e credenciais de produção.                             |
 | Monitoramento                            | Operacional local                | Timer systemd a cada 5 minutos, estado em `/var/lib/mago-bot/health.state` e journald; webhook externo só será usado quando uma URL de destino for fornecida.                     |
 | Retenção de dados                        | Seguro por padrão                | Política por organização, pisos/tetos, `legalHold`, dry-run auditável e limpeza bloqueada por `RETENTION_CLEANUP_ENABLED=false`.                                                  |
 | Pasta `isonado/whatsender`               | Preservada                       | Mantida isolada e fora do fluxo de execução.                                                                                                                                      |
@@ -96,4 +96,4 @@ A solução **não deve ser vendida como WhatsApp real** enquanto a API Evolutio
 
 O adapter Mercado Pago foi adicionado server-side para assinatura mensal via `/preapproval`, com checkout explícito na tela de Configurações, referências externas por organização, HMAC `x-signature`, consulta posterior do recurso e eventos de billing idempotentes. A aplicação não afirma cobrança real: `MP_ENVIRONMENT=test` e `MP_LIVE_ENABLED=false` são os limites padrão.
 
-O Access Token/Public Key fornecidos pelo proprietário não entram no GitHub, frontend, documentação ou logs. O segredo específico de Webhooks ainda precisa ser criado/confirmado no painel Mercado Pago para que `/api/webhooks/mercadopago` aceite notificações; sem ele a rota responde 503 por segurança. Os preços dos três planos também precisam ser definidos no ambiente antes de abrir checkout.
+O Access Token/Public Key fornecidos pelo proprietário foram configurados somente no `.env` server-side do VPS, com `MP_ENVIRONMENT=test` e `MP_LIVE_ENABLED=false`; não entram no GitHub, frontend, documentação ou logs. O segredo específico de Webhooks ainda precisa ser criado/confirmado no painel Mercado Pago para que `/api/webhooks/mercadopago` aceite notificações; sem ele a rota responde 503 por segurança. O catálogo foi criado com Starter R$ 149, Growth R$ 297 e Scale R$ 597 e pode ser editado exclusivamente pelo owner.
