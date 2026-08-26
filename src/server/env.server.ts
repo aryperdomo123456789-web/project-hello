@@ -26,6 +26,7 @@ const envSchema = z.object({
   WHATSAPP_WEBHOOK_SECRET: z.string().min(16),
   RATE_LIMIT_WEBHOOK_PER_MINUTE: z.coerce.number().int().min(10).max(10000).default(120),
   RATE_LIMIT_LOGIN_PER_MINUTE: z.coerce.number().int().min(3).max(1000).default(10),
+  RATE_LIMIT_SIGNUP_PER_HOUR: z.coerce.number().int().min(1).max(20).default(3),
   AI_PRIMARY_PROVIDER: z.enum(["stub", "openrouter", "groq", "deepseek", "gemini"]).default("stub"),
   AI_FALLBACK_PROVIDER: z
     .enum(["stub", "openrouter", "groq", "deepseek", "gemini"])

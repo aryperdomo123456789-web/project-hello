@@ -96,3 +96,9 @@ Typecheck, build de produção e **26 testes** passaram. Em produção, health e
 [5]: https://www.mercadopago.com.br/developers/pt/docs/your-integrations/test/accounts "Mercado Pago — Contas de teste"
 [6]: https://www.mercadopago.com.br/developers/pt/reference/online-payments/checkout-pro/preferences/create-preference/post "Mercado Pago — Criar preferência"
 [7]: https://www.mercadopago.com.br/developers/pt/reference/online-payments/subscriptions/create-preapproval/post "Mercado Pago — Criar assinatura"
+
+## Referência de experiência para cadastro público
+
+A página pública do SAC Mais apresenta uma proposta comercial direta, com navegação por recursos, planos e dúvidas, CTAs de entrada e um caminho de demonstração. Para o Mago Bot, a inspiração aplicada é estrutural: apresentar valor antes do formulário, oferecer escolha clara de plano e reduzir fricção no primeiro acesso. A identidade visual, os textos, os componentes e o fluxo de persistência permanecem próprios do Mago Bot.
+
+Fonte consultada em 26/08/2026: [SAC Mais — página pública](https://sacmais.com.br/).

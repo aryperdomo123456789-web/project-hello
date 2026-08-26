@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as OwnerLoginRouteImport } from './routes/owner.login'
 import { Route as ApiWebhooksMercadopagoRouteImport } from './routes/api/webhooks/mercadopago'
@@ -36,6 +37,11 @@ const AppRoute = AppRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiHealthRoute = ApiHealthRouteImport.update({
@@ -64,6 +70,7 @@ export interface FileRoutesByFullPath {
   '/accept-invite': typeof AcceptInviteRoute
   '/app': typeof AppRoute
   '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
   '/api/health': typeof ApiHealthRoute
   '/owner/login': typeof OwnerLoginRoute
   '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRoute
@@ -74,6 +81,7 @@ export interface FileRoutesByTo {
   '/accept-invite': typeof AcceptInviteRoute
   '/app': typeof AppRoute
   '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
   '/api/health': typeof ApiHealthRoute
   '/owner/login': typeof OwnerLoginRoute
   '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRoute
@@ -85,6 +93,7 @@ export interface FileRoutesById {
   '/accept-invite': typeof AcceptInviteRoute
   '/app': typeof AppRoute
   '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
   '/api/health': typeof ApiHealthRoute
   '/owner/login': typeof OwnerLoginRoute
   '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRoute
@@ -97,6 +106,7 @@ export interface FileRouteTypes {
     | '/accept-invite'
     | '/app'
     | '/login'
+    | '/signup'
     | '/api/health'
     | '/owner/login'
     | '/api/webhooks/mercadopago'
@@ -107,6 +117,7 @@ export interface FileRouteTypes {
     | '/accept-invite'
     | '/app'
     | '/login'
+    | '/signup'
     | '/api/health'
     | '/owner/login'
     | '/api/webhooks/mercadopago'
@@ -117,6 +128,7 @@ export interface FileRouteTypes {
     | '/accept-invite'
     | '/app'
     | '/login'
+    | '/signup'
     | '/api/health'
     | '/owner/login'
     | '/api/webhooks/mercadopago'
@@ -128,6 +140,7 @@ export interface RootRouteChildren {
   AcceptInviteRoute: typeof AcceptInviteRoute
   AppRoute: typeof AppRoute
   LoginRoute: typeof LoginRoute
+  SignupRoute: typeof SignupRoute
   ApiHealthRoute: typeof ApiHealthRoute
   OwnerLoginRoute: typeof OwnerLoginRoute
   ApiWebhooksMercadopagoRoute: typeof ApiWebhooksMercadopagoRoute
@@ -162,6 +175,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/health': {
@@ -200,6 +220,7 @@ const rootRouteChildren: RootRouteChildren = {
   AcceptInviteRoute: AcceptInviteRoute,
   AppRoute: AppRoute,
   LoginRoute: LoginRoute,
+  SignupRoute: SignupRoute,
   ApiHealthRoute: ApiHealthRoute,
   OwnerLoginRoute: OwnerLoginRoute,
   ApiWebhooksMercadopagoRoute: ApiWebhooksMercadopagoRoute,

@@ -122,10 +122,10 @@ function MarketingHome() {
               Entrar
             </Link>
             <Link
-              to="/owner/login"
+              to="/signup"
               className="inline-flex items-center gap-2 rounded-lg bg-cyan-400 px-4 py-2 text-sm font-black text-slate-950 transition hover:bg-cyan-300"
             >
-              Acesso owner <ArrowRight className="h-4 w-4" />
+              Criar minha conta <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
         </div>
@@ -151,10 +151,10 @@ function MarketingHome() {
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link
-                to="/login"
+                to="/signup"
                 className="inline-flex items-center gap-2 rounded-xl bg-cyan-400 px-5 py-3 text-sm font-black text-slate-950 transition hover:-translate-y-0.5 hover:bg-cyan-300"
               >
-                Entrar na equipe <ArrowRight className="h-4 w-4" />
+                Criar minha conta <ArrowRight className="h-4 w-4" />
               </Link>
               <a
                 href="#planos"
@@ -433,10 +433,10 @@ function MarketingHome() {
                   ))}
                 </ul>
                 <Link
-                  to="/login"
+                  to="/signup"
                   className={`mt-8 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-black transition ${plan.featured ? "bg-cyan-400 text-slate-950 hover:bg-cyan-300" : "bg-slate-950 text-white hover:bg-slate-800"}`}
                 >
-                  Conhecer o Mago Bot <ArrowRight className="h-4 w-4" />
+                  Criar minha conta <ArrowRight className="h-4 w-4" />
                 </Link>
               </article>
             ))}
@@ -459,10 +459,10 @@ function MarketingHome() {
             </p>
           </div>
           <Link
-            to="/login"
+            to="/signup"
             className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800"
           >
-            Acessar a plataforma <Play className="h-4 w-4 fill-current" />
+            Criar minha conta <Play className="h-4 w-4 fill-current" />
           </Link>
         </div>
       </section>
@@ -478,10 +478,7 @@ function MarketingHome() {
           <p>Central de atendimento para operações que querem escalar.</p>
           <div className="flex items-center gap-4">
             <Link to="/login" className="transition hover:text-white">
-              Equipe
-            </Link>
-            <Link to="/owner/login" className="transition hover:text-white">
-              Owner
+              Entrar
             </Link>
             <span>© 2026</span>
           </div>
