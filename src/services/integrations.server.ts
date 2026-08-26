@@ -21,6 +21,7 @@ export type IntegrationSummary = {
   capabilities: string[];
   docsUrl: string;
   runtimeStatus: IntegrationDefinition["runtimeStatus"];
+  probeAvailable: boolean;
   status: "not_configured" | "configured" | "healthy" | "degraded" | "error" | "disabled";
   isEnabled: boolean;
   endpointUrl?: string;
@@ -60,6 +61,7 @@ function buildSummary(
     capabilities: definition.capabilities,
     docsUrl: definition.docsUrl,
     runtimeStatus: definition.runtimeStatus,
+    probeAvailable: integrationProbeAvailable(definition.provider),
     status: decryptionError ? "error" : (row?.status ?? "not_configured"),
     isEnabled: row?.isEnabled ?? false,
     ...(row?.endpointUrl ? { endpointUrl: row.endpointUrl } : {}),
@@ -95,6 +97,7 @@ export type OrganizationIntegrationRuntime = {
 export async function getOrganizationIntegrationRuntime(
   organizationId: string,
   provider: IntegrationProvider,
+  options: { includeDisabled?: boolean } = {},
 ): Promise<OrganizationIntegrationRuntime | null> {
   const [row] = await db
     .select()
@@ -103,7 +106,7 @@ export async function getOrganizationIntegrationRuntime(
       and(
         eq(providerIntegrations.organizationId, organizationId),
         eq(providerIntegrations.provider, provider),
-        eq(providerIntegrations.isEnabled, true),
+        ...(options.includeDisabled ? [] : [eq(providerIntegrations.isEnabled, true)]),
       ),
     )
     .limit(1);
@@ -256,6 +259,122 @@ export async function disableOrganizationIntegration(
   const [row] = await db
     .update(providerIntegrations)
     .set({ isEnabled: false, status: "disabled", updatedBy: actorUserId, updatedAt: new Date() })
+    .where(
+      and(
+        eq(providerIntegrations.organizationId, organizationId),
+        eq(providerIntegrations.provider, provider),
+      ),
+    )
+    .returning();
+  if (!row) throw new Error("Integração não configurada");
+  return buildSummary(definition, row);
+}
+
+const PROBEABLE_PROVIDERS = new Set<IntegrationProvider>([
+  "deepseek",
+  "gemini",
+  "groq",
+  "openrouter",
+  "mistral",
+  "siliconflow",
+  "mercadopago",
+]);
+
+export function integrationProbeAvailable(provider: IntegrationProvider) {
+  return PROBEABLE_PROVIDERS.has(provider);
+}
+
+function buildProbeTarget(runtime: OrganizationIntegrationRuntime): {
+  url: string;
+  headers: Record<string, string>;
+} {
+  const endpoint =
+    runtime.endpointUrl ?? getIntegrationDefinition(runtime.provider).defaultEndpoint;
+  if (!endpoint) throw new Error("Provider não possui endpoint para teste");
+  const base = new URL(endpoint);
+  if (!["http:", "https:"].includes(base.protocol))
+    throw new Error("Endpoint de teste deve usar HTTP ou HTTPS");
+  if (
+    base.hostname === "localhost" ||
+    base.hostname === "127.0.0.1" ||
+    base.hostname === "::1" ||
+    base.hostname.endsWith(".local") ||
+    /^(10|127|169\.254|192\.168)\./.test(base.hostname) ||
+    /^(172\.(1[6-9]|2\d|3[0-1]))\./.test(base.hostname)
+  ) {
+    throw new Error("Endpoint de teste aponta para uma rede privada não permitida");
+  }
+
+  const headers: Record<string, string> = { Accept: "application/json" };
+  const apiKey = runtime.credentials["apiKey"] ?? runtime.credentials["accessToken"];
+  switch (runtime.provider) {
+    case "gemini": {
+      if (!runtime.credentials["apiKey"]) throw new Error("API Key não configurada");
+      base.pathname = `${base.pathname.replace(/\/$/, "")}/v1beta/models`;
+      base.searchParams.set("key", runtime.credentials["apiKey"]);
+      return { url: base.toString(), headers };
+    }
+    case "mercadopago":
+      base.pathname = `${base.pathname.replace(/\/$/, "")}/users/me`;
+      if (!runtime.credentials["accessToken"]) throw new Error("Access Token não configurado");
+      headers["Authorization"] = `Bearer ${runtime.credentials["accessToken"]}`;
+      return { url: base.toString(), headers };
+    default:
+      if (!apiKey) throw new Error("API Key ou Access Token não configurado");
+      base.pathname = `${base.pathname.replace(/\/$/, "")}/models`;
+      headers["Authorization"] = `Bearer ${apiKey}`;
+      return { url: base.toString(), headers };
+  }
+}
+
+export async function testOrganizationIntegration(
+  organizationId: string,
+  provider: IntegrationProvider,
+): Promise<IntegrationSummary> {
+  const definition = getIntegrationDefinition(provider);
+  if (!integrationProbeAvailable(provider))
+    throw new Error(`${definition.label} ainda não possui teste automático homologado`);
+
+  const runtime = await getOrganizationIntegrationRuntime(organizationId, provider, {
+    includeDisabled: true,
+  });
+  if (!runtime) throw new Error("Integração não configurada ou sem credencial válida");
+
+  const target = buildProbeTarget(runtime);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8_000);
+  let status: "healthy" | "degraded" | "error" = "error";
+  let lastError: string | null = null;
+  try {
+    const response = await fetch(target.url, {
+      method: "GET",
+      headers: target.headers,
+      signal: controller.signal,
+    });
+    if (response.ok) {
+      status = "healthy";
+    } else {
+      status = response.status === 429 || response.status >= 500 ? "degraded" : "error";
+      lastError = `Provider respondeu HTTP ${response.status}`;
+    }
+  } catch (error) {
+    status = "degraded";
+    lastError =
+      error instanceof DOMException && error.name === "AbortError"
+        ? "Timeout ao testar o provider"
+        : "Não foi possível alcançar o provider";
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  const [row] = await db
+    .update(providerIntegrations)
+    .set({
+      status,
+      lastCheckedAt: new Date(),
+      lastError,
+      updatedAt: new Date(),
+    })
     .where(
       and(
         eq(providerIntegrations.organizationId, organizationId),

@@ -17,6 +17,7 @@ import {
   disableIntegrationFn,
   listIntegrationsFn,
   saveIntegrationFn,
+  testIntegrationFn,
   type IntegrationSummaryDTO,
 } from "@/functions/integrations.functions";
 import { captureDiagnostic } from "@/lib/diagnostics";
@@ -52,6 +53,7 @@ export function IntegrationsView() {
   const saveIntegration = useServerFn(saveIntegrationFn);
   const disableIntegration = useServerFn(disableIntegrationFn);
   const clearIntegration = useServerFn(clearIntegrationFn);
+  const testIntegration = useServerFn(testIntegrationFn);
   const [items, setItems] = useState<IntegrationSummaryDTO[]>([]);
   const [selected, setSelected] = useState<IntegrationSummaryDTO | null>(null);
   const [endpointUrl, setEndpointUrl] = useState("");
@@ -60,6 +62,7 @@ export function IntegrationsView() {
   const [isEnabled, setIsEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -133,6 +136,35 @@ export function IntegrationsView() {
       });
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function testConnection() {
+    if (!selected) return;
+    setTesting(true);
+    setMessage(null);
+    setError(null);
+    try {
+      const result = await testIntegration({ data: { provider: selected.provider } });
+      setItems((current) =>
+        current.map((item) => (item.provider === result.provider ? result : item)),
+      );
+      setSelected(result);
+      setMessage(
+        result.status === "healthy"
+          ? "Conexão validada com sucesso; o provider respondeu dentro do prazo."
+          : (result.lastError ?? "O provider respondeu, mas precisa de atenção."),
+      );
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Não foi possível testar a integração.");
+      captureDiagnostic(cause, {
+        source: "network",
+        component: "IntegrationsView",
+        payload: { operation: "test_integration", provider: selected.provider },
+        recoverable: true,
+      });
+    } finally {
+      setTesting(false);
     }
   }
 
@@ -290,13 +322,20 @@ export function IntegrationsView() {
                     ))}
                   </div>
                   <div className="mt-4 flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
-                    {item.credentialPreview ? (
-                      <span className="text-[11px] font-semibold text-emerald-700">
-                        Chave cadastrada · mascarada
-                      </span>
-                    ) : (
-                      <span className="text-[11px] text-slate-400">Sem credencial salva</span>
-                    )}
+                    <div>
+                      {item.credentialPreview ? (
+                        <span className="text-[11px] font-semibold text-emerald-700">
+                          Chave cadastrada · mascarada
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-slate-400">Sem credencial salva</span>
+                      )}
+                      {item.lastCheckedAt && (
+                        <p className="mt-1 text-[10px] text-slate-400">
+                          Testado em {new Date(item.lastCheckedAt).toLocaleString("pt-BR")}
+                        </p>
+                      )}
+                    </div>
                     <button
                       type="button"
                       onClick={() => openEditor(item)}
@@ -435,7 +474,22 @@ export function IntegrationsView() {
                     </button>
                   )}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap justify-end gap-2">
+                  {selected.probeAvailable && (
+                    <button
+                      type="button"
+                      disabled={busy || testing || !selected.credentialPreview}
+                      onClick={() => void testConnection()}
+                      className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 px-3 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-50 disabled:opacity-50"
+                    >
+                      {testing ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Activity className="h-4 w-4" />
+                      )}
+                      {testing ? "Testando..." : "Testar conexão"}
+                    </button>
+                  )}
                   <a
                     href={selected.docsUrl}
                     target="_blank"

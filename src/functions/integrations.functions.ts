@@ -9,6 +9,7 @@ import {
   disableOrganizationIntegration,
   listOrganizationIntegrations,
   saveOrganizationIntegration,
+  testOrganizationIntegration,
 } from "@/services/integrations.server";
 import { getIntegrationDefinition } from "@/services/integration-registry.server";
 
@@ -111,6 +112,24 @@ export const clearIntegrationFn = createServerFn({ method: "POST" })
       resourceType: "provider_integration",
       resourceId: `${actor.organizationId}:${data.provider}`,
       metadata: { provider: data.provider },
+    });
+    return result;
+  });
+
+export const testIntegrationFn = createServerFn({ method: "POST" })
+  .validator(providerInputSchema)
+  .handler(async ({ data }: { data: ProviderInput }) => {
+    const actor = await requireRole("owner", "admin");
+    const result = await testOrganizationIntegration(actor.organizationId, data.provider);
+    await writeAudit(actor, {
+      action: "integration.tested",
+      resourceType: "provider_integration",
+      resourceId: `${actor.organizationId}:${data.provider}`,
+      metadata: {
+        provider: data.provider,
+        status: result.status,
+        probeAvailable: result.probeAvailable,
+      },
     });
     return result;
   });
