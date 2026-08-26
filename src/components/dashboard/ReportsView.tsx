@@ -15,6 +15,7 @@ import {
 import {
   AlertTriangle,
   CheckCircle,
+  Download,
   Clock,
   Link2,
   MessageSquare,
@@ -26,6 +27,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getMetricsFn, type MetricsDTO } from "@/functions/metrics.functions";
 import { getRatingMetricsFn, type RatingMetricsDTO } from "@/functions/rating.functions";
+import { exportConversationsCsvFn } from "@/functions/report.functions";
 import { captureDiagnostic } from "@/lib/diagnostics";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
@@ -33,9 +35,11 @@ const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 export function ReportsView() {
   const getMetrics = useServerFn(getMetricsFn);
   const getRatingMetrics = useServerFn(getRatingMetricsFn);
+  const exportConversationsCsv = useServerFn(exportConversationsCsvFn);
   const [metrics, setMetrics] = useState<MetricsDTO | null>(null);
   const [ratingMetrics, setRatingMetrics] = useState<RatingMetricsDTO | null>(null);
   const [metricsError, setMetricsError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const loadMetrics = useCallback(async () => {
     try {
@@ -71,6 +75,30 @@ export function ReportsView() {
     void loadRatingMetrics();
   }, [loadMetrics, loadRatingMetrics]);
 
+  async function handleExport() {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const result = await exportConversationsCsv();
+      const blob = new Blob([result.csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = result.filename;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      captureDiagnostic(error, {
+        source: "async",
+        component: "ReportsView",
+        payload: { operation: "export_conversations" },
+        recoverable: true,
+      });
+    } finally {
+      setExporting(false);
+    }
+  }
+
   const value = (number: number | undefined) =>
     number === undefined ? "—" : number.toLocaleString("pt-BR");
   const queueData = metrics?.byQueue.length ? metrics.byQueue : [{ name: "Sem dados", value: 0 }];
@@ -80,9 +108,21 @@ export function ReportsView() {
     <div className="h-full space-y-8 overflow-y-auto p-8 animate-in fade-in duration-500">
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Relatórios Operacionais</h2>
-        <p className="text-muted-foreground">
-          Dados da sua organização, sem número inventado para impressionar apresentação.
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-muted-foreground">
+              Dados da sua organização, sem número inventado para impressionar apresentação.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void handleExport()}
+            disabled={exporting}
+            className="inline-flex items-center gap-2 rounded-lg border bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:border-blue-300 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Download className="h-4 w-4" /> {exporting ? "Exportando..." : "Exportar CSV"}
+          </button>
+        </div>
         {metricsError && (
           <div
             className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
