@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ContactTasks } from "@/components/crm/ContactTasks";
+import { CustomerIntelligencePanel } from "@/components/crm/CustomerIntelligencePanel";
 
 interface ContactDetailsProps {
   contact: Contact;
@@ -35,6 +36,8 @@ export function ContactDetails({ contact }: ContactDetailsProps) {
           </Button>
         </div>
       </div>
+
+      <CustomerIntelligencePanel contactId={contact.contactId ?? contact.id} />
 
       {/* Tags Section */}
       <div className="p-6 border-b">
