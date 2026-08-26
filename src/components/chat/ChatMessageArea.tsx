@@ -8,10 +8,13 @@ import {
   Phone,
   Send,
   Smile,
+  Sparkles,
   UserCheck,
   Video,
 } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
 
+import { suggestAssistFn } from "@/functions/assist.functions";
 import type { ConversationNoteDTO, QuickReplyDTO } from "@/functions/inbox.functions";
 import type { Contact, Message } from "@/types/chat";
 import { captureDiagnostic } from "@/lib/diagnostics";
@@ -52,6 +55,9 @@ export function ChatMessageArea({
   const [composerMode, setComposerMode] = useState<"message" | "note">("message");
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [assist, setAssist] = useState<Awaited<ReturnType<typeof suggestAssistFn>> | null>(null);
+  const [assistLoading, setAssistLoading] = useState(false);
+  const suggestAssist = useServerFn(suggestAssistFn);
   const scrollRef = useRef<HTMLDivElement>(null);
   const safeMessages = Array.isArray(messages) ? messages : [];
   const safeContactName = contact.name?.trim() || "Contato sem nome";
@@ -76,6 +82,36 @@ export function ChatMessageArea({
       });
     } finally {
       setPendingAction(null);
+    }
+  }
+
+  async function handleAssist() {
+    if (assistLoading) return;
+    setAssistLoading(true);
+    try {
+      const result = await suggestAssist({
+        data: {
+          contactName: safeContactName,
+          messages: safeMessages.slice(-12).map((message) => ({
+            sender: message.sender,
+            text: message.text,
+          })),
+        },
+      });
+      setAssist(result);
+    } catch (error) {
+      setActionError("Não foi possível gerar a sugestão. O diagnóstico foi registrado.");
+      captureDiagnostic(error, {
+        source: "async",
+        component: "ChatMessageArea",
+        state: {
+          conversationId: contact.conversationId ?? contact.id,
+          action: "assistive_suggestion",
+        },
+        recoverable: true,
+      });
+    } finally {
+      setAssistLoading(false);
     }
   }
 
@@ -159,6 +195,15 @@ export function ChatMessageArea({
           >
             <CheckCircle2 className="h-4 w-4" /> Resolver
           </button>
+          <button
+            type="button"
+            onClick={() => void handleAssist()}
+            disabled={assistLoading || Boolean(pendingAction)}
+            className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-50"
+            title="Gerar sugestão sem enviar automaticamente"
+          >
+            <Sparkles className="h-4 w-4" /> {assistLoading ? "Analisando" : "Copiloto"}
+          </button>
           <div className="mx-1 h-6 w-px bg-slate-200" />
           <button className="rounded-full p-2 transition-colors hover:bg-slate-100">
             <Video className="h-5 w-5" />
@@ -171,6 +216,47 @@ export function ChatMessageArea({
           </button>
         </div>
       </header>
+
+      {assist && (
+        <aside
+          className="border-b border-blue-100 bg-blue-50 px-6 py-3 text-sm text-blue-950"
+          aria-live="polite"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="font-bold">
+                Copiloto: {assist.intent} · {Math.round(assist.confidence * 100)}% de confiança
+              </p>
+              <p className="mt-1 text-xs text-blue-800">{assist.summary}</p>
+              <p className="mt-1 text-xs text-blue-800">
+                <strong>Próximo passo:</strong> {assist.nextAction}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAssist(null)}
+              className="text-xs font-bold text-blue-700 hover:underline"
+            >
+              Fechar
+            </button>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {assist.suggestions.map((suggestion) => (
+              <button
+                key={suggestion}
+                type="button"
+                onClick={() => {
+                  setText(suggestion);
+                  setComposerMode("message");
+                }}
+                className="rounded-lg border border-blue-200 bg-white px-3 py-2 text-left text-xs text-blue-900 hover:border-blue-400"
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
+        </aside>
+      )}
 
       <div
         ref={scrollRef}
