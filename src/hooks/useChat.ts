@@ -95,7 +95,7 @@ function reportAsyncError(error: unknown, operation: string, state: Record<strin
   });
 }
 
-export function useChat() {
+export function useChat({ enabled = true }: { enabled?: boolean } = {}) {
   const listConversations = useServerFn(listConversationsFn);
   const listMessages = useServerFn(listConversationMessagesFn);
   const listQueues = useServerFn(listQueuesFn);
@@ -169,6 +169,7 @@ export function useChat() {
   );
 
   useEffect(() => {
+    if (!enabled) return;
     void loadConversations().catch(() => undefined);
     void listQuickRepliesRpc()
       .then((rows) => setQuickReplies(Array.isArray(rows) ? rows : []))
@@ -183,7 +184,7 @@ export function useChat() {
       void loadConversations().catch(() => undefined);
     }, 10000);
     return () => window.clearInterval(interval);
-  }, [listQueues, listQuickRepliesRpc, loadConversations]);
+  }, [enabled, listQueues, listQuickRepliesRpc, loadConversations]);
 
   const transferConversation = useCallback(
     async (conversationId: string, queueId: string) => {
@@ -199,11 +200,11 @@ export function useChat() {
   );
 
   useEffect(() => {
-    if (selectedContact) {
+    if (enabled && selectedContact) {
       void loadMessages(selectedContact.id).catch(() => undefined);
       void loadNotes(selectedContact.id);
     }
-  }, [loadMessages, loadNotes, selectedContact]);
+  }, [enabled, loadMessages, loadNotes, selectedContact]);
 
   const contacts = useMemo(() => conversations.map(toContact), [conversations]);
 

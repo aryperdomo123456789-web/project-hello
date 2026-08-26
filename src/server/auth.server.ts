@@ -18,10 +18,32 @@ export type AuthUser = {
   role: AppRole;
 };
 
+type AuthCacheEntry = { expiresAt: number; user: AuthUser };
+const AUTH_CACHE_TTL_MS = 5_000;
+const authCache = new Map<string, AuthCacheEntry>();
+
+function authCacheKey(userId: string, preferredOrganizationId?: string) {
+  return `${userId}:${preferredOrganizationId ?? "default"}`;
+}
+
+export function invalidateAuthCache(userId: string, organizationId?: string) {
+  authCache.delete(authCacheKey(userId, organizationId));
+  if (!organizationId) {
+    for (const key of authCache.keys()) {
+      if (key.startsWith(`${userId}:`)) authCache.delete(key);
+    }
+  }
+}
+
 async function resolveUser(
   userId: string,
   preferredOrganizationId?: string,
+  options: { bypassCache?: boolean } = {},
 ): Promise<AuthUser | null> {
+  const cacheKey = authCacheKey(userId, preferredOrganizationId);
+  const cached = authCache.get(cacheKey);
+  if (!options.bypassCache && cached && cached.expiresAt > Date.now()) return cached.user;
+  if (cached) authCache.delete(cacheKey);
   const [user] = await db
     .select({ id: users.id, email: users.email, fullName: users.fullName })
     .from(users)
@@ -45,12 +67,14 @@ async function resolveUser(
     membershipsForUser[0];
   if (!membership) return null;
 
-  return {
+  const resolved = {
     ...user,
     organizationId: membership.organizationId,
     organizationName: membership.organizationName,
     role: membership.role,
   };
+  authCache.set(cacheKey, { expiresAt: Date.now() + AUTH_CACHE_TTL_MS, user: resolved });
+  return resolved;
 }
 
 export async function getCurrentUser(): Promise<AuthUser | null> {
@@ -95,7 +119,7 @@ export async function loginUser(
     return { ok: false as const, error: "E-mail ou senha inválidos" };
   }
 
-  const currentUser = await resolveUser(user.id, organizationId);
+  const currentUser = await resolveUser(user.id, organizationId, { bypassCache: true });
   if (!currentUser) return { ok: false as const, error: "Usuário sem organização ativa" };
   if (entry === "owner" && currentUser.role !== "owner") {
     return { ok: false as const, error: "Esta entrada é exclusiva do proprietário da organização" };
@@ -112,7 +136,10 @@ export async function loginUser(
 
 export async function logoutUser() {
   const session = await getAppSession();
+  const userId = session.data.userId;
+  const organizationId = session.data.organizationId;
   await session.clear();
+  if (userId) invalidateAuthCache(userId, organizationId);
   return { ok: true as const };
 }
 

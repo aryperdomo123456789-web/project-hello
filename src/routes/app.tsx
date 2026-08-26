@@ -141,6 +141,10 @@ function Dashboard() {
   const getMetrics = useServerFn(getMetricsFn);
   const [loggingOut, setLoggingOut] = useState(false);
   const [metrics, setMetrics] = useState<MetricsDTO | null>(null);
+  const { user } = Route.useRouteContext();
+  const [activeTab, setActiveTab] = useState<Tab>(
+    user.role === "owner" ? "Configurações" : "Atendimento",
+  );
   const {
     contacts,
     selectedContact,
@@ -157,9 +161,7 @@ function Dashboard() {
     notes,
     addNote,
     syncError,
-  } = useChat();
-  const { user } = Route.useRouteContext();
-  const [activeTab, setActiveTab] = useState<Tab>("Atendimento");
+  } = useChat({ enabled: activeTab === "Atendimento" });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [crmContacts, setCrmContacts] = useState(contacts);
 
