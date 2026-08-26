@@ -38,8 +38,8 @@ function toContact(conversation: ConversationDTO): Contact {
     }),
     status: "offline",
     unreadCount: 0,
-    tags: [conversation.automationPaused ? "HUMANO" : "AUTOMAÇÃO"],
-    sector: "Inbox",
+    tags: [conversation.connectionName, ...(conversation.queueName ? [conversation.queueName] : []), conversation.automationPaused ? "HUMANO" : "AUTOMAÇÃO"],
+    sector: conversation.queueName ?? "Sem fila",
     stage,
   };
 }

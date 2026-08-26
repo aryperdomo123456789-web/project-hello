@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
 
 import { db } from "@/db/client.server";
 import {
@@ -11,7 +11,9 @@ import {
   flowExecutions,
   flowNodeRuns,
   flowVersions,
+  memberships,
   messages,
+  queueMembers,
   queues,
 } from "@/db/schema";
 import type { FlowEdge, FlowGraph, FlowNode, FlowNodeData } from "@/flows/types";
@@ -77,6 +79,89 @@ async function getConversationContext(conversationId: string) {
     .limit(1);
   if (!row) throw new Error("Conversa não encontrada");
   return row;
+}
+
+async function dispatchBestAgent(
+  organizationId: string,
+  conversationId: string,
+  queueId: string | null,
+) {
+  const candidateQueues = queueId
+    ? await db
+        .select({ id: queues.id })
+        .from(queues)
+        .where(
+          and(
+            eq(queues.id, queueId),
+            eq(queues.organizationId, organizationId),
+            eq(queues.isActive, true),
+          ),
+        )
+        .limit(1)
+    : await db
+        .select({ id: queues.id })
+        .from(queues)
+        .where(and(eq(queues.organizationId, organizationId), eq(queues.isActive, true)))
+        .orderBy(queues.createdAt)
+        .limit(1);
+  const queue = candidateQueues[0];
+  if (!queue) return null;
+
+  const members = await db
+    .select({ userId: queueMembers.userId, maxConcurrentChats: memberships.maxConcurrentChats })
+    .from(queueMembers)
+    .innerJoin(
+      memberships,
+      and(
+        eq(memberships.organizationId, organizationId),
+        eq(memberships.userId, queueMembers.userId),
+        eq(memberships.status, "active"),
+        eq(memberships.availability, "online"),
+      ),
+    )
+    .where(
+      and(eq(queueMembers.organizationId, organizationId), eq(queueMembers.queueId, queue.id)),
+    );
+
+  const loads = await Promise.all(
+    members.map(async (member) => {
+      const [row] = await db
+        .select({ value: count() })
+        .from(conversations)
+        .where(
+          and(
+            eq(conversations.organizationId, organizationId),
+            eq(conversations.assigneeId, member.userId),
+            inArray(conversations.status, ["in_progress", "waiting_customer"]),
+          ),
+        );
+      return { ...member, load: Number(row?.value ?? 0) };
+    }),
+  );
+  const eligible = loads
+    .filter((member) => member.load < member.maxConcurrentChats)
+    .sort((left, right) => left.load - right.load)[0];
+  if (!eligible) return null;
+
+  const claimed = await db
+    .update(conversations)
+    .set({
+      queueId: queue.id,
+      assigneeId: eligible.userId,
+      status: "in_progress",
+      automationPausedAt: new Date(),
+      version: sql`${conversations.version} + 1`,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(conversations.id, conversationId),
+        eq(conversations.organizationId, organizationId),
+        sql`${conversations.assigneeId} IS NULL`,
+      ),
+    )
+    .returning({ id: conversations.id });
+  return claimed[0]?.id ? eligible.userId : null;
 }
 
 async function dispatchMessageEffect(executionId: string, nodeRunId: string, text: string) {
@@ -223,17 +308,25 @@ async function runNode(
         .where(eq(conversations.id, row.conversation.id));
     output = { queueId: queue?.id ?? null };
   } else if (node.type === "handoff") {
-    await db
-      .update(conversations)
-      .set({
-        status: "queued",
-        assigneeId: null,
-        automationPausedAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .where(eq(conversations.id, execution.conversationId));
+    const row = await getConversationContext(execution.conversationId);
+    const assignedUserId = await dispatchBestAgent(
+      row.conversation.organizationId,
+      execution.conversationId,
+      row.conversation.queueId,
+    );
+    if (!assignedUserId) {
+      await db
+        .update(conversations)
+        .set({
+          status: "queued",
+          assigneeId: null,
+          automationPausedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(conversations.id, execution.conversationId));
+    }
     handoff = true;
-    output = { handoff: true };
+    output = { handoff: true, assignedUserId };
   } else if (node.type === "delay") {
     waiting = true;
     output = { seconds: data.seconds ?? 0 };

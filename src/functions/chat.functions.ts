@@ -3,7 +3,7 @@ import { and, desc, eq, notInArray } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/db/client.server";
-import { channelConnections, contacts, conversations, messages } from "@/db/schema";
+import { channelConnections, contacts, conversations, messages, queues } from "@/db/schema";
 import { assertLicense } from "@/services/license.server";
 import { getWhatsAppAdapter } from "@/services/whatsapp.server";
 import { requireUser } from "../server/auth.server";
@@ -18,6 +18,8 @@ export type ConversationDTO = {
   id: string;
   contactId: string;
   connectionId: string;
+  connectionName: string;
+  queueName: string | null;
   contactName: string;
   phone: string;
   status: string;
@@ -40,11 +42,15 @@ export type MessageDTO = {
 function conversationDto(row: {
   conversation: typeof conversations.$inferSelect;
   contact: typeof contacts.$inferSelect;
+  connection: typeof channelConnections.$inferSelect;
+  queue: typeof queues.$inferSelect | null;
 }): ConversationDTO {
   return {
     id: row.conversation.id,
     contactId: row.contact.id,
     connectionId: row.conversation.channelConnectionId,
+    connectionName: row.connection.name,
+    queueName: row.queue?.name ?? null,
     contactName: row.contact.name,
     phone: row.contact.phone ?? row.contact.waId,
     status: row.conversation.status,
@@ -70,9 +76,11 @@ function messageDto(message: typeof messages.$inferSelect): MessageDTO {
 export const listConversationsFn = createServerFn({ method: "GET" }).handler(async () => {
   const user = await requireUser();
   const rows = await db
-    .select({ conversation: conversations, contact: contacts })
+    .select({ conversation: conversations, contact: contacts, connection: channelConnections, queue: queues })
     .from(conversations)
     .innerJoin(contacts, eq(contacts.id, conversations.contactId))
+    .innerJoin(channelConnections, eq(channelConnections.id, conversations.channelConnectionId))
+    .leftJoin(queues, eq(queues.id, conversations.queueId))
     .where(
       and(
         eq(conversations.organizationId, user.organizationId),
