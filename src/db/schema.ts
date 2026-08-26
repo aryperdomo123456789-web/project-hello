@@ -86,6 +86,13 @@ export const organizations = pgTable(
     slug: text("slug").notNull(),
     status: text("status").notNull().default("active"),
     plan: text("plan").notNull().default("starter"),
+    billingStatus: text("billing_status").notNull().default("trialing"),
+    billingProvider: text("billing_provider").notNull().default("none"),
+    billingCustomerRef: text("billing_customer_ref"),
+    trialStartedAt: timestamp("trial_started_at", { withTimezone: true }).defaultNow().notNull(),
+    trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }),
+    currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
+    cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
@@ -974,3 +981,24 @@ export const conversationQualityReviews = pgTable(
 );
 
 export type ConversationQualityReview = typeof conversationQualityReviews.$inferSelect;
+
+export const billingEvents = pgTable(
+  "billing_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    provider: text("provider").notNull(),
+    externalEventId: text("external_event_id").notNull(),
+    eventType: text("event_type").notNull(),
+    payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+    status: text("status").notNull().default("received"),
+    processedAt: timestamp("processed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("billing_events_provider_external_uq").on(table.provider, table.externalEventId),
+    index("billing_events_org_created_idx").on(table.organizationId, table.createdAt),
+  ],
+);
