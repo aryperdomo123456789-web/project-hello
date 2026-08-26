@@ -5,16 +5,35 @@ import { z } from "zod";
 import { db } from "@/db/client.server";
 import { assignmentEvents, conversations, memberships, queues } from "@/db/schema";
 import { writeAudit } from "../server/audit.server";
-import { requireUser } from "../server/auth.server";
+import { requireRole, requireUser } from "../server/auth.server";
 
 const conversationIdSchema = z.object({ conversationId: z.string().uuid() });
+const queueSettingsSchema = z.object({
+  queueId: z.string().uuid(),
+  strategy: z.enum(["least_load", "round_robin", "skill", "customer_history"]),
+  slaFirstResponseMinutes: z.number().int().min(1).max(1440),
+  requiredSkill: z.string().trim().max(80).optional(),
+  businessHours: z.record(z.string(), z.object({ start: z.string(), end: z.string() })).optional(),
+});
 
-export type QueueDTO = { id: string; name: string; slug: string; strategy: string };
+export type QueueDTO = {
+  id: string;
+  name: string;
+  slug: string;
+  strategy: string;
+  slaFirstResponseMinutes: number;
+};
 
 export const listQueuesFn = createServerFn({ method: "GET" }).handler(async () => {
   const user = await requireUser();
   const rows = await db
-    .select({ id: queues.id, name: queues.name, slug: queues.slug, strategy: queues.strategy })
+    .select({
+      id: queues.id,
+      name: queues.name,
+      slug: queues.slug,
+      strategy: queues.strategy,
+      slaFirstResponseMinutes: queues.slaFirstResponseMinutes,
+    })
     .from(queues)
     .where(and(eq(queues.organizationId, user.organizationId), eq(queues.isActive, true)));
   return rows;
@@ -57,6 +76,47 @@ async function getConversation(organizationId: string, conversationId: string) {
   if (!conversation) throw new Error("Conversa não encontrada");
   return conversation;
 }
+
+export const updateQueueSettingsFn = createServerFn({ method: "POST" })
+  .validator(queueSettingsSchema)
+  .handler(async ({ data }) => {
+    const user = await requireRole("owner", "admin", "manager", "supervisor");
+    const [queue] = await db
+      .select({ id: queues.id })
+      .from(queues)
+      .where(
+        and(
+          eq(queues.id, data.queueId),
+          eq(queues.organizationId, user.organizationId),
+          eq(queues.isActive, true),
+        ),
+      )
+      .limit(1);
+    if (!queue) throw new Error("Fila não encontrada");
+
+    const settings: Record<string, unknown> = {};
+    if (data.requiredSkill) settings["requiredSkill"] = data.requiredSkill;
+    if (data.businessHours) settings["businessHours"] = data.businessHours;
+    await db
+      .update(queues)
+      .set({
+        strategy: data.strategy,
+        slaFirstResponseMinutes: data.slaFirstResponseMinutes,
+        settings,
+      })
+      .where(eq(queues.id, data.queueId));
+    await writeAudit(user, {
+      action: "queue.settings_updated",
+      resourceType: "queue",
+      resourceId: data.queueId,
+      metadata: {
+        strategy: data.strategy,
+        slaFirstResponseMinutes: data.slaFirstResponseMinutes,
+        hasBusinessHours: Boolean(data.businessHours),
+      },
+    });
+    return { ok: true as const };
+  });
 
 export const claimConversationFn = createServerFn({ method: "POST" })
   .validator(conversationIdSchema)
