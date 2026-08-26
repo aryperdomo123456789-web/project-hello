@@ -3,7 +3,7 @@ import { and, asc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/db/client.server";
-import { contactTasks, contacts, conversations } from "@/db/schema";
+import { contactTasks, contacts, conversations, memberships } from "@/db/schema";
 import { writeAudit } from "@/server/audit.server";
 import { requireUser } from "@/server/auth.server";
 
@@ -98,6 +98,21 @@ export const createContactTaskFn = createServerFn({ method: "POST" })
         )
         .limit(1);
       if (!conversation) throw new Error("Conversa não encontrada para este contato");
+    }
+
+    if (data.assignedTo) {
+      const [member] = await db
+        .select({ userId: memberships.userId })
+        .from(memberships)
+        .where(
+          and(
+            eq(memberships.organizationId, user.organizationId),
+            eq(memberships.userId, data.assignedTo),
+            eq(memberships.status, "active"),
+          ),
+        )
+        .limit(1);
+      if (!member) throw new Error("Responsável não pertence à organização");
     }
 
     const [task] = await db
