@@ -4,6 +4,7 @@ import { db } from "@/db/client.server";
 import { channelConnections, contacts, conversations, messages, webhookEvents } from "@/db/schema";
 import type { NormalizedWebhookEvent } from "./whatsapp.server";
 import { dispatchBestAgent, startOrResumeFlow } from "./flowRuntime.server";
+import { enqueueTranscription } from "@/queue/jobs.server";
 
 function mapMessageStatus(value?: string) {
   switch (value?.toLowerCase()) {
@@ -162,6 +163,23 @@ async function processIncomingMessage(
       created: inserted.length > 0,
     };
   });
+
+  if (
+    result.kind === "message" &&
+    result.created &&
+    event.messageType === "audio" &&
+    !event.fromMe
+  ) {
+    if (result.messageId) {
+      void enqueueTranscription(result.messageId).catch((error) => {
+        console.warn(
+          `[webhook] transcription enqueue unavailable: ${
+            error instanceof Error ? error.message : "queue error"
+          }`,
+        );
+      });
+    }
+  }
 
   if (result.kind === "message" && result.created && event.text && !event.fromMe) {
     const flow = await startOrResumeFlow(result.conversationId, event.text, event.externalEventId);

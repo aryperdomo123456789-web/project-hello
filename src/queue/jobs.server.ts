@@ -23,6 +23,10 @@ export type FlowEffectJob =
       conversationId: string;
       executionId: string;
       externalEventId: string;
+    }
+  | {
+      kind: "transcribe_message";
+      messageId: string;
     };
 
 let queue: Queue<FlowEffectJob> | undefined;
@@ -71,6 +75,14 @@ export async function enqueueDeadLetter(
 
 export async function enqueueFlowEffect(effectId: string) {
   return getQueue().add("flow-effect", { kind: "flow_effect", effectId }, { jobId: effectId });
+}
+
+export async function enqueueTranscription(messageId: string) {
+  return getQueue().add(
+    "transcribe-message",
+    { kind: "transcribe_message", messageId },
+    { jobId: `transcribe:${messageId}` },
+  );
 }
 
 export async function enqueueFlowResume(

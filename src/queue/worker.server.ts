@@ -5,6 +5,7 @@ import { db } from "@/db/client.server";
 import { channelConnections, conversations, flowEffects, messages } from "@/db/schema";
 import { resumeFlowAfterTimer } from "@/services/flowRuntime.server";
 import { getWhatsAppAdapter } from "@/services/whatsapp.server";
+import { transcribeMessage } from "@/services/transcription.server";
 import { getRedisConnection } from "./redis.server";
 import { enqueueDeadLetter, MAGO_QUEUE_NAME, type FlowEffectJob } from "./jobs.server";
 
@@ -98,6 +99,7 @@ export function createBackgroundWorker() {
           job.data.externalEventId,
         );
       }
+      if (job.data.kind === "transcribe_message") return transcribeMessage(job.data.messageId);
       return { status: "ignored" as const };
     },
     { connection: getRedisConnection(), concurrency: 10 },
