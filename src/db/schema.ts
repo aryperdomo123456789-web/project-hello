@@ -935,3 +935,42 @@ export const ticketEvents = pgTable(
 
 export type Ticket = typeof tickets.$inferSelect;
 export type TicketEvent = typeof ticketEvents.$inferSelect;
+
+export const conversationQualityReviews = pgTable(
+  "conversation_quality_reviews",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    conversationId: uuid("conversation_id")
+      .notNull()
+      .references(() => conversations.id, { onDelete: "cascade" }),
+    reviewerUserId: uuid("reviewer_user_id").references(() => users.id, { onDelete: "set null" }),
+    source: text("source").notNull().default("rules"),
+    score: integer("score").notNull(),
+    sentiment: text("sentiment").notNull().default("neutral"),
+    intent: text("intent").notNull().default("other"),
+    summary: text("summary").notNull(),
+    policyViolations: jsonb("policy_violations")
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    recommendations: jsonb("recommendations")
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("conversation_quality_reviews_conversation_uq").on(table.conversationId),
+    index("conversation_quality_reviews_org_score_idx").on(
+      table.organizationId,
+      table.score,
+      table.createdAt,
+    ),
+  ],
+);
+
+export type ConversationQualityReview = typeof conversationQualityReviews.$inferSelect;

@@ -396,6 +396,9 @@ function Dashboard() {
                       quickReplies={quickReplies}
                       notes={notes}
                       onAddNote={(body) => addNote(selectedContact.id, body)}
+                      canReviewQuality={["owner", "admin", "manager", "supervisor"].includes(
+                        user.role,
+                      )}
                     />
                   </ResilientBoundary>
                   <ResilientBoundary

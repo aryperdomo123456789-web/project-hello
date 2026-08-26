@@ -71,6 +71,13 @@
       "when": 1787747929847,
       "tag": "0009_aberrant_virginia_dare",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1787748767191,
+      "tag": "0010_premium_shinobi_shaw",
+      "breakpoints": true
     }
   ]
 }

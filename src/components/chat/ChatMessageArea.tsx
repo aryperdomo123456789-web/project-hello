@@ -21,6 +21,7 @@ import type { ConversationNoteDTO, QuickReplyDTO } from "@/functions/inbox.funct
 import type { Contact, Message } from "@/types/chat";
 import { captureDiagnostic } from "@/lib/diagnostics";
 import { cn } from "@/lib/utils";
+import { QualityReviewPanel } from "@/components/chat/QualityReviewPanel";
 
 interface ChatMessageAreaProps {
   contact: Contact;
@@ -36,6 +37,7 @@ interface ChatMessageAreaProps {
   quickReplies: QuickReplyDTO[];
   notes: ConversationNoteDTO[];
   onAddNote: (body: string) => Promise<void> | void;
+  canReviewQuality?: boolean;
 }
 
 export function ChatMessageArea({
@@ -52,6 +54,7 @@ export function ChatMessageArea({
   quickReplies,
   notes,
   onAddNote,
+  canReviewQuality = false,
 }: ChatMessageAreaProps) {
   const [text, setText] = useState("");
   const [composerMode, setComposerMode] = useState<"message" | "note">("message");
@@ -261,6 +264,8 @@ export function ChatMessageArea({
           </button>
         </div>
       </header>
+
+      <QualityReviewPanel conversationId={contact.conversationId} enabled={canReviewQuality} />
 
       {assist && (
         <aside
