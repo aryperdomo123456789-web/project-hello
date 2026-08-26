@@ -42,7 +42,7 @@ function parseModelResult(text: string) {
 export const suggestAssistFn = createServerFn({ method: "POST" })
   .validator(assistSchema)
   .handler(async ({ data }) => {
-    await requireUser();
+    const user = await requireUser();
     const deterministic = buildAssistSuggestions(data.contactName, data.messages);
     const env = getServerEnv();
     if (env.AI_PRIMARY_PROVIDER === "stub" && env.AI_FALLBACK_PROVIDER === "stub") {
@@ -52,6 +52,7 @@ export const suggestAssistFn = createServerFn({ method: "POST" })
     try {
       const response = await generateWithFallback({
         purpose: "suggest",
+        organizationId: user.organizationId,
         system:
           "Você é um copiloto de atendimento. Responda somente JSON válido com intent, confidence, summary, nextAction e suggestions. Nunca envie mensagens, nunca invente dados pessoais e sempre recomende revisão humana.",
         ...(data.contactName ? { userId: data.contactName } : {}),

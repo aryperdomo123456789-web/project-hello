@@ -1,3 +1,4 @@
+import { consumeRateLimit } from "@/server/rate-limit.server";
 import { getServerEnv } from "@/server/env.server";
 
 export type AiProvider = "stub" | "openrouter" | "groq" | "deepseek" | "gemini";
@@ -11,6 +12,7 @@ export type AiRequest = {
   system: string;
   messages: ChatMessage[];
   purpose: "classify" | "suggest" | "summarize" | "extract";
+  organizationId?: string;
   userId?: string;
 };
 
@@ -133,6 +135,12 @@ async function requestGemini(model: string, request: AiRequest) {
 
 export async function generateWithFallback(request: AiRequest): Promise<AiResponse> {
   const env = getServerEnv();
+  const rate = await consumeRateLimit(
+    `ai:${request.organizationId ?? "global"}`,
+    env.AI_REQUESTS_PER_MINUTE,
+    60,
+  );
+  if (!rate.allowed) throw new Error("AI request rate limit exceeded");
   const candidates: Array<{ provider: AiProvider; model: string; fallbackUsed: boolean }> = [
     { provider: env.AI_PRIMARY_PROVIDER, model: env.AI_PRIMARY_MODEL, fallbackUsed: false },
     { provider: env.AI_FALLBACK_PROVIDER, model: env.AI_FALLBACK_MODEL, fallbackUsed: true },

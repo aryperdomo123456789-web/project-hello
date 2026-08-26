@@ -31,6 +31,7 @@ const envSchema = z.object({
   AI_FALLBACK_MODEL: z.string().min(1).default("openai/gpt-oss-20b"),
   AI_TIMEOUT_MS: z.coerce.number().int().min(1000).max(120000).default(12000),
   AI_MAX_OUTPUT_TOKENS: z.coerce.number().int().min(32).max(4096).default(512),
+  AI_REQUESTS_PER_MINUTE: z.coerce.number().int().min(1).max(10000).default(60),
   OPENROUTER_API_KEY: z.string().optional(),
   GROQ_API_KEY: z.string().optional(),
   DEEPSEEK_API_KEY: z.string().optional(),
