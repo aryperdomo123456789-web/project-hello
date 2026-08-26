@@ -2,6 +2,7 @@ import "dotenv/config";
 
 import { createBackgroundWorker } from "@/queue/worker.server";
 import { runReadySequenceEnrollments } from "@/queue/sequence-worker.server";
+import { runRetentionSweep } from "@/services/retention.server";
 
 const worker = createBackgroundWorker();
 const sequenceScheduler = setInterval(() => {
@@ -10,6 +11,18 @@ const sequenceScheduler = setInterval(() => {
   });
 }, 30_000);
 sequenceScheduler.unref();
+const retentionScheduler = setInterval(
+  () => {
+    void runRetentionSweep().catch((error) => {
+      console.error("[retention] scheduler error", error);
+    });
+  },
+  60 * 60 * 1000,
+);
+retentionScheduler.unref();
+void runRetentionSweep().catch((error) => {
+  console.error("[retention] initial run error", error);
+});
 void runReadySequenceEnrollments().catch((error) => {
   console.error("[sequence-worker] initial run error", error);
 });
@@ -35,6 +48,7 @@ worker.on("failed", (job, error) => {
 async function shutdown(signal: string) {
   console.info(`[worker] encerrando por ${signal}`);
   clearInterval(sequenceScheduler);
+  clearInterval(retentionScheduler);
   await worker.close();
   process.exit(0);
 }

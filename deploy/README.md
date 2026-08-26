@@ -70,3 +70,9 @@ journalctl -u mago-bot-health-monitor.service -n 20 --no-pager
 ```
 
 O monitor não substitui o health check nem reinicia processos automaticamente; ele alerta a operação para que o runbook seja seguido com backup e rollback controlados.
+
+## Retenção de dados
+
+A política por organização é criada com defaults conservadores e pode ser ajustada no painel **Configurações** por owner/admin. O sistema aplica pisos de segurança, permite `legalHold`, registra alterações em auditoria e oferece **Executar dry-run** para contar candidatos sem excluir nada. O worker só executa limpeza quando a política está fora de dry-run, sem legal hold, e `RETENTION_CLEANUP_ENABLED=true` no ambiente server-side.
+
+Não ative a limpeza destrutiva diretamente no VPS. Primeiro faça backup verificável do PostgreSQL, execute dry-run, revise os contadores e confirme o período de retenção com a operação. Sem essa sequência, mantenha `RETENTION_CLEANUP_ENABLED=false`.

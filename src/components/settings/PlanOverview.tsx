@@ -4,6 +4,13 @@ import { useServerFn } from "@tanstack/react-start";
 
 import { getWorkspacePlanFn, type WorkspacePlanDTO } from "@/functions/organization.functions";
 import { getBillingSummaryFn, setCancelAtPeriodEndFn } from "@/functions/billing.functions";
+import {
+  getLatestRetentionRunFn,
+  getRetentionPolicyFn,
+  runRetentionDryRunFn,
+  updateRetentionPolicyFn,
+  type RetentionPolicyDTO,
+} from "@/functions/retention.functions";
 import { captureDiagnostic } from "@/lib/diagnostics";
 import { usageRatio } from "@/entitlements/plans";
 
@@ -13,18 +20,34 @@ export function PlanOverview({ onNavigate }: { onNavigate?: (tab: OnboardingTab)
   const getWorkspacePlan = useServerFn(getWorkspacePlanFn);
   const getBillingSummary = useServerFn(getBillingSummaryFn);
   const setCancelAtPeriodEnd = useServerFn(setCancelAtPeriodEndFn);
+  const getRetentionPolicy = useServerFn(getRetentionPolicyFn);
+  const updateRetentionPolicy = useServerFn(updateRetentionPolicyFn);
+  const runRetentionDryRun = useServerFn(runRetentionDryRunFn);
+  const getLatestRetentionRun = useServerFn(getLatestRetentionRunFn);
   const [data, setData] = useState<WorkspacePlanDTO | null>(null);
   const [billing, setBilling] = useState<Awaited<ReturnType<typeof getBillingSummaryFn>> | null>(
     null,
   );
   const [billingAction, setBillingAction] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retention, setRetention] = useState<RetentionPolicyDTO | null>(null);
+  const [retentionRun, setRetentionRun] =
+    useState<Awaited<ReturnType<typeof getLatestRetentionRunFn>>>(null);
+  const [retentionBusy, setRetentionBusy] = useState(false);
+  const [retentionMessage, setRetentionMessage] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const [plan, billingSummary] = await Promise.all([getWorkspacePlan(), getBillingSummary()]);
+      const [plan, billingSummary, retentionPolicy, latestRetentionRun] = await Promise.all([
+        getWorkspacePlan(),
+        getBillingSummary(),
+        getRetentionPolicy(),
+        getLatestRetentionRun(),
+      ]);
       setData(plan);
       setBilling(billingSummary);
+      setRetention(retentionPolicy);
+      setRetentionRun(latestRetentionRun);
       setError(null);
     } catch (cause) {
       setError("Não foi possível carregar o plano da organização");
@@ -35,7 +58,7 @@ export function PlanOverview({ onNavigate }: { onNavigate?: (tab: OnboardingTab)
         recoverable: true,
       });
     }
-  }, [getWorkspacePlan]);
+  }, [getBillingSummary, getLatestRetentionRun, getRetentionPolicy, getWorkspacePlan]);
 
   useEffect(() => {
     void load();
@@ -161,6 +184,159 @@ export function PlanOverview({ onNavigate }: { onNavigate?: (tab: OnboardingTab)
                   ? "Reverter cancelamento"
                   : "Programar cancelamento"}
             </button>
+          </section>
+        )}
+
+        {retention && (
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
+                  Privacidade e governança
+                </p>
+                <h3 className="mt-1 text-lg font-bold text-slate-900">Retenção de dados</h3>
+                <p className="mt-1 max-w-2xl text-xs text-slate-500">
+                  Pisos e teto são aplicados no servidor. A limpeza continua bloqueada em dry-run
+                  até backup e revisão operacional.
+                </p>
+              </div>
+              <ShieldCheck className="h-5 w-5 text-emerald-600" />
+            </div>
+            <form
+              className="mt-5 grid gap-4 md:grid-cols-5"
+              onSubmit={async (event) => {
+                event.preventDefault();
+                setRetentionBusy(true);
+                setRetentionMessage(null);
+                try {
+                  const saved = await updateRetentionPolicy({ data: retention });
+                  setRetention(saved);
+                  setRetentionMessage("Política salva com auditoria registrada.");
+                } catch (cause) {
+                  setRetentionMessage("Apenas owner/admin pode salvar esta política.");
+                  captureDiagnostic(cause, {
+                    source: "async",
+                    component: "PlanOverview",
+                    payload: { operation: "update_retention_policy" },
+                    recoverable: true,
+                  });
+                } finally {
+                  setRetentionBusy(false);
+                }
+              }}
+            >
+              {(
+                [
+                  "messageRetentionDays",
+                  "webhookRetentionDays",
+                  "auditRetentionDays",
+                  "qualityRetentionDays",
+                  "sequenceRetentionDays",
+                ] as const
+              ).map((field) => (
+                <label key={field} className="text-xs font-semibold text-slate-600">
+                  {field === "messageRetentionDays"
+                    ? "Mensagens"
+                    : field === "webhookRetentionDays"
+                      ? "Webhooks"
+                      : field === "auditRetentionDays"
+                        ? "Auditoria"
+                        : field === "qualityRetentionDays"
+                          ? "QA"
+                          : "Sequências"}
+                  <input
+                    type="number"
+                    min={
+                      field === "auditRetentionDays" || field === "qualityRetentionDays" ? 180 : 30
+                    }
+                    max={3650}
+                    value={retention[field]}
+                    onChange={(event) =>
+                      setRetention((current) =>
+                        current ? { ...current, [field]: Number(event.target.value) } : current,
+                      )
+                    }
+                    className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                  />
+                </label>
+              ))}
+              <div className="flex flex-wrap items-end gap-3 md:col-span-5">
+                <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+                  <input
+                    type="checkbox"
+                    checked={retention.legalHold}
+                    onChange={(event) =>
+                      setRetention((current) =>
+                        current ? { ...current, legalHold: event.target.checked } : current,
+                      )
+                    }
+                  />{" "}
+                  Legal hold
+                </label>
+                <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+                  <input
+                    type="checkbox"
+                    checked={retention.dryRunOnly}
+                    onChange={(event) =>
+                      setRetention((current) =>
+                        current ? { ...current, dryRunOnly: event.target.checked } : current,
+                      )
+                    }
+                  />{" "}
+                  Somente dry-run
+                </label>
+                <button
+                  type="submit"
+                  disabled={retentionBusy}
+                  className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
+                >
+                  {retentionBusy ? "Salvando..." : "Salvar política"}
+                </button>
+                <button
+                  type="button"
+                  disabled={retentionBusy}
+                  onClick={async () => {
+                    setRetentionBusy(true);
+                    try {
+                      const report = await runRetentionDryRun();
+                      setRetentionRun({
+                        id: report.runId ?? "",
+                        mode: "dry_run",
+                        status: "completed",
+                        counts: report.counts,
+                        cutoff: report.cutoffs,
+                        createdAt: new Date().toISOString(),
+                      });
+                      setRetentionMessage("Dry-run concluído; nenhum dado foi removido.");
+                    } catch (cause) {
+                      setRetentionMessage("Não foi possível executar o dry-run.");
+                      captureDiagnostic(cause, {
+                        source: "async",
+                        component: "PlanOverview",
+                        payload: { operation: "retention_dry_run" },
+                        recoverable: true,
+                      });
+                    } finally {
+                      setRetentionBusy(false);
+                    }
+                  }}
+                  className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-800"
+                >
+                  Executar dry-run
+                </button>
+              </div>
+            </form>
+            {retentionMessage && (
+              <p className="mt-3 text-xs font-medium text-slate-600">{retentionMessage}</p>
+            )}
+            {retentionRun && (
+              <p className="mt-2 text-xs text-slate-500">
+                Último run: {retentionRun.mode} · {retentionRun.status} ·{" "}
+                {Object.entries(retentionRun.counts)
+                  .map(([key, value]) => `${key}: ${value}`)
+                  .join(" · ")}
+              </p>
+            )}
           </section>
         )}
 

@@ -38,6 +38,7 @@
 | Mensagens de sequência                   | Bloqueadas com segurança no stub | Com `WHATSAPP_PROVIDER=stub`, o passo é marcado como `skipped` em modo sandbox; nenhum falso envio é apresentado como real.                                                       |
 | Billing/trial                            | Preparado                        | Trial e ciclo de cancelamento existem; cobrança real ainda exige gateway e webhooks assinados.                                                                                    |
 | Monitoramento                            | Operacional local                | Timer systemd a cada 5 minutos, estado em `/var/lib/mago-bot/health.state` e journald; webhook externo só será usado quando uma URL de destino for fornecida.                     |
+| Retenção de dados                        | Seguro por padrão                | Política por organização, pisos/tetos, `legalHold`, dry-run auditável e limpeza bloqueada por `RETENTION_CLEANUP_ENABLED=false`.                                                  |
 | Pasta `isonado/whatsender`               | Preservada                       | Mantida isolada e fora do fluxo de execução.                                                                                                                                      |
 
 ## Executor de sequências
@@ -59,6 +60,10 @@ systemctl list-timers mago-bot-health-monitor.timer --no-pager
 ```
 
 O webhook de alerta é opcional e não foi inventado nem preenchido sem destino fornecido pelo proprietário. Quando configurado como `ALERT_WEBHOOK_URL` no ambiente do servidor, o monitor alerta somente em transições saudável/indisponível ou indisponível/recuperado.
+
+## Retenção e privacidade
+
+A política de retenção tem defaults conservadores: mensagens e eventos de sequência por 365 dias, webhooks por 90 dias, avaliações e auditoria por 730 dias. A API aplica pisos por categoria e teto de 3.650 dias, registra alterações em auditoria e oferece dry-run com contagem de candidatos. `legalHold=true` bloqueia contagens destrutivas e `dryRunOnly=true` impede exclusão. O worker só considera políticas explicitamente fora de dry-run quando `RETENTION_CLEANUP_ENABLED=true`; essa chave permanece desativada no ambiente de produção até backup, dry-run revisado e autorização operacional.
 
 ## Limitações conhecidas
 

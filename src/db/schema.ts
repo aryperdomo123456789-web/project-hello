@@ -523,6 +523,54 @@ export const marketingSpend = pgTable(
 
 export type MarketingSpend = typeof marketingSpend.$inferSelect;
 
+export const retentionPolicies = pgTable(
+  "retention_policies",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    messageRetentionDays: integer("message_retention_days").notNull().default(365),
+    webhookRetentionDays: integer("webhook_retention_days").notNull().default(90),
+    auditRetentionDays: integer("audit_retention_days").notNull().default(730),
+    qualityRetentionDays: integer("quality_retention_days").notNull().default(730),
+    sequenceRetentionDays: integer("sequence_retention_days").notNull().default(365),
+    legalHold: boolean("legal_hold").notNull().default(false),
+    dryRunOnly: boolean("dry_run_only").notNull().default(true),
+    updatedBy: uuid("updated_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("retention_policies_org_uq").on(table.organizationId)],
+);
+
+export type RetentionPolicy = typeof retentionPolicies.$inferSelect;
+
+export const retentionRuns = pgTable(
+  "retention_runs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    mode: text("mode").notNull(),
+    status: text("status").notNull(),
+    idempotencyKey: text("idempotency_key").notNull(),
+    cutoff: jsonb("cutoff").$type<Record<string, string>>().notNull(),
+    counts: jsonb("counts").$type<Record<string, number>>().notNull(),
+    requestedBy: uuid("requested_by").references(() => users.id, { onDelete: "set null" }),
+    startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("retention_runs_idempotency_uq").on(table.idempotencyKey),
+    index("retention_runs_org_created_idx").on(table.organizationId, table.createdAt),
+  ],
+);
+
+export type RetentionRun = typeof retentionRuns.$inferSelect;
+
 export const conversationRatings = pgTable(
   "conversation_ratings",
   {
