@@ -81,7 +81,7 @@ Não ative a limpeza destrutiva diretamente no VPS. Primeiro faça backup verifi
 
 O billing Mercado Pago usa `POST /preapproval` no backend para gerar assinatura mensal e devolve o `init_point` ao owner/admin somente após clique explícito em **Abrir checkout de teste**. O Access Token, Public Key e segredo de webhook são exclusivamente server-side; nunca coloque valores reais no GitHub, `.env.example`, frontend ou logs.
 
-Configure `MP_ENVIRONMENT=test`, `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET` e valores positivos para `MP_STARTER_AMOUNT_CENTS`, `MP_GROWTH_AMOUNT_CENTS` e `MP_SCALE_AMOUNT_CENTS`. O checkout permanece bloqueado quando o preço é zero. `MP_LIVE_ENABLED=false` impede uso produtivo mesmo que o ambiente seja alterado por engano.
+Configure `MP_ENVIRONMENT=test`, `MP_ACCESS_TOKEN` e `MP_WEBHOOK_SECRET`. Os preços são semeados no catálogo PostgreSQL por organização com Starter R$ 149, Growth R$ 297 e Scale R$ 597 e depois podem ser editados pelo owner no painel. O checkout permanece bloqueado quando o preço do plano é zero. `MP_LIVE_ENABLED=false` impede uso produtivo mesmo que o ambiente seja alterado por engano.
 
 O endpoint público é `/api/webhooks/mercadopago`. Ele valida `x-signature`/`x-request-id`, consulta o recurso Mercado Pago com o Access Token, persiste evento idempotente e só então atualiza o billing da organização. Sem `MP_WEBHOOK_SECRET`, a rota responde 503 e não aceita notificações.
 

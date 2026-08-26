@@ -99,6 +99,35 @@ export const organizations = pgTable(
   (table) => [uniqueIndex("organizations_slug_uq").on(table.slug)],
 );
 
+export const planCatalogItems = pgTable(
+  "plan_catalog_items",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    planId: text("plan_id").notNull(),
+    name: text("name").notNull(),
+    description: text("description").notNull(),
+    priceCents: integer("price_cents").notNull().default(0),
+    currency: text("currency").notNull().default("BRL"),
+    connections: integer("connections").notNull().default(1),
+    agents: integer("agents").notNull().default(1),
+    monthlyMessages: integer("monthly_messages").notNull().default(0),
+    activeFlows: integer("active_flows").notNull().default(0),
+    retentionDays: integer("retention_days").notNull().default(30),
+    features: jsonb("features").$type<string[]>().notNull().default([]),
+    highlighted: boolean("highlighted").notNull().default(false),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("plan_catalog_org_plan_uq").on(table.organizationId, table.planId),
+    index("plan_catalog_org_active_idx").on(table.organizationId, table.isActive),
+  ],
+);
+
 export const users = pgTable(
   "users",
   {

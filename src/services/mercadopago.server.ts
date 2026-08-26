@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-import { getPlanCatalog, type PlanId } from "@/entitlements/plans";
+import type { PlanId } from "@/entitlements/plans";
 import { getServerEnv } from "@/server/env.server";
 
 const MP_REQUEST_TIMEOUT_MS = 12_000;
@@ -60,20 +60,6 @@ export function isMercadoPagoConfigured() {
   return Boolean(env.MP_ACCESS_TOKEN);
 }
 
-function amountForPlan(plan: PlanId) {
-  const env = getServerEnv();
-  const amounts: Record<PlanId, number> = {
-    starter: env.MP_STARTER_AMOUNT_CENTS,
-    growth: env.MP_GROWTH_AMOUNT_CENTS,
-    scale: env.MP_SCALE_AMOUNT_CENTS,
-  };
-  const cents = amounts[plan];
-  if (!Number.isInteger(cents) || cents <= 0) {
-    throw new Error(`Preço do plano ${plan} não configurado`);
-  }
-  return cents;
-}
-
 async function requestMercadoPago<T>(path: string, init: RequestInit = {}): Promise<T> {
   const env = getConfig();
   const controller = new AbortController();
@@ -106,15 +92,19 @@ export async function createMercadoPagoSubscription(input: {
   organizationName: string;
   payerEmail: string;
   plan: PlanId;
+  planName: string;
+  amountCents: number;
 }): Promise<CreateSubscriptionResult> {
   const env = getConfig();
-  const catalog = getPlanCatalog(input.plan);
-  const amountCents = amountForPlan(input.plan);
+  if (!Number.isInteger(input.amountCents) || input.amountCents <= 0) {
+    throw new Error(`Preço do plano ${input.plan} não configurado`);
+  }
+  const amountCents = input.amountCents;
   const externalReference = `mago-bot:org:${input.organizationId}:plan:${input.plan}:${crypto.randomUUID()}`;
   const response = await requestMercadoPago<MercadoPagoSubscription>("/preapproval", {
     method: "POST",
     body: JSON.stringify({
-      reason: `${catalog.name} — ${input.organizationName}`.slice(0, 255),
+      reason: `${input.planName} — ${input.organizationName}`.slice(0, 255),
       external_reference: externalReference,
       payer_email: input.payerEmail,
       auto_recurring: {

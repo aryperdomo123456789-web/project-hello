@@ -17,6 +17,7 @@ import {
 } from "@/functions/retention.functions";
 import { captureDiagnostic } from "@/lib/diagnostics";
 import { usageRatio } from "@/entitlements/plans";
+import { PlanCatalogEditor } from "@/components/settings/PlanCatalogEditor";
 
 type OnboardingTab = "Conexões" | "Automações" | "Laboratório" | "Equipe";
 
@@ -376,6 +377,8 @@ export function PlanOverview({ onNavigate }: { onNavigate?: (tab: OnboardingTab)
             )}
           </section>
         )}
+
+        <PlanCatalogEditor />
 
         <div className="grid gap-5 md:grid-cols-[1.2fr_1fr]">
           <section className="rounded-2xl bg-slate-900 p-6 text-white shadow-lg">

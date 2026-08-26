@@ -13,6 +13,7 @@ import {
   recordBillingEvent,
 } from "@/services/billing.server";
 import { createMercadoPagoSubscription } from "@/services/mercadopago.server";
+import { getOrganizationPlan } from "@/services/plan-catalog.server";
 
 const cancelSchema = z.object({ cancel: z.boolean() });
 const checkoutSchema = z.object({ plan: z.enum(["starter", "growth", "scale"]) });
@@ -26,11 +27,14 @@ export const createMercadoPagoCheckoutFn = createServerFn({ method: "POST" })
   .validator(checkoutSchema)
   .handler(async ({ data }) => {
     const actor = await requireRole("owner", "admin");
+    const catalogPlan = await getOrganizationPlan(actor.organizationId, data.plan);
     const result = await createMercadoPagoSubscription({
       organizationId: actor.organizationId,
       organizationName: actor.organizationName,
       payerEmail: actor.email,
-      plan: data.plan,
+      plan: catalogPlan.planId,
+      planName: catalogPlan.name,
+      amountCents: catalogPlan.priceCents,
     });
     await db
       .update(organizations)

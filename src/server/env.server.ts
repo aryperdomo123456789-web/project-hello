@@ -59,9 +59,6 @@ const envSchema = z.object({
   MP_WEBHOOK_SECRET: z.string().optional(),
   MP_WEBHOOK_MAX_AGE_SECONDS: z.coerce.number().int().min(60).max(172800).default(86400),
   MP_LIVE_ENABLED: z.coerce.boolean().default(false),
-  MP_STARTER_AMOUNT_CENTS: z.coerce.number().int().min(0).max(2_000_000_000).default(0),
-  MP_GROWTH_AMOUNT_CENTS: z.coerce.number().int().min(0).max(2_000_000_000).default(0),
-  MP_SCALE_AMOUNT_CENTS: z.coerce.number().int().min(0).max(2_000_000_000).default(0),
 });
 
 export type ServerEnv = z.infer<typeof envSchema>;
