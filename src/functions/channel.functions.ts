@@ -5,6 +5,7 @@ import { z } from "zod";
 import { db } from "@/db/client.server";
 import { channelConnections } from "@/db/schema";
 import { assertLicense } from "@/services/license.server";
+import { assertPlanCapacity } from "@/entitlements/limits.server";
 import { getWhatsAppAdapter } from "@/services/whatsapp.server";
 import { getServerEnv } from "../server/env.server";
 import { requireUser } from "../server/auth.server";
@@ -62,6 +63,7 @@ export const createConnectionFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const user = await requireUser();
     await assertLicense("whatsapp:connect");
+    await assertPlanCapacity(user.organizationId, "connections");
 
     const adapter = getWhatsAppAdapter();
     const providerInstance = await adapter.createInstance(data.name);

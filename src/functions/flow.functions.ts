@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { db } from "@/db/client.server";
 import { channelConnections, flowBindings, flowVersions, flows } from "@/db/schema";
+import { assertPlanCapacity } from "@/entitlements/limits.server";
 import type { FlowGraph, FlowNode } from "@/flows/types";
 import { requireUser } from "../server/auth.server";
 
@@ -130,6 +131,7 @@ export const createFlowFn = createServerFn({ method: "POST" })
   .validator(createFlowSchema)
   .handler(async ({ data }) => {
     const user = await requireUser();
+    await assertPlanCapacity(user.organizationId, "activeFlows");
     const graph = parseGraph(data.graphJson);
     const slug = `${data.name
       .toLowerCase()
