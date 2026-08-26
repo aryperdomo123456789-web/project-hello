@@ -85,6 +85,42 @@ export async function listOrganizationIntegrations(
   );
 }
 
+export type OrganizationIntegrationRuntime = {
+  provider: IntegrationProvider;
+  credentials: Record<string, string>;
+  endpointUrl?: string;
+  model?: string;
+};
+
+export async function getOrganizationIntegrationRuntime(
+  organizationId: string,
+  provider: IntegrationProvider,
+): Promise<OrganizationIntegrationRuntime | null> {
+  const [row] = await db
+    .select()
+    .from(providerIntegrations)
+    .where(
+      and(
+        eq(providerIntegrations.organizationId, organizationId),
+        eq(providerIntegrations.provider, provider),
+        eq(providerIntegrations.isEnabled, true),
+      ),
+    )
+    .limit(1);
+  if (!row?.credentialsEncrypted) return null;
+  try {
+    const credentials = decryptIntegrationCredentials(row.credentialsEncrypted);
+    return {
+      provider,
+      credentials,
+      ...(row.endpointUrl ? { endpointUrl: row.endpointUrl } : {}),
+      ...(row.model ? { model: row.model } : {}),
+    };
+  } catch {
+    throw new Error(`Credencial ${provider} inválida ou não pôde ser descriptografada`);
+  }
+}
+
 export type SaveIntegrationInput = {
   provider: IntegrationProvider;
   endpointUrl?: string | undefined;
