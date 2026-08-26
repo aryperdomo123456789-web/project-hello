@@ -93,6 +93,7 @@ export const organizations = pgTable(
     trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }),
     currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
     cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
+    aiBudgetCentsMonthly: integer("ai_budget_cents_monthly").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
@@ -1200,6 +1201,38 @@ export const conversationQualityReviews = pgTable(
 );
 
 export type ConversationQualityReview = typeof conversationQualityReviews.$inferSelect;
+
+export const aiUsageEvents = pgTable(
+  "ai_usage_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    provider: text("provider").notNull(),
+    model: text("model").notNull(),
+    purpose: text("purpose").notNull(),
+    inputTokens: integer("input_tokens").notNull().default(0),
+    outputTokens: integer("output_tokens").notNull().default(0),
+    totalTokens: integer("total_tokens").notNull().default(0),
+    latencyMs: integer("latency_ms").notNull().default(0),
+    fallbackUsed: boolean("fallback_used").notNull().default(false),
+    status: text("status").notNull().default("succeeded"),
+    estimatedCostCents: integer("estimated_cost_cents").notNull().default(0),
+    errorCode: text("error_code"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("ai_usage_events_org_created_idx").on(table.organizationId, table.createdAt),
+    index("ai_usage_events_org_provider_idx").on(
+      table.organizationId,
+      table.provider,
+      table.createdAt,
+    ),
+  ],
+);
+
+export type AiUsageEvent = typeof aiUsageEvents.$inferSelect;
 
 export const billingEvents = pgTable(
   "billing_events",

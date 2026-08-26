@@ -1,6 +1,7 @@
 import { consumeRateLimit } from "@/server/rate-limit.server";
 import { getServerEnv } from "@/server/env.server";
 import { traceAiCall } from "@/services/aiTelemetry.server";
+import { recordAiUsage } from "@/services/aiUsage.server";
 import {
   getOrganizationIntegrationRuntime,
   type OrganizationIntegrationRuntime,
@@ -188,30 +189,56 @@ export async function generateWithFallback(request: AiRequest): Promise<AiRespon
           ? await requestGemini(model, request, runtime)
           : await requestOpenAiCompatible(candidate.provider, model, request, runtime);
       const result = { ...response, fallbackUsed: candidate.fallbackUsed };
+      const latencyMs = Date.now() - startedAt;
       await traceAiCall({
         ...(request.organizationId ? { organizationId: request.organizationId } : {}),
         purpose: request.purpose,
         provider: candidate.provider,
         model,
-        latencyMs: Date.now() - startedAt,
+        latencyMs,
         fallbackUsed: candidate.fallbackUsed,
         success: true,
         ...(result.usage ? { usage: result.usage } : {}),
       });
+      if (request.organizationId) {
+        void recordAiUsage({
+          organizationId: request.organizationId,
+          purpose: request.purpose,
+          provider: candidate.provider,
+          model,
+          latencyMs,
+          fallbackUsed: candidate.fallbackUsed,
+          success: true,
+          ...(result.usage ? { usage: result.usage } : {}),
+        }).catch(() => undefined);
+      }
       return result;
     } catch (error) {
       const message = error instanceof Error ? error.message : "unknown AI provider error";
       errors.push(message);
+      const latencyMs = Date.now() - startedAt;
       await traceAiCall({
         ...(request.organizationId ? { organizationId: request.organizationId } : {}),
         purpose: request.purpose,
         provider: candidate.provider,
         model: candidate.model,
-        latencyMs: Date.now() - startedAt,
+        latencyMs,
         fallbackUsed: candidate.fallbackUsed,
         success: false,
         error: message,
       });
+      if (request.organizationId) {
+        void recordAiUsage({
+          organizationId: request.organizationId,
+          purpose: request.purpose,
+          provider: candidate.provider,
+          model: candidate.model,
+          latencyMs,
+          fallbackUsed: candidate.fallbackUsed,
+          success: false,
+          error: message,
+        }).catch(() => undefined);
+      }
     }
   }
   throw new Error(`No AI provider available: ${errors.join("; ") || "stub mode only"}`);

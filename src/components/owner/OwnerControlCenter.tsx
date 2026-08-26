@@ -5,6 +5,7 @@ import {
   ArrowRight,
   BarChart3,
   Bot,
+  Cpu,
   CreditCard,
   Layers3,
   Plug,
@@ -13,6 +14,8 @@ import {
 } from "lucide-react";
 
 import { getBillingSummaryFn } from "@/functions/billing.functions";
+import { getAiBudgetSummaryFn, updateAiBudgetFn } from "@/functions/ai-usage.functions";
+import type { AiBudgetSummary } from "@/services/aiUsage.server";
 import { listIntegrationsFn, type IntegrationSummaryDTO } from "@/functions/integrations.functions";
 import { getWorkspacePlanFn, type WorkspacePlanDTO } from "@/functions/organization.functions";
 import { captureDiagnostic } from "@/lib/diagnostics";
@@ -27,11 +30,15 @@ export function OwnerControlCenter({
 }) {
   const getWorkspacePlan = useServerFn(getWorkspacePlanFn);
   const getBillingSummary = useServerFn(getBillingSummaryFn);
+  const getAiUsage = useServerFn(getAiBudgetSummaryFn);
+  const updateAiBudget = useServerFn(updateAiBudgetFn);
   const listIntegrations = useServerFn(listIntegrationsFn);
   const [plan, setPlan] = useState<WorkspacePlanDTO | null>(null);
   const [billing, setBilling] = useState<Awaited<ReturnType<typeof getBillingSummaryFn>> | null>(
     null,
   );
+  const [aiUsage, setAiUsage] = useState<AiBudgetSummary | null>(null);
+  const [budgetInput, setBudgetInput] = useState("");
   const [integrations, setIntegrations] = useState<IntegrationSummaryDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,13 +46,16 @@ export function OwnerControlCenter({
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [nextPlan, nextBilling, nextIntegrations] = await Promise.all([
+      const [nextPlan, nextBilling, nextAiUsage, nextIntegrations] = await Promise.all([
         getWorkspacePlan(),
         getBillingSummary(),
+        getAiUsage(),
         listIntegrations(),
       ]);
       setPlan(nextPlan);
       setBilling(nextBilling);
+      setAiUsage(nextAiUsage);
+      setBudgetInput((nextAiUsage.monthlyBudgetCents / 100).toFixed(2));
       setIntegrations(nextIntegrations);
       setError(null);
     } catch (cause) {
@@ -59,7 +69,29 @@ export function OwnerControlCenter({
     } finally {
       setLoading(false);
     }
-  }, [getBillingSummary, getWorkspacePlan, listIntegrations]);
+  }, [getAiUsage, getBillingSummary, getWorkspacePlan, listIntegrations]);
+
+  async function handleBudgetSave() {
+    const amount = Number(budgetInput.replace(",", "."));
+    if (!Number.isFinite(amount) || amount < 0) {
+      setError("Informe um teto mensal válido em reais.");
+      return;
+    }
+    try {
+      const next = await updateAiBudget({ data: { monthlyBudgetCents: Math.round(amount * 100) } });
+      setAiUsage(next);
+      setBudgetInput((next.monthlyBudgetCents / 100).toFixed(2));
+      setError(null);
+    } catch (cause) {
+      setError("Não foi possível atualizar o teto mensal de IA.");
+      captureDiagnostic(cause, {
+        source: "async",
+        component: "OwnerControlCenter",
+        payload: { operation: "update_ai_budget" },
+        recoverable: true,
+      });
+    }
+  }
 
   useEffect(() => {
     void load();
@@ -185,6 +217,60 @@ export function OwnerControlCenter({
           />
         </div>
 
+        {aiUsage && (
+          <section className="rounded-3xl border border-violet-200 bg-violet-50 p-6 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-violet-700">
+                  Governança de IA
+                </p>
+                <h2 className="mt-1 text-xl font-black text-slate-900">Consumo deste mês</h2>
+                <p className="mt-1 text-xs text-slate-600">
+                  Chamadas e tokens reais do workspace; custo é estimado apenas para modelos com
+                  tarifa conhecida.
+                </p>
+              </div>
+              <Cpu className="h-6 w-6 text-violet-700" />
+            </div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-4">
+              <UsageStat value={aiUsage.calls} label="Chamadas" />
+              <UsageStat value={aiUsage.inputTokens + aiUsage.outputTokens} label="Tokens" />
+              <UsageStat
+                value={`R$ ${(aiUsage.usedCents / 100).toFixed(2)}`}
+                label="Custo estimado"
+              />
+              <UsageStat
+                value={
+                  aiUsage.remainingCents === null
+                    ? "Sem teto"
+                    : `R$ ${(aiUsage.remainingCents / 100).toFixed(2)}`
+                }
+                label="Saldo do teto"
+              />
+            </div>
+            <div className="mt-5 flex flex-wrap items-end gap-3 rounded-2xl border border-violet-200 bg-white/60 p-4">
+              <label className="min-w-56 flex-1 text-xs font-bold text-slate-700">
+                Teto mensal de IA (R$)
+                <input
+                  inputMode="decimal"
+                  value={budgetInput}
+                  onChange={(event) => setBudgetInput(event.target.value)}
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-200"
+                  placeholder="0,00 = sem teto"
+                  aria-label="Teto mensal de IA em reais"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => void handleBudgetSave()}
+                className="rounded-xl bg-violet-700 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-violet-800"
+              >
+                Salvar teto
+              </button>
+            </div>
+          </section>
+        )}
+
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
@@ -225,6 +311,15 @@ export function OwnerControlCenter({
           </div>
         </section>
       </div>
+    </div>
+  );
+}
+
+function UsageStat({ value, label }: { value: number | string; label: string }) {
+  return (
+    <div className="rounded-2xl border border-violet-200 bg-white/70 p-4">
+      <p className="text-lg font-black tabular-nums text-slate-900">{value}</p>
+      <p className="text-[10px] font-bold uppercase tracking-wider text-violet-700">{label}</p>
     </div>
   );
 }
