@@ -6,7 +6,7 @@ import { channelConnections, conversations, flowEffects, messages } from "@/db/s
 import { resumeFlowAfterTimer } from "@/services/flowRuntime.server";
 import { getWhatsAppAdapter } from "@/services/whatsapp.server";
 import { getRedisConnection } from "./redis.server";
-import { MAGO_QUEUE_NAME, type FlowEffectJob } from "./jobs.server";
+import { enqueueDeadLetter, MAGO_QUEUE_NAME, type FlowEffectJob } from "./jobs.server";
 
 function stringValue(value: unknown) {
   return typeof value === "string" ? value : "";
@@ -87,7 +87,7 @@ export async function processFlowEffect(effectId: string) {
 }
 
 export function createBackgroundWorker() {
-  return new Worker<FlowEffectJob>(
+  const worker = new Worker<FlowEffectJob>(
     MAGO_QUEUE_NAME,
     async (job) => {
       if (job.data.kind === "flow_effect") return processFlowEffect(job.data.effectId);
@@ -102,4 +102,11 @@ export function createBackgroundWorker() {
     },
     { connection: getRedisConnection(), concurrency: 10 },
   );
+  worker.on("failed", (job, error) => {
+    if (!job) return;
+    void enqueueDeadLetter(job.id ?? "unknown", job.name, job.data, error).catch((dlqError) => {
+      console.error("dead letter queue unavailable", dlqError);
+    });
+  });
+  return worker;
 }

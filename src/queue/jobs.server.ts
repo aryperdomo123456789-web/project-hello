@@ -3,6 +3,15 @@ import { Queue } from "bullmq";
 import { getRedisConnection } from "./redis.server";
 
 export const MAGO_QUEUE_NAME = "mago-bot-background";
+export const MAGO_DLQ_NAME = "mago-bot-dead-letter";
+
+export type DeadLetterJob = {
+  originalJobId: string;
+  originalName: string;
+  data: FlowEffectJob;
+  error: string;
+  failedAt: string;
+};
 
 export type FlowEffectJob =
   | {
@@ -17,6 +26,7 @@ export type FlowEffectJob =
     };
 
 let queue: Queue<FlowEffectJob> | undefined;
+let deadLetterQueue: Queue<DeadLetterJob> | undefined;
 
 function getQueue() {
   if (!queue) {
@@ -31,6 +41,32 @@ function getQueue() {
     });
   }
   return queue;
+}
+
+function getDeadLetterQueue() {
+  if (!deadLetterQueue) {
+    deadLetterQueue = new Queue<DeadLetterJob>(MAGO_DLQ_NAME, {
+      connection: getRedisConnection(),
+      defaultJobOptions: { removeOnComplete: { age: 604800, count: 10000 } },
+    });
+  }
+  return deadLetterQueue;
+}
+
+export async function enqueueDeadLetter(
+  originalJobId: string,
+  originalName: string,
+  data: FlowEffectJob,
+  error: unknown,
+) {
+  const message = error instanceof Error ? error.message : "Falha desconhecida";
+  return getDeadLetterQueue().add("dead-letter", {
+    originalJobId,
+    originalName,
+    data,
+    error: message.slice(0, 500),
+    failedAt: new Date().toISOString(),
+  });
 }
 
 export async function enqueueFlowEffect(effectId: string) {
