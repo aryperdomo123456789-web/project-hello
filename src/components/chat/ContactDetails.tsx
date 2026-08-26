@@ -3,6 +3,7 @@ import { User, Phone, Tag, Calendar, MapPin, Hash, CheckCircle, Clock } from "lu
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ContactTasks } from "@/components/crm/ContactTasks";
 
 interface ContactDetailsProps {
   contact: Contact;
@@ -108,6 +109,7 @@ export function ContactDetails({ contact }: ContactDetailsProps) {
             Adicionar nova nota
           </button>
         </div>
+        <ContactTasks contactId={contact.id} />
       </div>
     </div>
   );

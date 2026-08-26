@@ -253,6 +253,35 @@ export const contacts = pgTable(
   ],
 );
 
+export const contactTasks = pgTable(
+  "contact_tasks",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    contactId: uuid("contact_id")
+      .notNull()
+      .references(() => contacts.id, { onDelete: "cascade" }),
+    conversationId: uuid("conversation_id").references(() => conversations.id, {
+      onDelete: "set null",
+    }),
+    title: text("title").notNull(),
+    status: text("status").notNull().default("open"),
+    dueAt: timestamp("due_at", { withTimezone: true }),
+    assignedTo: uuid("assigned_to").references(() => users.id, { onDelete: "set null" }),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("contact_tasks_org_status_due_idx").on(table.organizationId, table.status, table.dueAt),
+    index("contact_tasks_contact_idx").on(table.contactId, table.status),
+  ],
+);
+
 export const conversations = pgTable(
   "conversations",
   {
@@ -646,6 +675,7 @@ export type Membership = typeof memberships.$inferSelect;
 export type OrganizationInvite = typeof organizationInvites.$inferSelect;
 export type ChannelConnection = typeof channelConnections.$inferSelect;
 export type Contact = typeof contacts.$inferSelect;
+export type ContactTask = typeof contactTasks.$inferSelect;
 export type Conversation = typeof conversations.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type Flow = typeof flows.$inferSelect;
