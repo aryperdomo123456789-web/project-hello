@@ -8,7 +8,14 @@ type LicenseValidation = {
   reason?: string | null;
 };
 
-export async function validateLicense(scope: LicenseScope): Promise<LicenseValidation> {
+type CachedLicense = {
+  expiresAt: number;
+  value: LicenseValidation;
+};
+
+const cache = new Map<LicenseScope, CachedLicense>();
+
+async function validateLicenseRemote(scope: LicenseScope): Promise<LicenseValidation> {
   const env = getServerEnv();
 
   if (env.WHATSAPP_PROVIDER === "stub" && !env.WHATSAPP_LICENSE_TOKEN) {
@@ -23,27 +30,46 @@ export async function validateLicense(scope: LicenseScope): Promise<LicenseValid
     };
   }
 
-  const response = await fetch(`${env.LICENSE_API_BASE_URL}/v1/licenses/validate`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      token: env.WHATSAPP_LICENSE_TOKEN,
-      project_slug: env.LICENSE_PROJECT_SLUG,
-      scope,
-      domain: env.LICENSE_DOMAIN,
-    }),
-    signal: AbortSignal.timeout(5000),
-  });
+  try {
+    const response = await fetch(`${env.LICENSE_API_BASE_URL}/v1/licenses/validate`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        token: env.WHATSAPP_LICENSE_TOKEN,
+        project_slug: env.LICENSE_PROJECT_SLUG,
+        scope,
+        domain: env.LICENSE_DOMAIN,
+      }),
+      signal: AbortSignal.timeout(5000),
+    });
 
-  if (!response.ok) {
+    if (!response.ok) {
+      return {
+        valid: false,
+        status: `license_http_${response.status}`,
+        reason: "Central de licenças indisponível",
+      };
+    }
+
+    return (await response.json()) as LicenseValidation;
+  } catch {
     return {
       valid: false,
-      status: `license_http_${response.status}`,
-      reason: "Central de licenças indisponível",
+      status: "license_network_error",
+      reason: "Não foi possível validar a licença agora",
     };
   }
+}
 
-  return (await response.json()) as LicenseValidation;
+export async function validateLicense(scope: LicenseScope): Promise<LicenseValidation> {
+  const now = Date.now();
+  const cached = cache.get(scope);
+  if (cached && cached.expiresAt > now) return cached.value;
+
+  const value = await validateLicenseRemote(scope);
+  const ttl = value.valid ? 60_000 : 10_000;
+  cache.set(scope, { value, expiresAt: now + ttl });
+  return value;
 }
 
 export async function assertLicense(scope: LicenseScope) {
