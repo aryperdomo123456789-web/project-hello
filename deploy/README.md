@@ -48,3 +48,9 @@ Não coloque chave da Evolution, segredo de sessão ou token de licença no fron
 9. Force um efeito falho em ambiente de homologação e confirme que o `mago-bot-worker` agenda retry sem duplicar a mensagem.
 
 A aplicação não deve ser considerada pronta para cliente pagante enquanto esse smoke test não passar com uma conexão operacional real.
+
+## Manual completo do aaPanel
+
+O procedimento detalhado de produção está em [`docs/deploy/aapanel-production-manual.md`](../docs/deploy/aapanel-production-manual.md). Ele cobre primeira instalação, atualização por commit, `.env`, PostgreSQL, Redis, PM2 web + worker, Nginx, HTTPS, webhook, Evolution, health check, backup, rollback, incidentes e critérios de go-live.
+
+Sempre use a branch publicada no GitHub e registre o commit executado no VPS. Não faça edição manual de arquivos versionados dentro de `/www/wwwroot/mago-bot.com`.
