@@ -5,13 +5,15 @@ import { db } from "@/db/client.server";
 import { memberships, organizations, users } from "@/db/schema";
 import { getAppSession } from "./session.server";
 
+export type AppRole = "owner" | "admin" | "manager" | "supervisor" | "agent";
+
 export type AuthUser = {
   id: string;
   email: string;
   fullName: string;
   organizationId: string;
   organizationName: string;
-  role: string;
+  role: AppRole;
 };
 
 async function resolveUser(
@@ -58,6 +60,12 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
 export async function requireUser(): Promise<AuthUser> {
   const user = await getCurrentUser();
   if (!user) throw new Error("Não autenticado");
+  return user;
+}
+
+export async function requireRole(...allowedRoles: AppRole[]): Promise<AuthUser> {
+  const user = await requireUser();
+  if (!allowedRoles.includes(user.role)) throw new Error("Permissão insuficiente");
   return user;
 }
 
