@@ -71,7 +71,12 @@ export async function requireRole(...allowedRoles: AppRole[]): Promise<AuthUser>
   return user;
 }
 
-export async function loginUser(emailInput: string, password: string, organizationId?: string) {
+export async function loginUser(
+  emailInput: string,
+  password: string,
+  organizationId?: string,
+  entry: "owner" | "app" = "app",
+) {
   const email = emailInput.trim().toLowerCase();
   const rate = await consumeRateLimit(
     `login:${email}`,
@@ -92,6 +97,9 @@ export async function loginUser(emailInput: string, password: string, organizati
 
   const currentUser = await resolveUser(user.id, organizationId);
   if (!currentUser) return { ok: false as const, error: "Usuário sem organização ativa" };
+  if (entry === "owner" && currentUser.role !== "owner") {
+    return { ok: false as const, error: "Esta entrada é exclusiva do proprietário da organização" };
+  }
 
   const session = await getAppSession();
   await session.update({

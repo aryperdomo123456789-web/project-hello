@@ -42,7 +42,7 @@ function AcceptInvitePage() {
       const result = await acceptInvite({ data: { token, fullName, password } });
       setSuccess(`Acesso ativado em ${result.organizationName}. Redirecionando...`);
       window.history.replaceState({}, "", "/accept-invite");
-      window.setTimeout(() => void navigate({ to: "/" }), 700);
+      window.setTimeout(() => void navigate({ to: "/app" }), 700);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Não foi possível aceitar o convite");
       captureDiagnostic(cause, {

@@ -11,8 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
+import { Route as AppRouteImport } from './routes/app'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
+import { Route as OwnerLoginRouteImport } from './routes/owner.login'
 import { Route as ApiWebhooksMercadopagoRouteImport } from './routes/api/webhooks/mercadopago'
 import { Route as ApiWebhooksWhatsappRouteImport } from './routes/api/webhooks/whatsapp'
 
@@ -26,6 +28,11 @@ const AcceptInviteRoute = AcceptInviteRouteImport.update({
   path: '/accept-invite',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppRoute = AppRouteImport.update({
+  id: '/app',
+  path: '/app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -34,6 +41,11 @@ const LoginRoute = LoginRouteImport.update({
 const ApiHealthRoute = ApiHealthRouteImport.update({
   id: '/api/health',
   path: '/api/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OwnerLoginRoute = OwnerLoginRouteImport.update({
+  id: '/owner/login',
+  path: '/owner/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiWebhooksMercadopagoRoute = ApiWebhooksMercadopagoRouteImport.update({
@@ -50,16 +62,20 @@ const ApiWebhooksWhatsappRoute = ApiWebhooksWhatsappRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/accept-invite': typeof AcceptInviteRoute
+  '/app': typeof AppRoute
   '/login': typeof LoginRoute
   '/api/health': typeof ApiHealthRoute
+  '/owner/login': typeof OwnerLoginRoute
   '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRoute
   '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/accept-invite': typeof AcceptInviteRoute
+  '/app': typeof AppRoute
   '/login': typeof LoginRoute
   '/api/health': typeof ApiHealthRoute
+  '/owner/login': typeof OwnerLoginRoute
   '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRoute
   '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
 }
@@ -67,8 +83,10 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/accept-invite': typeof AcceptInviteRoute
+  '/app': typeof AppRoute
   '/login': typeof LoginRoute
   '/api/health': typeof ApiHealthRoute
+  '/owner/login': typeof OwnerLoginRoute
   '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRoute
   '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
 }
@@ -77,24 +95,30 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/accept-invite'
+    | '/app'
     | '/login'
     | '/api/health'
+    | '/owner/login'
     | '/api/webhooks/mercadopago'
     | '/api/webhooks/whatsapp'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/accept-invite'
+    | '/app'
     | '/login'
     | '/api/health'
+    | '/owner/login'
     | '/api/webhooks/mercadopago'
     | '/api/webhooks/whatsapp'
   id:
     | '__root__'
     | '/'
     | '/accept-invite'
+    | '/app'
     | '/login'
     | '/api/health'
+    | '/owner/login'
     | '/api/webhooks/mercadopago'
     | '/api/webhooks/whatsapp'
   fileRoutesById: FileRoutesById
@@ -102,8 +126,10 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AcceptInviteRoute: typeof AcceptInviteRoute
+  AppRoute: typeof AppRoute
   LoginRoute: typeof LoginRoute
   ApiHealthRoute: typeof ApiHealthRoute
+  OwnerLoginRoute: typeof OwnerLoginRoute
   ApiWebhooksMercadopagoRoute: typeof ApiWebhooksMercadopagoRoute
   ApiWebhooksWhatsappRoute: typeof ApiWebhooksWhatsappRoute
 }
@@ -124,6 +150,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AcceptInviteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -136,6 +169,13 @@ declare module '@tanstack/react-router' {
       path: '/api/health'
       fullPath: '/api/health'
       preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/owner/login': {
+      id: '/owner/login'
+      path: '/owner/login'
+      fullPath: '/owner/login'
+      preLoaderRoute: typeof OwnerLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/webhooks/mercadopago': {
@@ -158,8 +198,10 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AcceptInviteRoute: AcceptInviteRoute,
+  AppRoute: AppRoute,
   LoginRoute: LoginRoute,
   ApiHealthRoute: ApiHealthRoute,
+  OwnerLoginRoute: OwnerLoginRoute,
   ApiWebhooksMercadopagoRoute: ApiWebhooksMercadopagoRoute,
   ApiWebhooksWhatsappRoute: ApiWebhooksWhatsappRoute,
 }

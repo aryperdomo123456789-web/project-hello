@@ -86,3 +86,13 @@ Configure `MP_ENVIRONMENT=test`, `MP_ACCESS_TOKEN` e `MP_WEBHOOK_SECRET`. Os pre
 O endpoint público é `/api/webhooks/mercadopago`. Ele valida `x-signature`/`x-request-id`, consulta o recurso Mercado Pago com o Access Token, persiste evento idempotente e só então atualiza o billing da organização. Sem `MP_WEBHOOK_SECRET`, a rota responde 503 e não aceita notificações.
 
 Para homologar, use uma conta vendedor e uma conta comprador de teste do Mercado Pago, configure a URL de teste de webhook no painel, crie o checkout e verifique `pending`/`authorized`, replay do mesmo evento e falhas de assinatura. A integração publicada não considera uma aprovação sandbox como cobrança real.
+
+## Site público e entradas protegidas
+
+A raiz `https://mago-bot.com/` é a landing page pública do produto. A entrada comum da equipe fica em `https://mago-bot.com/login`; agentes, supervisores, gestores e owner podem usar essa rota para abrir o dashboard em `/app`. A entrada exclusiva do proprietário fica em `https://mago-bot.com/owner/login` e rejeita server-side qualquer papel diferente de `owner`. O botão **Sair** no cabeçalho encerra a sessão e retorna à landing pública. Convites aceitos também levam o novo membro diretamente ao dashboard protegido `/app`.
+
+A landing apresenta recursos, operação e planos iniciais sem copiar identidade visual de terceiros. Os preços exibidos são a âncora comercial inicial; a edição oficial do catálogo ocorre na área autenticada de Configurações, com auditoria e proteção por organização.
+
+## Domínio confiável no Meta Business
+
+No Meta Business, em **Configurações → Central de Segurança → Adicionar domínios confiáveis**, informe somente `mago-bot.com`, sem `https://`, sem caminho e sem barra final. Depois conclua a verificação solicitada pelo Meta, mantenha HTTPS ativo e use o domínio verificado nas páginas de destino dos anúncios. Isso não substitui a configuração da API WhatsApp nem cria permissões de anúncio automaticamente; é uma configuração de confiança do portfólio empresarial.
