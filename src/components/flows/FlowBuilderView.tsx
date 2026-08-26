@@ -482,6 +482,71 @@ export function FlowBuilderView() {
                   onChange={(event) => updateSelectedNode({ text: event.target.value })}
                 />
               </div>
+              {selectedNode.type === "question" && (
+                <div>
+                  <label className="text-xs font-semibold text-slate-600">
+                    Guardar resposta em
+                  </label>
+                  <Input
+                    className="mt-1"
+                    value={selectedNode.data.variable ?? ""}
+                    onChange={(event) => updateSelectedNode({ variable: event.target.value })}
+                    placeholder="ex.: assunto"
+                  />
+                </div>
+              )}
+              {selectedNode.type === "condition" && (
+                <div>
+                  <label className="text-xs font-semibold text-slate-600">Regra da condição</label>
+                  <Input
+                    className="mt-1"
+                    value={selectedNode.data.condition ?? ""}
+                    onChange={(event) => updateSelectedNode({ condition: event.target.value })}
+                    placeholder={'assunto contains "financeiro"'}
+                  />
+                  <p className="mt-1 text-[10px] text-slate-400">
+                    Use `campo contains valor` ou `campo == valor`.
+                  </p>
+                </div>
+              )}
+              {selectedNode.type === "assign_queue" && (
+                <div>
+                  <label className="text-xs font-semibold text-slate-600">Fila destino</label>
+                  <Input
+                    className="mt-1"
+                    value={selectedNode.data.queue ?? ""}
+                    onChange={(event) => updateSelectedNode({ queue: event.target.value })}
+                    placeholder="Comercial"
+                  />
+                </div>
+              )}
+              {selectedNode.type === "tag" && (
+                <div>
+                  <label className="text-xs font-semibold text-slate-600">Tag</label>
+                  <Input
+                    className="mt-1"
+                    value={selectedNode.data.tag ?? ""}
+                    onChange={(event) => updateSelectedNode({ tag: event.target.value })}
+                    placeholder="lead-quente"
+                  />
+                </div>
+              )}
+              {selectedNode.type === "delay" && (
+                <div>
+                  <label className="text-xs font-semibold text-slate-600">
+                    Aguardar (segundos)
+                  </label>
+                  <Input
+                    className="mt-1"
+                    type="number"
+                    min={0}
+                    value={selectedNode.data.seconds ?? 0}
+                    onChange={(event) =>
+                      updateSelectedNode({ seconds: Number(event.target.value) || 0 })
+                    }
+                  />
+                </div>
+              )}
               <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-500">
                 <p className="font-semibold text-slate-700">Tipo</p>
                 <p className="mt-1">
