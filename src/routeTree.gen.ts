@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiWebhooksWhatsappRouteImport } from './routes/api/webhooks/whatsapp'
@@ -17,6 +18,11 @@ import { Route as ApiWebhooksWhatsappRouteImport } from './routes/api/webhooks/w
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AcceptInviteRoute = AcceptInviteRouteImport.update({
+  id: '/accept-invite',
+  path: '/accept-invite',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -37,12 +43,14 @@ const ApiWebhooksWhatsappRoute = ApiWebhooksWhatsappRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/accept-invite': typeof AcceptInviteRoute
   '/login': typeof LoginRoute
   '/api/health': typeof ApiHealthRoute
   '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/accept-invite': typeof AcceptInviteRoute
   '/login': typeof LoginRoute
   '/api/health': typeof ApiHealthRoute
   '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
@@ -50,20 +58,30 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/accept-invite': typeof AcceptInviteRoute
   '/login': typeof LoginRoute
   '/api/health': typeof ApiHealthRoute
   '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/api/health' | '/api/webhooks/whatsapp'
+  fullPaths:
+    '/' | '/accept-invite' | '/login' | '/api/health' | '/api/webhooks/whatsapp'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/api/health' | '/api/webhooks/whatsapp'
-  id: '__root__' | '/' | '/login' | '/api/health' | '/api/webhooks/whatsapp'
+  to:
+    '/' | '/accept-invite' | '/login' | '/api/health' | '/api/webhooks/whatsapp'
+  id:
+    | '__root__'
+    | '/'
+    | '/accept-invite'
+    | '/login'
+    | '/api/health'
+    | '/api/webhooks/whatsapp'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AcceptInviteRoute: typeof AcceptInviteRoute
   LoginRoute: typeof LoginRoute
   ApiHealthRoute: typeof ApiHealthRoute
   ApiWebhooksWhatsappRoute: typeof ApiWebhooksWhatsappRoute
@@ -76,6 +94,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/accept-invite': {
+      id: '/accept-invite'
+      path: '/accept-invite'
+      fullPath: '/accept-invite'
+      preLoaderRoute: typeof AcceptInviteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -104,6 +129,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AcceptInviteRoute: AcceptInviteRoute,
   LoginRoute: LoginRoute,
   ApiHealthRoute: ApiHealthRoute,
   ApiWebhooksWhatsappRoute: ApiWebhooksWhatsappRoute,

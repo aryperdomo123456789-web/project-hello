@@ -444,6 +444,85 @@ export const messages = pgTable(
   ],
 );
 
+export const conversionEvents = pgTable(
+  "conversion_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    contactId: uuid("contact_id")
+      .notNull()
+      .references(() => contacts.id, { onDelete: "cascade" }),
+    conversationId: uuid("conversation_id").references(() => conversations.id, {
+      onDelete: "set null",
+    }),
+    eventType: text("event_type").notNull().default("won"),
+    source: text("source").notNull().default("manual"),
+    revenueCents: integer("revenue_cents").notNull().default(0),
+    currency: text("currency").notNull().default("BRL"),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }).defaultNow().notNull(),
+    metadata: jsonb("metadata")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("conversion_events_org_occurred_idx").on(table.organizationId, table.occurredAt),
+    index("conversion_events_org_source_idx").on(
+      table.organizationId,
+      table.source,
+      table.occurredAt,
+    ),
+    index("conversion_events_contact_idx").on(table.organizationId, table.contactId),
+  ],
+);
+
+export type ConversionEvent = typeof conversionEvents.$inferSelect;
+
+export const marketingSpend = pgTable(
+  "marketing_spend",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    source: text("source").notNull(),
+    amountCents: integer("amount_cents").notNull().default(0),
+    currency: text("currency").notNull().default("BRL"),
+    periodStart: timestamp("period_start", { withTimezone: true }).notNull(),
+    periodEnd: timestamp("period_end", { withTimezone: true }).notNull(),
+    metadata: jsonb("metadata")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("marketing_spend_org_period_idx").on(
+      table.organizationId,
+      table.periodStart,
+      table.periodEnd,
+    ),
+    index("marketing_spend_org_source_idx").on(
+      table.organizationId,
+      table.source,
+      table.periodStart,
+    ),
+  ],
+);
+
+export type MarketingSpend = typeof marketingSpend.$inferSelect;
+
 export const conversationRatings = pgTable(
   "conversation_ratings",
   {
