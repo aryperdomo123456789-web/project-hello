@@ -12,5 +12,5 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/var/lib/mago-bot
+StateDirectory=mago-bot
 ReadOnlyPaths=/www/wwwroot/mago-bot.com/mago-bot
