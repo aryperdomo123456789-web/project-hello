@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 APP_DIR="${APP_DIR:-/www/wwwroot/mago-bot.com}"
-BRANCH="${BRANCH:-main}"
+BRANCH="${BRANCH:-feat/saas-multiwhatsapp-flow-builder}"
 
 cd "$APP_DIR"
 
@@ -33,4 +33,5 @@ else
 fi
 
 curl --fail --silent --show-error http://127.0.0.1:3080/login >/dev/null
-echo "Deploy concluído e /login respondeu em 127.0.0.1:3080"
+curl --fail --silent --show-error http://127.0.0.1:3080/api/health >/dev/null
+echo "Deploy concluído: /login e /api/health responderam em 127.0.0.1:3080"
