@@ -12,6 +12,7 @@ import { FlowBuilderView } from "@/components/flows/FlowBuilderView";
 import { SimulationLab } from "@/components/simulator/SimulationLab";
 import { PlanOverview } from "@/components/settings/PlanOverview";
 import { OperationalHealthView } from "@/components/operations/OperationalHealthView";
+import { TeamWorkspace } from "@/components/team/TeamWorkspace";
 import { useChat } from "@/hooks/useChat";
 import {
   MessageSquare,
@@ -47,7 +48,8 @@ type Tab =
   | "Configurações"
   | "Relatórios"
   | "Laboratório"
-  | "Saúde";
+  | "Saúde"
+  | "Equipe";
 
 function Dashboard() {
   const {
@@ -79,6 +81,7 @@ function Dashboard() {
     { id: "Relatórios", label: "Relatórios", icon: BarChart3 },
     { id: "Laboratório", label: "Laboratório", icon: FlaskConical },
     { id: "Saúde", label: "Saúde", icon: Monitor },
+    { id: "Equipe", label: "Equipe", icon: Users },
     { id: "Configurações", label: "Ajustes", icon: Settings },
   ];
 
@@ -260,6 +263,15 @@ function Dashboard() {
               fallback={(retry) => <ComponentFallback title="Saúde indisponível" onRetry={retry} />}
             >
               <OperationalHealthView />
+            </ResilientBoundary>
+          ) : activeTab === "Equipe" ? (
+            <ResilientBoundary
+              boundaryName="team-workspace"
+              fallback={(retry) => (
+                <ComponentFallback title="Equipe indisponível" onRetry={retry} />
+              )}
+            >
+              <TeamWorkspace />
             </ResilientBoundary>
           ) : activeTab === "Atendimento" ? (
             <div className="flex-1 flex overflow-hidden w-full">

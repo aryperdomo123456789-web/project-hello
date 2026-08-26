@@ -127,6 +127,29 @@ export const memberships = pgTable(
   ],
 );
 
+export const organizationInvites = pgTable(
+  "organization_invites",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    role: membershipRoleEnum("role").notNull().default("agent"),
+    tokenHash: text("token_hash").notNull(),
+    invitedBy: uuid("invited_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("organization_invites_token_hash_uq").on(table.tokenHash),
+    index("organization_invites_org_email_idx").on(table.organizationId, table.email),
+  ],
+);
+
 export const channelConnections = pgTable(
   "channel_connections",
   {
@@ -620,6 +643,7 @@ export const auditLogs = pgTable(
 export type Organization = typeof organizations.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type Membership = typeof memberships.$inferSelect;
+export type OrganizationInvite = typeof organizationInvites.$inferSelect;
 export type ChannelConnection = typeof channelConnections.$inferSelect;
 export type Contact = typeof contacts.$inferSelect;
 export type Conversation = typeof conversations.$inferSelect;

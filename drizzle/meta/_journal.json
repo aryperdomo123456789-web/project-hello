@@ -22,6 +22,13 @@
       "when": 1787730228330,
       "tag": "0002_glamorous_shatterstar",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787731705360,
+      "tag": "0003_wet_yellow_claw",
+      "breakpoints": true
     }
   ]
 }
