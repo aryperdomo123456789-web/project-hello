@@ -106,6 +106,7 @@ export function FlowBuilderView() {
   const [nodes, setNodes, onNodesChange] = useNodesState<CanvasNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [newFlowName, setNewFlowName] = useState("");
   const [selectedTemplateId, setSelectedTemplateId] = useState("vendas");
   const [selectedConnectionId, setSelectedConnectionId] = useState("");
@@ -120,6 +121,10 @@ export function FlowBuilderView() {
   const selectedNode = useMemo(
     () => nodes.find((node) => node.id === selectedNodeId) ?? null,
     [nodes, selectedNodeId],
+  );
+  const selectedEdge = useMemo(
+    () => edges.find((edge) => edge.id === selectedEdgeId) ?? null,
+    [edges, selectedEdgeId],
   );
 
   const load = useCallback(async () => {
@@ -264,6 +269,13 @@ export function FlowBuilderView() {
     );
   }
 
+  function updateSelectedEdgeLabel(label: string) {
+    if (!selectedEdgeId) return;
+    setEdges((current) =>
+      current.map((edge) => (edge.id === selectedEdgeId ? { ...edge, label } : edge)),
+    );
+  }
+
   return (
     <div className="flex h-full min-h-[680px] flex-col bg-slate-50">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-white px-5 py-4">
@@ -405,7 +417,18 @@ export function FlowBuilderView() {
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
               onConnect={onConnect}
-              onNodeClick={(_, node) => setSelectedNodeId(node.id)}
+              onNodeClick={(_, node) => {
+                setSelectedNodeId(node.id);
+                setSelectedEdgeId(null);
+              }}
+              onEdgeClick={(_, edge) => {
+                setSelectedEdgeId(edge.id);
+                setSelectedNodeId(null);
+              }}
+              onPaneClick={() => {
+                setSelectedNodeId(null);
+                setSelectedEdgeId(null);
+              }}
               fitView
             >
               <Background gap={20} size={1} />
@@ -452,17 +475,43 @@ export function FlowBuilderView() {
           <div className="mb-5 flex items-center justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Inspector</p>
-              <p className="mt-1 text-sm font-semibold">Configurar bloco</p>
+              <p className="mt-1 text-sm font-semibold">
+                {selectedEdge ? "Configurar saída" : "Configurar bloco"}
+              </p>
             </div>
-            {selectedNode && (
-              <button onClick={() => setSelectedNodeId(null)}>
+            {(selectedNode || selectedEdge) && (
+              <button
+                onClick={() => {
+                  setSelectedNodeId(null);
+                  setSelectedEdgeId(null);
+                }}
+              >
                 <X className="h-4 w-4 text-slate-400" />
               </button>
             )}
           </div>
-          {!selectedNode ? (
+          {selectedEdge ? (
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-slate-600">Rótulo da saída</label>
+                <Input
+                  className="mt-1"
+                  value={String(selectedEdge.label ?? "")}
+                  onChange={(event) => updateSelectedEdgeLabel(event.target.value)}
+                  placeholder="sim ou não"
+                />
+                <p className="mt-1 text-[10px] text-slate-400">
+                  Condições usam esses rótulos para escolher o caminho.
+                </p>
+              </div>
+              <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-500">
+                <p>Origem: {selectedEdge.source}</p>
+                <p className="mt-1">Destino: {selectedEdge.target}</p>
+              </div>
+            </div>
+          ) : !selectedNode ? (
             <p className="text-sm leading-relaxed text-slate-500">
-              Clique em um bloco no canvas para editar o especialista.
+              Clique em um bloco ou em uma saída do canvas para editar o especialista.
             </p>
           ) : (
             <div className="space-y-4">
