@@ -253,6 +253,88 @@ export const contacts = pgTable(
   ],
 );
 
+export const campaignStatusEnum = pgEnum("campaign_status", [
+  "draft",
+  "scheduled",
+  "running",
+  "paused",
+  "completed",
+  "failed",
+]);
+
+export const campaigns = pgTable(
+  "campaigns",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    status: campaignStatusEnum("status").notNull().default("draft"),
+    messageTemplate: text("message_template").notNull(),
+    scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
+    dailyLimit: integer("daily_limit").notNull().default(100),
+    frequencyHours: integer("frequency_hours").notNull().default(24),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("campaigns_org_status_idx").on(table.organizationId, table.status, table.scheduledAt),
+  ],
+);
+
+export const campaignRecipients = pgTable(
+  "campaign_recipients",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    campaignId: uuid("campaign_id")
+      .notNull()
+      .references(() => campaigns.id, { onDelete: "cascade" }),
+    contactId: uuid("contact_id")
+      .notNull()
+      .references(() => contacts.id, { onDelete: "cascade" }),
+    status: text("status").notNull().default("pending"),
+    lastSentAt: timestamp("last_sent_at", { withTimezone: true }),
+    nextEligibleAt: timestamp("next_eligible_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("campaign_recipients_campaign_contact_uq").on(table.campaignId, table.contactId),
+    index("campaign_recipients_ready_idx").on(
+      table.organizationId,
+      table.status,
+      table.nextEligibleAt,
+    ),
+  ],
+);
+
+export const contactPolicies = pgTable(
+  "contact_policies",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    contactId: uuid("contact_id")
+      .notNull()
+      .references(() => contacts.id, { onDelete: "cascade" }),
+    optedOut: boolean("opted_out").notNull().default(false),
+    quietUntil: timestamp("quiet_until", { withTimezone: true }),
+    frequencyHours: integer("frequency_hours").notNull().default(24),
+    lastContactAt: timestamp("last_contact_at", { withTimezone: true }),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("contact_policies_org_contact_uq").on(table.organizationId, table.contactId),
+  ],
+);
+
 export const contactTasks = pgTable(
   "contact_tasks",
   {
@@ -697,6 +779,9 @@ export type OrganizationInvite = typeof organizationInvites.$inferSelect;
 export type ChannelConnection = typeof channelConnections.$inferSelect;
 export type Contact = typeof contacts.$inferSelect;
 export type ContactTask = typeof contactTasks.$inferSelect;
+export type Campaign = typeof campaigns.$inferSelect;
+export type CampaignRecipient = typeof campaignRecipients.$inferSelect;
+export type ContactPolicy = typeof contactPolicies.$inferSelect;
 export type Conversation = typeof conversations.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type ConversationRating = typeof conversationRatings.$inferSelect;

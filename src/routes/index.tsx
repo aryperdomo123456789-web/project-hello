@@ -13,6 +13,7 @@ import { SimulationLab } from "@/components/simulator/SimulationLab";
 import { PlanOverview } from "@/components/settings/PlanOverview";
 import { OperationalHealthView } from "@/components/operations/OperationalHealthView";
 import { TeamWorkspace } from "@/components/team/TeamWorkspace";
+import { CampaignsView } from "@/components/campaigns/CampaignsView";
 import { useChat } from "@/hooks/useChat";
 import {
   MessageSquare,
@@ -27,6 +28,7 @@ import {
   ChevronRight,
   Monitor,
   FlaskConical,
+  Megaphone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { meFn } from "@/functions/auth.functions";
@@ -50,7 +52,8 @@ type Tab =
   | "Relatórios"
   | "Laboratório"
   | "Saúde"
-  | "Equipe";
+  | "Equipe"
+  | "Campanhas";
 
 function Dashboard() {
   const {
@@ -84,6 +87,7 @@ function Dashboard() {
     { id: "Laboratório", label: "Laboratório", icon: FlaskConical },
     { id: "Saúde", label: "Saúde", icon: Monitor },
     { id: "Equipe", label: "Equipe", icon: Users },
+    { id: "Campanhas", label: "Campanhas", icon: Megaphone },
     { id: "Configurações", label: "Ajustes", icon: Settings },
   ].filter((item) => canAccessTab(user.role, item.id));
 
@@ -275,6 +279,15 @@ function Dashboard() {
               fallback={(retry) => <ComponentFallback title="Saúde indisponível" onRetry={retry} />}
             >
               <OperationalHealthView />
+            </ResilientBoundary>
+          ) : activeTab === "Campanhas" ? (
+            <ResilientBoundary
+              boundaryName="campaigns-screen"
+              fallback={(retry) => (
+                <ComponentFallback title="Campanhas indisponíveis" onRetry={retry} />
+              )}
+            >
+              <CampaignsView />
             </ResilientBoundary>
           ) : activeTab === "Equipe" ? (
             <ResilientBoundary
