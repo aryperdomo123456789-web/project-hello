@@ -11,6 +11,7 @@ import { ReportsView } from "@/components/dashboard/ReportsView";
 import { FlowBuilderView } from "@/components/flows/FlowBuilderView";
 import { SimulationLab } from "@/components/simulator/SimulationLab";
 import { PlanOverview } from "@/components/settings/PlanOverview";
+import { OperationalHealthView } from "@/components/operations/OperationalHealthView";
 import { useChat } from "@/hooks/useChat";
 import {
   MessageSquare,
@@ -45,7 +46,8 @@ type Tab =
   | "Conexões"
   | "Configurações"
   | "Relatórios"
-  | "Laboratório";
+  | "Laboratório"
+  | "Saúde";
 
 function Dashboard() {
   const {
@@ -76,6 +78,7 @@ function Dashboard() {
     { id: "Conexões", label: "Conexões", icon: Link2 },
     { id: "Relatórios", label: "Relatórios", icon: BarChart3 },
     { id: "Laboratório", label: "Laboratório", icon: FlaskConical },
+    { id: "Saúde", label: "Saúde", icon: Monitor },
     { id: "Configurações", label: "Ajustes", icon: Settings },
   ];
 
@@ -250,6 +253,13 @@ function Dashboard() {
               )}
             >
               <PlanOverview />
+            </ResilientBoundary>
+          ) : activeTab === "Saúde" ? (
+            <ResilientBoundary
+              boundaryName="operational-health"
+              fallback={(retry) => <ComponentFallback title="Saúde indisponível" onRetry={retry} />}
+            >
+              <OperationalHealthView />
             </ResilientBoundary>
           ) : activeTab === "Atendimento" ? (
             <div className="flex-1 flex overflow-hidden w-full">
