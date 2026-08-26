@@ -1,0 +1,579 @@
+import { sql } from "drizzle-orm";
+import {
+  boolean,
+  index,
+  integer,
+  jsonb,
+  pgEnum,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
+
+export const membershipRoleEnum = pgEnum("membership_role", [
+  "owner",
+  "admin",
+  "manager",
+  "supervisor",
+  "agent",
+]);
+
+export const connectionProviderEnum = pgEnum("connection_provider", [
+  "stub",
+  "evolution",
+  "custom",
+  "meta",
+]);
+
+export const connectionStatusEnum = pgEnum("connection_status", [
+  "disconnected",
+  "connecting",
+  "connected",
+  "error",
+]);
+
+export const conversationStatusEnum = pgEnum("conversation_status", [
+  "queued",
+  "assigned",
+  "in_progress",
+  "waiting_customer",
+  "waiting_internal",
+  "resolved",
+  "closed",
+]);
+
+export const messageDirectionEnum = pgEnum("message_direction", ["inbound", "outbound", "system"]);
+
+export const messageStatusEnum = pgEnum("message_status", [
+  "received",
+  "queued",
+  "sent",
+  "delivered",
+  "read",
+  "failed",
+]);
+
+export const flowStatusEnum = pgEnum("flow_status", ["draft", "published", "paused", "archived"]);
+
+export const flowExecutionStatusEnum = pgEnum("flow_execution_status", [
+  "running",
+  "waiting_input",
+  "waiting_timer",
+  "waiting_external",
+  "handoff",
+  "paused_by_human",
+  "completed",
+  "failed",
+  "cancelled",
+]);
+
+export const effectStatusEnum = pgEnum("effect_status", [
+  "pending",
+  "processing",
+  "completed",
+  "failed",
+  "cancelled",
+]);
+
+export const organizations = pgTable(
+  "organizations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    status: text("status").notNull().default("active"),
+    plan: text("plan").notNull().default("starter"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("organizations_slug_uq").on(table.slug)],
+);
+
+export const users = pgTable(
+  "users",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    email: text("email").notNull(),
+    passwordHash: text("password_hash").notNull(),
+    fullName: text("full_name").notNull(),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("users_email_uq").on(table.email)],
+);
+
+export const memberships = pgTable(
+  "memberships",
+  {
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: membershipRoleEnum("role").notNull().default("agent"),
+    status: text("status").notNull().default("active"),
+    availability: text("availability").notNull().default("offline"),
+    maxConcurrentChats: integer("max_concurrent_chats").notNull().default(5),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.organizationId, table.userId] }),
+    index("memberships_user_idx").on(table.userId),
+  ],
+);
+
+export const channelConnections = pgTable(
+  "channel_connections",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    provider: connectionProviderEnum("provider").notNull().default("stub"),
+    providerInstanceId: text("provider_instance_id"),
+    displayPhone: text("display_phone"),
+    status: connectionStatusEnum("status").notNull().default("disconnected"),
+    credentialsEncrypted: text("credentials_encrypted"),
+    settings: jsonb("settings")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    connectedAt: timestamp("connected_at", { withTimezone: true }),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("channel_connections_org_slug_uq").on(table.organizationId, table.slug),
+    index("channel_connections_org_status_idx").on(table.organizationId, table.status),
+  ],
+);
+
+export const queues = pgTable(
+  "queues",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    strategy: text("strategy").notNull().default("least_load"),
+    slaFirstResponseMinutes: integer("sla_first_response_minutes").notNull().default(15),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("queues_org_slug_uq").on(table.organizationId, table.slug)],
+);
+
+export const queueMembers = pgTable(
+  "queue_members",
+  {
+    queueId: uuid("queue_id")
+      .notNull()
+      .references(() => queues.id, { onDelete: "cascade" }),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    weight: integer("weight").notNull().default(1),
+    skills: jsonb("skills")
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+  },
+  (table) => [
+    primaryKey({ columns: [table.queueId, table.userId] }),
+    index("queue_members_org_user_idx").on(table.organizationId, table.userId),
+  ],
+);
+
+export const contacts = pgTable(
+  "contacts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    waId: text("wa_id").notNull(),
+    phone: text("phone"),
+    name: text("name").notNull().default("Contato"),
+    avatarUrl: text("avatar_url"),
+    email: text("email"),
+    tags: jsonb("tags")
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    attributes: jsonb("attributes")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("contacts_org_wa_uq").on(table.organizationId, table.waId),
+    index("contacts_org_name_idx").on(table.organizationId, table.name),
+  ],
+);
+
+export const conversations = pgTable(
+  "conversations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    channelConnectionId: uuid("channel_connection_id")
+      .notNull()
+      .references(() => channelConnections.id, { onDelete: "restrict" }),
+    contactId: uuid("contact_id")
+      .notNull()
+      .references(() => contacts.id, { onDelete: "restrict" }),
+    queueId: uuid("queue_id").references(() => queues.id, { onDelete: "set null" }),
+    assigneeId: uuid("assignee_id").references(() => users.id, { onDelete: "set null" }),
+    status: conversationStatusEnum("status").notNull().default("queued"),
+    priority: integer("priority").notNull().default(0),
+    subject: text("subject"),
+    version: integer("version").notNull().default(0),
+    automationPausedAt: timestamp("automation_paused_at", { withTimezone: true }),
+    firstResponseAt: timestamp("first_response_at", { withTimezone: true }),
+    lastMessageAt: timestamp("last_message_at", { withTimezone: true }).defaultNow().notNull(),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("conversations_inbox_idx").on(table.organizationId, table.status, table.lastMessageAt),
+    index("conversations_connection_contact_idx").on(table.channelConnectionId, table.contactId),
+    index("conversations_assignee_idx").on(table.organizationId, table.assigneeId, table.status),
+  ],
+);
+
+export const messages = pgTable(
+  "messages",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    conversationId: uuid("conversation_id")
+      .notNull()
+      .references(() => conversations.id, { onDelete: "cascade" }),
+    channelConnectionId: uuid("channel_connection_id")
+      .notNull()
+      .references(() => channelConnections.id, { onDelete: "restrict" }),
+    externalId: text("external_id"),
+    clientMessageId: text("client_message_id"),
+    direction: messageDirectionEnum("direction").notNull(),
+    status: messageStatusEnum("status").notNull(),
+    type: text("type").notNull().default("text"),
+    text: text("text"),
+    payload: jsonb("payload")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    senderUserId: uuid("sender_user_id").references(() => users.id, { onDelete: "set null" }),
+    sentAt: timestamp("sent_at", { withTimezone: true }).defaultNow().notNull(),
+    deliveredAt: timestamp("delivered_at", { withTimezone: true }),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("messages_external_uq").on(
+      table.organizationId,
+      table.channelConnectionId,
+      table.externalId,
+    ),
+    uniqueIndex("messages_client_id_uq").on(table.organizationId, table.clientMessageId),
+    index("messages_conversation_time_idx").on(table.conversationId, table.sentAt),
+  ],
+);
+
+export const webhookEvents = pgTable(
+  "webhook_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "cascade",
+    }),
+    channelConnectionId: uuid("channel_connection_id").references(() => channelConnections.id, {
+      onDelete: "cascade",
+    }),
+    provider: text("provider").notNull(),
+    externalEventId: text("external_event_id").notNull(),
+    eventType: text("event_type").notNull(),
+    payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+    status: text("status").notNull().default("received"),
+    attempts: integer("attempts").notNull().default(0),
+    lastError: text("last_error"),
+    receivedAt: timestamp("received_at", { withTimezone: true }).defaultNow().notNull(),
+    processedAt: timestamp("processed_at", { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("webhook_events_provider_external_uq").on(table.provider, table.externalEventId),
+    index("webhook_events_status_idx").on(table.status, table.receivedAt),
+  ],
+);
+
+export const flows = pgTable(
+  "flows",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    category: text("category").notNull().default("custom"),
+    status: flowStatusEnum("status").notNull().default("draft"),
+    draftGraph: jsonb("draft_graph")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    updatedBy: uuid("updated_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("flows_org_slug_uq").on(table.organizationId, table.slug)],
+);
+
+export const flowVersions = pgTable(
+  "flow_versions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    flowId: uuid("flow_id")
+      .notNull()
+      .references(() => flows.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    schemaVersion: integer("schema_version").notNull().default(1),
+    editorGraph: jsonb("editor_graph").$type<Record<string, unknown>>().notNull(),
+    compiledGraph: jsonb("compiled_graph").$type<Record<string, unknown>>().notNull(),
+    checksum: text("checksum").notNull(),
+    publishedBy: uuid("published_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    publishedAt: timestamp("published_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("flow_versions_flow_version_uq").on(table.flowId, table.version),
+    uniqueIndex("flow_versions_flow_checksum_uq").on(table.flowId, table.checksum),
+  ],
+);
+
+export const flowBindings = pgTable(
+  "flow_bindings",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    channelConnectionId: uuid("channel_connection_id")
+      .notNull()
+      .references(() => channelConnections.id, { onDelete: "cascade" }),
+    flowVersionId: uuid("flow_version_id")
+      .notNull()
+      .references(() => flowVersions.id, { onDelete: "restrict" }),
+    trigger: text("trigger").notNull().default("conversation_started"),
+    priority: integer("priority").notNull().default(100),
+    active: boolean("active").notNull().default(true),
+    config: jsonb("config")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("flow_bindings_one_active_uq")
+      .on(table.channelConnectionId, table.trigger)
+      .where(sql`${table.active} = true`),
+  ],
+);
+
+export const flowExecutions = pgTable(
+  "flow_executions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    conversationId: uuid("conversation_id")
+      .notNull()
+      .references(() => conversations.id, { onDelete: "cascade" }),
+    flowVersionId: uuid("flow_version_id")
+      .notNull()
+      .references(() => flowVersions.id, { onDelete: "restrict" }),
+    status: flowExecutionStatusEnum("status").notNull().default("running"),
+    currentNodeId: text("current_node_id").notNull(),
+    context: jsonb("context")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    lockVersion: integer("lock_version").notNull().default(0),
+    startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
+    waitingUntil: timestamp("waiting_until", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    failureCode: text("failure_code"),
+    failureDetail: text("failure_detail"),
+  },
+  (table) => [
+    uniqueIndex("flow_executions_one_active_uq")
+      .on(table.conversationId)
+      .where(
+        sql`${table.status} in ('running', 'waiting_input', 'waiting_timer', 'waiting_external', 'handoff', 'paused_by_human')`,
+      ),
+    index("flow_executions_waiting_idx").on(table.status, table.waitingUntil),
+  ],
+);
+
+export const flowExecutionEvents = pgTable(
+  "flow_execution_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    executionId: uuid("execution_id")
+      .notNull()
+      .references(() => flowExecutions.id, { onDelete: "cascade" }),
+    externalEventId: text("external_event_id").notNull(),
+    eventType: text("event_type").notNull(),
+    payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("flow_execution_events_external_uq").on(table.executionId, table.externalEventId),
+  ],
+);
+
+export const flowNodeRuns = pgTable(
+  "flow_node_runs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    executionId: uuid("execution_id")
+      .notNull()
+      .references(() => flowExecutions.id, { onDelete: "cascade" }),
+    nodeId: text("node_id").notNull(),
+    attempt: integer("attempt").notNull().default(1),
+    status: text("status").notNull(),
+    input: jsonb("input")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    output: jsonb("output")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("flow_node_runs_execution_node_attempt_uq").on(
+      table.executionId,
+      table.nodeId,
+      table.attempt,
+    ),
+  ],
+);
+
+export const flowEffects = pgTable(
+  "flow_effects",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    nodeRunId: uuid("node_run_id")
+      .notNull()
+      .references(() => flowNodeRuns.id, { onDelete: "cascade" }),
+    effectType: text("effect_type").notNull(),
+    idempotencyKey: text("idempotency_key").notNull(),
+    payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+    status: effectStatusEnum("status").notNull().default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }),
+    lastError: text("last_error"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("flow_effects_idempotency_uq").on(table.idempotencyKey),
+    index("flow_effects_ready_idx").on(table.status, table.nextAttemptAt),
+  ],
+);
+
+export const assignmentEvents = pgTable(
+  "assignment_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    conversationId: uuid("conversation_id")
+      .notNull()
+      .references(() => conversations.id, { onDelete: "cascade" }),
+    fromUserId: uuid("from_user_id").references(() => users.id, { onDelete: "set null" }),
+    toUserId: uuid("to_user_id").references(() => users.id, { onDelete: "set null" }),
+    fromQueueId: uuid("from_queue_id").references(() => queues.id, { onDelete: "set null" }),
+    toQueueId: uuid("to_queue_id").references(() => queues.id, { onDelete: "set null" }),
+    eventType: text("event_type").notNull(),
+    reason: text("reason"),
+    actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("assignment_events_conversation_idx").on(table.conversationId, table.createdAt),
+  ],
+);
+
+export const auditLogs = pgTable(
+  "audit_logs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "cascade",
+    }),
+    actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+    action: text("action").notNull(),
+    resourceType: text("resource_type").notNull(),
+    resourceId: text("resource_id"),
+    metadata: jsonb("metadata")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    ipAddress: text("ip_address"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("audit_logs_org_time_idx").on(table.organizationId, table.createdAt)],
+);
+
+export type Organization = typeof organizations.$inferSelect;
+export type User = typeof users.$inferSelect;
+export type Membership = typeof memberships.$inferSelect;
+export type ChannelConnection = typeof channelConnections.$inferSelect;
+export type Contact = typeof contacts.$inferSelect;
+export type Conversation = typeof conversations.$inferSelect;
+export type Message = typeof messages.$inferSelect;
+export type Flow = typeof flows.$inferSelect;
+export type FlowVersion = typeof flowVersions.$inferSelect;
+export type FlowExecution = typeof flowExecutions.$inferSelect;
