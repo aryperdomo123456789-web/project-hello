@@ -1,5 +1,6 @@
 import { consumeRateLimit } from "@/server/rate-limit.server";
 import { getServerEnv } from "@/server/env.server";
+import { traceAiCall } from "@/services/aiTelemetry.server";
 
 export type AiProvider = "stub" | "openrouter" | "groq" | "deepseek" | "gemini";
 
@@ -148,14 +149,37 @@ export async function generateWithFallback(request: AiRequest): Promise<AiRespon
   const errors: string[] = [];
   for (const candidate of candidates) {
     if (candidate.provider === "stub") continue;
+    const startedAt = Date.now();
     try {
       const response =
         candidate.provider === "gemini"
           ? await requestGemini(candidate.model, request)
           : await requestOpenAiCompatible(candidate.provider, candidate.model, request);
-      return { ...response, fallbackUsed: candidate.fallbackUsed };
+      const result = { ...response, fallbackUsed: candidate.fallbackUsed };
+      await traceAiCall({
+        ...(request.organizationId ? { organizationId: request.organizationId } : {}),
+        purpose: request.purpose,
+        provider: candidate.provider,
+        model: candidate.model,
+        latencyMs: Date.now() - startedAt,
+        fallbackUsed: candidate.fallbackUsed,
+        success: true,
+        ...(result.usage ? { usage: result.usage } : {}),
+      });
+      return result;
     } catch (error) {
-      errors.push(error instanceof Error ? error.message : "unknown AI provider error");
+      const message = error instanceof Error ? error.message : "unknown AI provider error";
+      errors.push(message);
+      await traceAiCall({
+        ...(request.organizationId ? { organizationId: request.organizationId } : {}),
+        purpose: request.purpose,
+        provider: candidate.provider,
+        model: candidate.model,
+        latencyMs: Date.now() - startedAt,
+        fallbackUsed: candidate.fallbackUsed,
+        success: false,
+        error: message,
+      });
     }
   }
   throw new Error(`No AI provider available: ${errors.join("; ") || "stub mode only"}`);
