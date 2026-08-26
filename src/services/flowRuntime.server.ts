@@ -18,6 +18,12 @@ import {
 } from "@/db/schema";
 import type { FlowEdge, FlowGraph, FlowNode, FlowNodeData } from "@/flows/types";
 import { enqueueFlowEffect, enqueueFlowResume } from "@/queue/jobs.server";
+import {
+  chooseQueueAgent,
+  isWithinBusinessHours,
+  type BusinessHours,
+  type QueueStrategy,
+} from "@/queues/policy";
 import { getWhatsAppAdapter } from "./whatsapp.server";
 
 type RuntimeGraph = FlowGraph & { entryNodeId?: string | undefined };
@@ -89,7 +95,7 @@ export async function dispatchBestAgent(
 ) {
   const candidateQueues = queueId
     ? await db
-        .select({ id: queues.id })
+        .select({ id: queues.id, strategy: queues.strategy, settings: queues.settings })
         .from(queues)
         .where(
           and(
@@ -100,7 +106,7 @@ export async function dispatchBestAgent(
         )
         .limit(1)
     : await db
-        .select({ id: queues.id })
+        .select({ id: queues.id, strategy: queues.strategy, settings: queues.settings })
         .from(queues)
         .where(and(eq(queues.organizationId, organizationId), eq(queues.isActive, true)))
         .orderBy(queues.createdAt)
@@ -108,8 +114,16 @@ export async function dispatchBestAgent(
   const queue = candidateQueues[0];
   if (!queue) return null;
 
+  const settings = queue.settings ?? {};
+  const businessHours = settings["businessHours"] as BusinessHours | undefined;
+  if (businessHours && !isWithinBusinessHours(new Date(), businessHours)) return null;
+
   const members = await db
-    .select({ userId: queueMembers.userId, maxConcurrentChats: memberships.maxConcurrentChats })
+    .select({
+      userId: queueMembers.userId,
+      maxConcurrentChats: memberships.maxConcurrentChats,
+      skills: queueMembers.skills,
+    })
     .from(queueMembers)
     .innerJoin(
       memberships,
@@ -136,12 +150,16 @@ export async function dispatchBestAgent(
             inArray(conversations.status, ["in_progress", "waiting_customer"]),
           ),
         );
-      return { ...member, load: Number(row?.value ?? 0) };
+      return { ...member, load: Number(row?.value ?? 0), online: true };
     }),
   );
-  const eligible = loads
-    .filter((member) => member.load < member.maxConcurrentChats)
-    .sort((left, right) => left.load - right.load)[0];
+  const requiredSkill =
+    typeof settings["requiredSkill"] === "string" ? settings["requiredSkill"] : undefined;
+  const eligible = chooseQueueAgent(
+    loads,
+    (queue.strategy as QueueStrategy) ?? "least_load",
+    requiredSkill,
+  );
   if (!eligible) return null;
 
   const claimed = await db

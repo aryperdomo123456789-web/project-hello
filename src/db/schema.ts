@@ -166,6 +166,10 @@ export const queues = pgTable(
     name: text("name").notNull(),
     slug: text("slug").notNull(),
     strategy: text("strategy").notNull().default("least_load"),
+    settings: jsonb("settings")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
     slaFirstResponseMinutes: integer("sla_first_response_minutes").notNull().default(15),
     isActive: boolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
