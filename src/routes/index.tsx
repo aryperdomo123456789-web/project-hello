@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { ComponentFallback, ResilientBoundary } from "@/components/resilience/ResilienceLayer";
 import { ChatList } from "@/components/chat/ChatList";
 import { ChatMessageArea } from "@/components/chat/ChatMessageArea";
-import { KanbanBoard } from "@/components/kanban/KanbanBoard";
+import { CRMWorkspace } from "@/components/crm/CRMWorkspace";
 import { ContactDetails } from "@/components/chat/ContactDetails";
 import { ReportsView } from "@/components/dashboard/ReportsView";
 import { FlowBuilderView } from "@/components/flows/FlowBuilderView";
@@ -212,7 +212,7 @@ function Dashboard() {
               boundaryName="crm-screen"
               fallback={(retry) => <ComponentFallback title="CRM indisponível" onRetry={retry} />}
             >
-              <KanbanBoard contacts={crmContacts} />
+              <CRMWorkspace contacts={crmContacts} onSelect={setSelectedContact} />
             </ResilientBoundary>
           ) : activeTab === "Relatórios" ? (
             <ResilientBoundary

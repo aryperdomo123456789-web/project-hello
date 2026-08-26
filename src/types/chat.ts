@@ -1,9 +1,9 @@
 export interface Message {
   id: string;
   text: string;
-  sender: 'me' | 'contact';
+  sender: "me" | "contact";
   timestamp: string;
-  type: 'text' | 'audio' | 'image' | 'file';
+  type: "text" | "audio" | "image" | "file";
 }
 
 export interface Contact {
@@ -13,9 +13,12 @@ export interface Contact {
   avatar?: string;
   lastMessage?: string;
   lastMessageTime?: string;
-  status: 'online' | 'offline';
+  status: "online" | "offline";
   unreadCount: number;
   tags: string[];
   sector: string;
-  stage: 'Abertas' | 'Aguardando' | 'Resolvidas';
+  email?: string;
+  createdAt?: string;
+  attributes?: Record<string, string | number | boolean | null>;
+  stage: "Abertas" | "Aguardando" | "Resolvidas";
 }
