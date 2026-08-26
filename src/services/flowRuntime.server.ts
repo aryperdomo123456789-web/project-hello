@@ -45,9 +45,33 @@ function nextNodes(graph: RuntimeGraph, nodeId: string, context: Record<string, 
   const outgoing = graph.edges.filter((edge) => edge.source === nodeId);
   if (outgoing.length === 0) return [];
   const node = graph.nodes.find((item) => item.id === nodeId);
-  if (node?.type !== "condition") return outgoing.map((edge) => edge.target);
+  if (node?.type !== "condition" && node?.type !== "business_hours" && node?.type !== "menu") {
+    return outgoing.map((edge) => edge.target);
+  }
 
   const data = nodeData(node);
+  if (node.type === "business_hours") {
+    const open = context["businessHoursOpen"] === true;
+    const label = open ? "aberto" : "fechado";
+    return [
+      outgoing.find((edge) => String(edge.label ?? "").toLowerCase() === label)?.target ??
+        outgoing[open ? 0 : Math.min(1, outgoing.length - 1)]!.target,
+    ];
+  }
+  if (node.type === "menu") {
+    const selected = String(context[data.variable ?? node.id] ?? "")
+      .trim()
+      .toLowerCase();
+    return [
+      outgoing.find(
+        (edge) =>
+          String(edge.label ?? "")
+            .trim()
+            .toLowerCase() === selected,
+      )?.target ?? outgoing[0]!.target,
+    ];
+  }
+
   const condition = data.condition ?? "";
   const match = condition.match(/^([\w.-]+)\s*(===|==|contains)\s*["']?([^"']+)["']?$/i);
   if (!match) return [outgoing[0]!.target];
@@ -302,16 +326,46 @@ async function runNode(
     const text = getText(data);
     if (text) await dispatchMessageEffect(executionId, nodeRun.id, text);
     output = { sent: Boolean(text) };
-  } else if (node.type === "question") {
+  } else if (node.type === "question" || node.type === "menu") {
+    const variable = data.variable ?? node.id;
     if (inputText && execution.status === "waiting_input") {
-      nextContext = { ...context, [data.variable ?? node.id]: inputText, lastInput: inputText };
-      output = { answer: inputText, variable: data.variable ?? node.id };
+      nextContext = { ...context, [variable]: inputText, lastInput: inputText };
+      output = { answer: inputText, variable };
     } else {
       const text = getText(data);
-      if (text) await dispatchMessageEffect(executionId, nodeRun.id, text);
+      const options =
+        node.type === "menu" && data.options?.length
+          ? `\n${data.options.map((option, index) => `${index + 1}. ${option}`).join("\n")}`
+          : "";
+      if (text || options)
+        await dispatchMessageEffect(
+          executionId,
+          nodeRun.id,
+          `${text ?? "Escolha uma opção:"}${options}`,
+        );
       waiting = true;
-      output = { waitingFor: data.variable ?? node.id };
+      output = { waitingFor: variable, options: data.options ?? [] };
     }
+  } else if (node.type === "business_hours") {
+    const businessHours = data.businessHours as BusinessHours | undefined;
+    const open = businessHours ? isWithinBusinessHours(new Date(), businessHours) : true;
+    nextContext = { ...context, businessHoursOpen: open };
+    output = { open, timezone: businessHours?.timezone ?? "local" };
+  } else if (node.type === "set_variable") {
+    const variable = data.variable?.trim();
+    if (variable) nextContext = { ...context, [variable]: data.variableValue ?? "" };
+    output = { variable: variable ?? null, value: data.variableValue ?? "" };
+  } else if (node.type === "webhook") {
+    const endpoint = data.endpoint?.trim();
+    output = {
+      queued: Boolean(endpoint),
+      endpoint: endpoint ?? null,
+      method: data.method ?? "POST",
+    };
+  } else if (node.type === "fallback") {
+    const text = getText(data) ?? data.fallbackMessage?.trim();
+    if (text) await dispatchMessageEffect(executionId, nodeRun.id, text);
+    output = { fallback: true, sent: Boolean(text) };
   } else if (node.type === "assign_queue") {
     const row = await getConversationContext(execution.conversationId);
     const queueName = data.queue ?? "";
@@ -368,7 +422,7 @@ async function runNode(
   } else if (node.type === "end") {
     output = { ended: true };
   } else if (node.type === "condition") {
-    output = { evaluated: data.condition ?? "" };
+    output = { evaluated: data.condition ?? node.type };
   }
 
   await db

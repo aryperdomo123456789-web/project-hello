@@ -761,6 +761,40 @@ export function FlowBuilderView() {
                   />
                 </div>
               )}
+              {(selectedNode.type === "menu" || selectedNode.type === "question") && (
+                <div>
+                  <label className="text-xs font-semibold text-slate-600">
+                    Guardar resposta em
+                  </label>
+                  <Input
+                    className="mt-1"
+                    value={selectedNode.data.variable ?? ""}
+                    onChange={(event) => updateSelectedNode({ variable: event.target.value })}
+                    placeholder="ex.: assunto"
+                  />
+                </div>
+              )}
+              {selectedNode.type === "menu" && (
+                <div>
+                  <label className="text-xs font-semibold text-slate-600">Opções do menu</label>
+                  <textarea
+                    className="mt-1 min-h-20 w-full rounded-md border bg-white p-2 text-xs outline-none focus:border-blue-500"
+                    value={(selectedNode.data.options ?? []).join("\n")}
+                    onChange={(event) =>
+                      updateSelectedNode({
+                        options: event.target.value
+                          .split("\n")
+                          .map((item) => item.trim())
+                          .filter(Boolean),
+                      })
+                    }
+                    placeholder="Vendas\nSuporte\nFinanceiro"
+                  />
+                  <p className="mt-1 text-[10px] text-slate-400">
+                    Cada linha vira uma opção e uma saída do menu.
+                  </p>
+                </div>
+              )}
               {selectedNode.type === "condition" && (
                 <div>
                   <label className="text-xs font-semibold text-slate-600">Regra da condição</label>
@@ -773,6 +807,62 @@ export function FlowBuilderView() {
                   <p className="mt-1 text-[10px] text-slate-400">
                     Use `campo contains valor` ou `campo == valor`.
                   </p>
+                </div>
+              )}
+              {selectedNode.type === "business_hours" && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                  Configure o horário comercial da fila em Saúde/Filas. As saídas recomendadas são
+                  `aberto` e `fechado`.
+                </div>
+              )}
+              {selectedNode.type === "webhook" && (
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-slate-600">Endpoint permitido</label>
+                  <Input
+                    className="mt-1"
+                    value={selectedNode.data.endpoint ?? ""}
+                    onChange={(event) => updateSelectedNode({ endpoint: event.target.value })}
+                    placeholder="https://sua-api.externa/webhook"
+                  />
+                  <select
+                    className="h-9 w-full rounded-md border bg-white px-2 text-xs"
+                    value={selectedNode.data.method ?? "POST"}
+                    onChange={(event) =>
+                      updateSelectedNode({ method: event.target.value === "GET" ? "GET" : "POST" })
+                    }
+                  >
+                    <option value="POST">POST</option>
+                    <option value="GET">GET</option>
+                  </select>
+                  <p className="text-[10px] text-slate-400">
+                    O runtime registra o efeito; a execução externa entra pela fila autorizada.
+                  </p>
+                </div>
+              )}
+              {selectedNode.type === "set_variable" && (
+                <div>
+                  <label className="text-xs font-semibold text-slate-600">Valor da variável</label>
+                  <Input
+                    className="mt-1"
+                    value={selectedNode.data.variableValue ?? ""}
+                    onChange={(event) => updateSelectedNode({ variableValue: event.target.value })}
+                    placeholder="ex.: origem-campanha"
+                  />
+                </div>
+              )}
+              {selectedNode.type === "fallback" && (
+                <div>
+                  <label className="text-xs font-semibold text-slate-600">
+                    Mensagem de fallback
+                  </label>
+                  <Input
+                    className="mt-1"
+                    value={selectedNode.data.fallbackMessage ?? ""}
+                    onChange={(event) =>
+                      updateSelectedNode({ fallbackMessage: event.target.value })
+                    }
+                    placeholder="Vou encaminhar para a equipe."
+                  />
                 </div>
               )}
               {selectedNode.type === "assign_queue" && (

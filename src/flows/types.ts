@@ -2,7 +2,12 @@ export type FlowNodeKind =
   | "trigger"
   | "message"
   | "question"
+  | "menu"
   | "condition"
+  | "business_hours"
+  | "webhook"
+  | "set_variable"
+  | "fallback"
   | "assign_queue"
   | "handoff"
   | "delay"
@@ -17,6 +22,12 @@ export type FlowNodeData = {
   queue?: string;
   tag?: string;
   seconds?: number;
+  options?: string[];
+  endpoint?: string;
+  method?: "GET" | "POST";
+  variableValue?: string;
+  fallbackMessage?: string;
+  businessHours?: { timezone: string; weekdays: Record<string, { start: string; end: string }> };
 };
 
 export type FlowNode = {
@@ -42,7 +53,12 @@ export const FLOW_NODE_LABELS: Record<FlowNodeKind, string> = {
   trigger: "Entrada",
   message: "Enviar mensagem",
   question: "Perguntar",
+  menu: "Menu de opções",
   condition: "Condição",
+  business_hours: "Horário comercial",
+  webhook: "Chamar webhook",
+  set_variable: "Definir variável",
+  fallback: "Fallback seguro",
   assign_queue: "Enviar para fila",
   handoff: "Transferir para humano",
   delay: "Aguardar",
