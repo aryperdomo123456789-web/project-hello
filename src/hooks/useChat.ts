@@ -50,6 +50,8 @@ function toContact(conversation: ConversationDTO): Contact {
 
   return {
     id: conversation.id,
+    conversationId: conversation.id,
+    contactId: conversation.contactId,
     name,
     phone,
     lastMessage:

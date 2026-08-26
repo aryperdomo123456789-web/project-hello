@@ -109,7 +109,10 @@ export function ContactDetails({ contact }: ContactDetailsProps) {
             Adicionar nova nota
           </button>
         </div>
-        <ContactTasks contactId={contact.id} />
+        <ContactTasks
+          contactId={contact.contactId ?? contact.id}
+          conversationId={contact.conversationId ?? contact.id}
+        />
       </div>
     </div>
   );

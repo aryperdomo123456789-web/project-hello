@@ -355,6 +355,27 @@ export const messages = pgTable(
   ],
 );
 
+export const conversationRatings = pgTable(
+  "conversation_ratings",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    conversationId: uuid("conversation_id")
+      .notNull()
+      .references(() => conversations.id, { onDelete: "cascade" }),
+    rating: integer("rating").notNull(),
+    comment: text("comment"),
+    source: text("source").notNull().default("operator"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("conversation_ratings_conversation_uq").on(table.conversationId),
+    index("conversation_ratings_org_created_idx").on(table.organizationId, table.createdAt),
+  ],
+);
+
 export const webhookEvents = pgTable(
   "webhook_events",
   {
@@ -678,6 +699,7 @@ export type Contact = typeof contacts.$inferSelect;
 export type ContactTask = typeof contactTasks.$inferSelect;
 export type Conversation = typeof conversations.$inferSelect;
 export type Message = typeof messages.$inferSelect;
+export type ConversationRating = typeof conversationRatings.$inferSelect;
 export type Flow = typeof flows.$inferSelect;
 export type FlowVersion = typeof flowVersions.$inferSelect;
 export type FlowExecution = typeof flowExecutions.$inferSelect;

@@ -8,6 +8,8 @@ export interface Message {
 
 export interface Contact {
   id: string;
+  conversationId?: string;
+  contactId?: string;
   name: string;
   phone: string;
   avatar?: string;

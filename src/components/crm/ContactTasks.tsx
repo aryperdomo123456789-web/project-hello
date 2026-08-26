@@ -11,7 +11,13 @@ import {
 } from "@/functions/task.functions";
 import { captureDiagnostic } from "@/lib/diagnostics";
 
-export function ContactTasks({ contactId }: { contactId: string }) {
+export function ContactTasks({
+  contactId,
+  conversationId,
+}: {
+  contactId: string;
+  conversationId?: string;
+}) {
   const listTasks = useServerFn(listContactTasksFn);
   const createTask = useServerFn(createContactTaskFn);
   const completeTask = useServerFn(completeContactTaskFn);
@@ -28,7 +34,7 @@ export function ContactTasks({ contactId }: { contactId: string }) {
       captureDiagnostic(cause, {
         source: "async",
         component: "ContactTasks",
-        payload: { operation: "list_contact_tasks", contactId },
+        payload: { operation: "list_contact_tasks", contactId, conversationId },
         recoverable: true,
       });
     }
@@ -45,6 +51,7 @@ export function ContactTasks({ contactId }: { contactId: string }) {
       const task = await createTask({
         data: {
           contactId,
+          ...(conversationId ? { conversationId } : {}),
           title: title.trim(),
           ...(dueAt ? { dueAt: new Date(dueAt).toISOString() } : {}),
         },
