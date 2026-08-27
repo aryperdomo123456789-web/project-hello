@@ -147,6 +147,7 @@ export const integrationProviderEnum = pgEnum("integration_provider", [
   "whisper",
   "lamatok",
   "mercadopago",
+  "mago_bot_api",
   "evolution",
   "meta_cloud",
   "custom",
@@ -261,6 +262,10 @@ export const channelConnections = pgTable(
     slug: text("slug").notNull(),
     provider: connectionProviderEnum("provider").notNull().default("stub"),
     providerInstanceId: text("provider_instance_id"),
+    apiTenantId: text("api_tenant_id"),
+    apiProjectId: text("api_project_id"),
+    apiResourceId: text("api_resource_id"),
+    apiChannelId: text("api_channel_id"),
     displayPhone: text("display_phone"),
     status: connectionStatusEnum("status").notNull().default("disconnected"),
     credentialsEncrypted: text("credentials_encrypted"),
@@ -276,6 +281,10 @@ export const channelConnections = pgTable(
   (table) => [
     uniqueIndex("channel_connections_org_slug_uq").on(table.organizationId, table.slug),
     index("channel_connections_org_status_idx").on(table.organizationId, table.status),
+    uniqueIndex("channel_connections_org_api_channel_uq").on(
+      table.organizationId,
+      table.apiChannelId,
+    ),
   ],
 );
 
@@ -512,6 +521,9 @@ export const messages = pgTable(
       .references(() => channelConnections.id, { onDelete: "restrict" }),
     externalId: text("external_id"),
     clientMessageId: text("client_message_id"),
+    apiMessageId: text("api_message_id"),
+    apiProviderMessageId: text("api_provider_message_id"),
+    lastApiRequestId: text("last_api_request_id"),
     direction: messageDirectionEnum("direction").notNull(),
     status: messageStatusEnum("status").notNull(),
     type: text("type").notNull().default("text"),
@@ -534,6 +546,7 @@ export const messages = pgTable(
     ),
     uniqueIndex("messages_client_id_uq").on(table.organizationId, table.clientMessageId),
     index("messages_conversation_time_idx").on(table.conversationId, table.sentAt),
+    uniqueIndex("messages_org_api_message_uq").on(table.organizationId, table.apiMessageId),
   ],
 );
 
@@ -696,6 +709,7 @@ export const webhookEvents = pgTable(
       onDelete: "cascade",
     }),
     provider: text("provider").notNull(),
+    eventId: text("event_id"),
     externalEventId: text("external_event_id").notNull(),
     eventType: text("event_type").notNull(),
     payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
@@ -707,6 +721,7 @@ export const webhookEvents = pgTable(
   },
   (table) => [
     uniqueIndex("webhook_events_provider_external_uq").on(table.provider, table.externalEventId),
+    uniqueIndex("webhook_events_provider_event_id_uq").on(table.provider, table.eventId),
     index("webhook_events_status_idx").on(table.status, table.receivedAt),
   ],
 );

@@ -31,6 +31,7 @@ const providerSchema = z.enum([
   "whisper",
   "lamatok",
   "mercadopago",
+  "mago_bot_api",
   "evolution",
   "meta_cloud",
   "custom",

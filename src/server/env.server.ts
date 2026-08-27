@@ -25,6 +25,7 @@ const envSchema = z.object({
   EVOLUTION_LOGOUT_PATH: z.string().default("/instance/logout/{instance}"),
   EVOLUTION_SEND_TEXT_PATH: z.string().default("/message/sendText/{instance}"),
   WHATSAPP_WEBHOOK_SECRET: z.string().min(16),
+  MAGO_BOT_WEBHOOK_MAX_AGE_SECONDS: z.coerce.number().int().min(30).max(900).default(300),
   RATE_LIMIT_WEBHOOK_PER_MINUTE: z.coerce.number().int().min(10).max(10000).default(120),
   RATE_LIMIT_LOGIN_PER_MINUTE: z.coerce.number().int().min(3).max(1000).default(10),
   RATE_LIMIT_SIGNUP_PER_HOUR: z.coerce.number().int().min(1).max(20).default(3),

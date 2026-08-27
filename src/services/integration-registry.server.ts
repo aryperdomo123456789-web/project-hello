@@ -280,6 +280,40 @@ export const INTEGRATION_DEFINITIONS: IntegrationDefinition[] = [
     runtimeStatus: "optional",
   },
   {
+    provider: "mago_bot_api",
+    label: "API Mago Bot",
+    category: "Canais e billing",
+    description:
+      "Control plane multi-tenant para canais WhatsApp, mensagens, conversas, webhooks e auditoria.",
+    capabilities: ["channels", "qr", "text", "media", "webhooks", "idempotency", "usage"],
+    fields: [
+      {
+        key: "apiKey",
+        label: "API Key project-scoped",
+        placeholder: "mb_live_...",
+        required: true,
+        secret: true,
+      },
+      {
+        key: "webhookSigningSecret",
+        label: "Webhook signing secret",
+        placeholder: "whsec_...",
+        required: true,
+        secret: true,
+      },
+      {
+        key: "apiProjectId",
+        label: "API Project UUID",
+        placeholder: "00000000-0000-0000-0000-000000000000",
+        required: true,
+        secret: false,
+      },
+    ],
+    defaultEndpoint: "https://app.mago-bot.com",
+    docsUrl: "https://app.mago-bot.com/docs",
+    runtimeStatus: "prepared",
+  },
+  {
     provider: "evolution",
     label: "Evolution API",
     category: "Canais e billing",

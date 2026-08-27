@@ -278,6 +278,7 @@ const PROBEABLE_PROVIDERS = new Set<IntegrationProvider>([
   "mistral",
   "siliconflow",
   "mercadopago",
+  "mago_bot_api",
 ]);
 
 export function integrationProbeAvailable(provider: IntegrationProvider) {
@@ -308,6 +309,13 @@ function buildProbeTarget(runtime: OrganizationIntegrationRuntime): {
   const headers: Record<string, string> = { Accept: "application/json" };
   const apiKey = runtime.credentials["apiKey"] ?? runtime.credentials["accessToken"];
   switch (runtime.provider) {
+    case "mago_bot_api": {
+      if (!runtime.credentials["apiKey"])
+        throw new Error("API Key da API Mago Bot não configurada");
+      base.pathname = `${base.pathname.replace(/\/$/, "")}/health/ready`;
+      headers["X-API-Key"] = runtime.credentials["apiKey"];
+      return { url: base.toString(), headers };
+    }
     case "gemini": {
       if (!runtime.credentials["apiKey"]) throw new Error("API Key não configurada");
       base.pathname = `${base.pathname.replace(/\/$/, "")}/v1beta/models`;

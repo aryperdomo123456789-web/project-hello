@@ -16,6 +16,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as OwnerLoginRouteImport } from './routes/owner.login'
+import { Route as ApiWebhooksMagoBotRouteImport } from './routes/api/webhooks/mago-bot'
 import { Route as ApiWebhooksMercadopagoRouteImport } from './routes/api/webhooks/mercadopago'
 import { Route as ApiWebhooksWhatsappRouteImport } from './routes/api/webhooks/whatsapp'
 
@@ -54,6 +55,11 @@ const OwnerLoginRoute = OwnerLoginRouteImport.update({
   path: '/owner/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWebhooksMagoBotRoute = ApiWebhooksMagoBotRouteImport.update({
+  id: '/api/webhooks/mago-bot',
+  path: '/api/webhooks/mago-bot',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiWebhooksMercadopagoRoute = ApiWebhooksMercadopagoRouteImport.update({
   id: '/api/webhooks/mercadopago',
   path: '/api/webhooks/mercadopago',
@@ -73,6 +79,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/api/health': typeof ApiHealthRoute
   '/owner/login': typeof OwnerLoginRoute
+  '/api/webhooks/mago-bot': typeof ApiWebhooksMagoBotRoute
   '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRoute
   '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
 }
@@ -84,6 +91,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/api/health': typeof ApiHealthRoute
   '/owner/login': typeof OwnerLoginRoute
+  '/api/webhooks/mago-bot': typeof ApiWebhooksMagoBotRoute
   '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRoute
   '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
 }
@@ -96,6 +104,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/api/health': typeof ApiHealthRoute
   '/owner/login': typeof OwnerLoginRoute
+  '/api/webhooks/mago-bot': typeof ApiWebhooksMagoBotRoute
   '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRoute
   '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
 }
@@ -109,6 +118,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/api/health'
     | '/owner/login'
+    | '/api/webhooks/mago-bot'
     | '/api/webhooks/mercadopago'
     | '/api/webhooks/whatsapp'
   fileRoutesByTo: FileRoutesByTo
@@ -120,6 +130,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/api/health'
     | '/owner/login'
+    | '/api/webhooks/mago-bot'
     | '/api/webhooks/mercadopago'
     | '/api/webhooks/whatsapp'
   id:
@@ -131,6 +142,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/api/health'
     | '/owner/login'
+    | '/api/webhooks/mago-bot'
     | '/api/webhooks/mercadopago'
     | '/api/webhooks/whatsapp'
   fileRoutesById: FileRoutesById
@@ -143,6 +155,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   ApiHealthRoute: typeof ApiHealthRoute
   OwnerLoginRoute: typeof OwnerLoginRoute
+  ApiWebhooksMagoBotRoute: typeof ApiWebhooksMagoBotRoute
   ApiWebhooksMercadopagoRoute: typeof ApiWebhooksMercadopagoRoute
   ApiWebhooksWhatsappRoute: typeof ApiWebhooksWhatsappRoute
 }
@@ -198,6 +211,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OwnerLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/webhooks/mago-bot': {
+      id: '/api/webhooks/mago-bot'
+      path: '/api/webhooks/mago-bot'
+      fullPath: '/api/webhooks/mago-bot'
+      preLoaderRoute: typeof ApiWebhooksMagoBotRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/webhooks/mercadopago': {
       id: '/api/webhooks/mercadopago'
       path: '/api/webhooks/mercadopago'
@@ -223,6 +243,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   ApiHealthRoute: ApiHealthRoute,
   OwnerLoginRoute: OwnerLoginRoute,
+  ApiWebhooksMagoBotRoute: ApiWebhooksMagoBotRoute,
   ApiWebhooksMercadopagoRoute: ApiWebhooksMercadopagoRoute,
   ApiWebhooksWhatsappRoute: ApiWebhooksWhatsappRoute,
 }
