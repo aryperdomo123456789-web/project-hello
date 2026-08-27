@@ -24,7 +24,7 @@ import {
   type BusinessHours,
   type QueueStrategy,
 } from "@/queues/policy";
-import { getWhatsAppAdapter } from "./whatsapp.server";
+import { sendChatOutbound } from "./magoBotOutbound.server";
 
 type RuntimeGraph = FlowGraph & { entryNodeId?: string | undefined };
 
@@ -207,9 +207,13 @@ export async function dispatchBestAgent(
   return claimed[0]?.id ? eligible.userId : null;
 }
 
+export function flowMessageIdempotencyKey(executionId: string, nodeRunId: string): string {
+  return `${executionId}:${nodeRunId}:send_message`;
+}
+
 async function dispatchMessageEffect(executionId: string, nodeRunId: string, text: string) {
   const row = await getConversationContext((await getExecution(executionId)).conversationId);
-  const idempotencyKey = `${executionId}:${nodeRunId}:send_message`;
+  const idempotencyKey = flowMessageIdempotencyKey(executionId, nodeRunId);
   const [effect] = await db
     .insert(flowEffects)
     .values({
@@ -221,6 +225,8 @@ async function dispatchMessageEffect(executionId: string, nodeRunId: string, tex
         conversationId: row.conversation.id,
         connectionId: row.connection.id,
         instanceId: row.connection.providerInstanceId ?? row.connection.id,
+        apiProjectId: row.connection.apiProjectId,
+        apiResourceId: row.connection.apiResourceId,
         phone: row.contact.phone ?? row.contact.waId,
         text,
       },
@@ -231,11 +237,18 @@ async function dispatchMessageEffect(executionId: string, nodeRunId: string, tex
   if (!effect) return;
 
   try {
-    const result = await getWhatsAppAdapter().sendText(
-      row.connection.providerInstanceId ?? row.connection.id,
-      row.contact.phone ?? row.contact.waId,
+    const result = await sendChatOutbound({
+      organizationId: row.conversation.organizationId,
+      conversationId: row.conversation.id,
+      connectionId: row.connection.id,
+      providerInstanceId: row.connection.providerInstanceId,
+      apiResourceId: row.connection.apiResourceId,
+      apiProjectId: row.connection.apiProjectId,
+      recipient: row.contact.phone ?? row.contact.waId,
       text,
-    );
+      idempotencyKey,
+    });
+    if (result.status === "failed") throw new Error("Gateway recusou o envio do efeito do fluxo");
     const [message] = await db
       .insert(messages)
       .values({
@@ -243,9 +256,14 @@ async function dispatchMessageEffect(executionId: string, nodeRunId: string, tex
         conversationId: row.conversation.id,
         channelConnectionId: row.connection.id,
         ...(result.externalId ? { externalId: result.externalId } : {}),
+        ...(result.apiMessageId ? { apiMessageId: result.apiMessageId } : {}),
+        ...(result.apiProviderMessageId
+          ? { apiProviderMessageId: result.apiProviderMessageId }
+          : {}),
+        ...(result.lastApiRequestId ? { lastApiRequestId: result.lastApiRequestId } : {}),
         clientMessageId: idempotencyKey,
         direction: "outbound",
-        status: "sent",
+        status: result.status,
         type: "text",
         text,
         payload: { source: "flow", executionId, nodeRunId },

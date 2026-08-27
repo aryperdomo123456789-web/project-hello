@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { useCallback, useEffect, useState } from "react";
 import { Link, Power, PowerOff, Plus, RefreshCw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
@@ -13,7 +13,9 @@ import {
   createConnectionFn,
   disconnectConnectionFn,
   getConnectionQrFn,
+  getConnectionStatusFn,
   listConnectionsFn,
+  reconnectConnectionFn,
   type ConnectionDTO,
 } from "@/functions/channel.functions";
 
@@ -52,6 +54,8 @@ export function ConnectionsView() {
   const listConnections = useServerFn(listConnectionsFn);
   const createConnection = useServerFn(createConnectionFn);
   const getConnectionQr = useServerFn(getConnectionQrFn);
+  const getConnectionStatus = useServerFn(getConnectionStatusFn);
+  const reconnectConnection = useServerFn(reconnectConnectionFn);
   const disconnectConnection = useServerFn(disconnectConnectionFn);
   const [connections, setConnections] = useState<ConnectionDTO[]>([]);
   const [loading, setLoading] = useState(false);
@@ -61,7 +65,7 @@ export function ConnectionsView() {
   const [qrConnectionName, setQrConnectionName] = useState("");
   const [viewError, setViewError] = useState<string | null>(null);
 
-  async function loadConnections() {
+  const loadConnections = useCallback(async () => {
     try {
       const rows = await listConnections();
       setConnections(Array.isArray(rows) ? rows : []);
@@ -71,11 +75,11 @@ export function ConnectionsView() {
       reportConnectionError(error, "list_connections");
       toast.error(error instanceof Error ? error.message : "Erro ao carregar conexões");
     }
-  }
+  }, [listConnections]);
 
   useEffect(() => {
     void loadConnections();
-  }, []);
+  }, [loadConnections]);
 
   async function handleCreateConnection() {
     const name = newName.trim() || window.prompt("Nome do número de WhatsApp:")?.trim() || "";
@@ -112,6 +116,34 @@ export function ConnectionsView() {
     } catch (error) {
       reportConnectionError(error, "get_connection_qr", { connectionId: connection.id });
       toast.error(error instanceof Error ? error.message : "Erro ao obter QR Code");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleStatus(connection: ConnectionDTO) {
+    setLoading(true);
+    try {
+      const updated = await getConnectionStatus({ data: { connectionId: connection.id } });
+      setConnections((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      toast.success(`Status atualizado: ${statusLabel(updated.status)}`);
+    } catch (error) {
+      reportConnectionError(error, "get_connection_status", { connectionId: connection.id });
+      toast.error(error instanceof Error ? error.message : "Erro ao atualizar status");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleReconnect(connection: ConnectionDTO) {
+    setLoading(true);
+    try {
+      const updated = await reconnectConnection({ data: { connectionId: connection.id } });
+      setConnections((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      toast.success("Reconexão iniciada. Aguarde o status ou gere um novo QR Code.");
+    } catch (error) {
+      reportConnectionError(error, "reconnect_connection", { connectionId: connection.id });
+      toast.error(error instanceof Error ? error.message : "Erro ao reconectar");
     } finally {
       setLoading(false);
     }
@@ -239,21 +271,44 @@ export function ConnectionsView() {
                         <span className="text-xs text-muted-foreground">
                           {connection.displayPhone ?? connection.provider}
                         </span>
+                        <span className="text-xs text-muted-foreground">
+                          {connection.transport === "mago_bot_api" ? "API Mago Bot" : "Modo legado"}
+                        </span>
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => void handleStatus(connection)}
+                      disabled={loading}
+                      className="gap-2"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Status
+                    </Button>
                     {connection.status !== "connected" ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => void handleConnect(connection)}
-                        disabled={loading}
-                        className="gap-2"
-                      >
-                        <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Gerar
-                        QR Code
-                      </Button>
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => void handleConnect(connection)}
+                          disabled={loading}
+                          className="gap-2"
+                        >
+                          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Gerar
+                          QR Code
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => void handleReconnect(connection)}
+                          disabled={loading}
+                          className="gap-2"
+                        >
+                          <Power className="h-4 w-4" /> Reconectar
+                        </Button>
+                      </>
                     ) : (
                       <Button
                         variant="destructive"

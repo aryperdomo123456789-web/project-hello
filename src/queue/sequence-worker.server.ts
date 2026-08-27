@@ -15,7 +15,7 @@ import {
   sequences,
 } from "@/db/schema";
 import { getServerEnv } from "@/server/env.server";
-import { getWhatsAppAdapter } from "@/services/whatsapp.server";
+import { sendChatOutbound } from "@/services/magoBotOutbound.server";
 
 const LEASE_MINUTES = 10;
 const RETRY_MINUTES = 5;
@@ -471,12 +471,18 @@ async function processMessageStep(
     )
     .limit(1);
   if (!existingMessage) {
-    const adapter = getWhatsAppAdapter();
-    const result = await adapter.sendText(
-      target.connection.providerInstanceId ?? target.connection.id,
-      phone,
-      body,
-    );
+    const result = await sendChatOutbound({
+      organizationId: enrollment.organizationId,
+      conversationId: target.conversation.id,
+      connectionId: target.connection.id,
+      providerInstanceId: target.connection.providerInstanceId,
+      apiProjectId: target.connection.apiProjectId,
+      apiResourceId: target.connection.apiResourceId,
+      recipient: phone,
+      text: body,
+      idempotencyKey,
+    });
+    if (result.status === "failed") throw new Error("Gateway recusou o envio da sequência");
     await db.transaction(async (tx) => {
       await tx
         .insert(messages)
@@ -485,9 +491,14 @@ async function processMessageStep(
           conversationId: target.conversation.id,
           channelConnectionId: target.connection.id,
           ...(result.externalId ? { externalId: result.externalId } : {}),
+          ...(result.apiMessageId ? { apiMessageId: result.apiMessageId } : {}),
+          ...(result.apiProviderMessageId
+            ? { apiProviderMessageId: result.apiProviderMessageId }
+            : {}),
+          ...(result.lastApiRequestId ? { lastApiRequestId: result.lastApiRequestId } : {}),
           clientMessageId: idempotencyKey,
           direction: "outbound",
-          status: "sent",
+          status: result.status,
           type: "text",
           text: body,
           payload: { source: "sequence-worker", sequenceEventId: event.id },

@@ -5,7 +5,7 @@ import { db } from "@/db/client.server";
 import { channelConnections, conversations, flowEffects, messages } from "@/db/schema";
 import { resumeFlowAfterTimer } from "@/services/flowRuntime.server";
 import { processMagoBotWebhookReceipt } from "@/services/webhookProcessor.server";
-import { getWhatsAppAdapter } from "@/services/whatsapp.server";
+import { sendChatOutbound } from "@/services/magoBotOutbound.server";
 import { transcribeMessage } from "@/services/transcription.server";
 import { getRedisConnection } from "./redis.server";
 import { enqueueDeadLetter, MAGO_QUEUE_NAME, type FlowEffectJob } from "./jobs.server";
@@ -44,11 +44,18 @@ export async function processFlowEffect(effectId: string) {
       .limit(1);
     if (!connection) throw new Error("Conexão do efeito não encontrada");
 
-    const result = await getWhatsAppAdapter().sendText(
-      connection.providerInstanceId ?? connection.id,
-      stringValue(payload["phone"]),
-      stringValue(payload["text"]),
-    );
+    const result = await sendChatOutbound({
+      organizationId: claimed.organizationId,
+      conversationId: stringValue(payload["conversationId"]),
+      connectionId: connection.id,
+      providerInstanceId: connection.providerInstanceId,
+      apiProjectId: stringValue(payload["apiProjectId"]) || connection.apiProjectId,
+      apiResourceId: stringValue(payload["apiResourceId"]) || connection.apiResourceId,
+      recipient: stringValue(payload["phone"]),
+      text: stringValue(payload["text"]),
+      idempotencyKey: claimed.idempotencyKey,
+    });
+    if (result.status === "failed") throw new Error("Gateway recusou o efeito do fluxo");
     await db
       .insert(messages)
       .values({
@@ -56,9 +63,14 @@ export async function processFlowEffect(effectId: string) {
         conversationId: stringValue(payload["conversationId"]),
         channelConnectionId: connection.id,
         ...(result.externalId ? { externalId: result.externalId } : {}),
+        ...(result.apiMessageId ? { apiMessageId: result.apiMessageId } : {}),
+        ...(result.apiProviderMessageId
+          ? { apiProviderMessageId: result.apiProviderMessageId }
+          : {}),
+        ...(result.lastApiRequestId ? { lastApiRequestId: result.lastApiRequestId } : {}),
         clientMessageId: claimed.idempotencyKey,
         direction: "outbound",
-        status: "sent",
+        status: result.status,
         type: "text",
         text: stringValue(payload["text"]),
         payload: { source: "flow-worker", effectId: claimed.id },

@@ -53,7 +53,7 @@ function apiErrorRequestId(error: unknown): string | undefined {
     : undefined;
 }
 
-export async function sendOutboundMessage(
+export async function sendChatOutbound(
   context: OutboundMessageContext,
 ): Promise<OutboundMessageResult> {
   const runtime = await getOrganizationIntegrationRuntime(context.organizationId, "mago_bot_api");
@@ -103,3 +103,5 @@ export async function sendOutboundMessage(
     fallbackReason,
   };
 }
+
+export const sendOutboundMessage = sendChatOutbound;
