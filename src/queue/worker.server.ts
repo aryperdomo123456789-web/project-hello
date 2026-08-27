@@ -1,9 +1,10 @@
-import { and, eq, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { Worker } from "bullmq";
+import { and, eq, inArray, isNull, lte, or, sql } from "drizzle-orm";
 
 import { db } from "@/db/client.server";
 import { channelConnections, conversations, flowEffects, messages } from "@/db/schema";
 import { resumeFlowAfterTimer } from "@/services/flowRuntime.server";
+import { processMagoBotWebhookReceipt } from "@/services/webhookProcessor.server";
 import { getWhatsAppAdapter } from "@/services/whatsapp.server";
 import { transcribeMessage } from "@/services/transcription.server";
 import { getRedisConnection } from "./redis.server";
@@ -100,6 +101,9 @@ export function createBackgroundWorker() {
         );
       }
       if (job.data.kind === "transcribe_message") return transcribeMessage(job.data.messageId);
+      if (job.data.kind === "mago_bot_webhook") {
+        return processMagoBotWebhookReceipt(job.data.receiptId);
+      }
       return { status: "ignored" as const };
     },
     { connection: getRedisConnection(), concurrency: 10 },

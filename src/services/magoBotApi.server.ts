@@ -240,7 +240,7 @@ function normalizeMessage(value: unknown): MagoBotMessage {
   };
 }
 
-function normalizeSendMessage(value: unknown): MagoBotSendMessageResponse {
+function normalizeSendMessage(value: unknown, requestId?: string): MagoBotSendMessageResponse {
   const record = asRecord(value);
   return {
     message: normalizeMessage(record["message"] ?? record),
@@ -248,6 +248,7 @@ function normalizeSendMessage(value: unknown): MagoBotSendMessageResponse {
     typeof record["idempotentReplay"] === "boolean"
       ? { idempotentReplay: Boolean(record["idempotentReplay"] ?? record["idempotent_replay"]) }
       : {}),
+    ...(requestId ? { requestId } : {}),
     raw: value,
   };
 }
@@ -319,6 +320,7 @@ export class MagoBotApiClient {
   private readonly apiKey: string;
   private readonly timeoutMs: number;
   private readonly userAgent: string;
+  private lastRequestId: string | undefined;
 
   constructor(config: MagoBotApiClientConfig) {
     const baseUrl = config.baseUrl.trim().replace(/\/$/, "");
@@ -387,6 +389,7 @@ export class MagoBotApiClient {
 
     const requestId =
       response.headers.get("x-request-id") ?? response.headers.get("x-correlation-id") ?? undefined;
+    this.lastRequestId = requestId;
     const retryAfterHeader = response.headers.get("retry-after");
     const retryAfterSeconds =
       retryAfterHeader && /^\d+$/.test(retryAfterHeader)
@@ -479,6 +482,10 @@ export class MagoBotApiClient {
     return normalizeAction(response);
   }
 
+  getLastRequestId(): string | undefined {
+    return this.lastRequestId;
+  }
+
   async sendMessage(
     projectId: string,
     payload: MagoBotMessagePayload,
@@ -492,7 +499,7 @@ export class MagoBotApiClient {
       idempotencyKey,
       ...options,
     });
-    return normalizeSendMessage(response);
+    return normalizeSendMessage(response, this.lastRequestId);
   }
 
   async createWebhookSubscription(

@@ -27,6 +27,10 @@ export type FlowEffectJob =
   | {
       kind: "transcribe_message";
       messageId: string;
+    }
+  | {
+      kind: "mago_bot_webhook";
+      receiptId: string;
     };
 
 let queue: Queue<FlowEffectJob> | undefined;
@@ -82,6 +86,14 @@ export async function enqueueTranscription(messageId: string) {
     "transcribe-message",
     { kind: "transcribe_message", messageId },
     { jobId: `transcribe:${messageId}` },
+  );
+}
+
+export async function enqueueMagoBotWebhook(receiptId: string) {
+  return getQueue().add(
+    "mago-bot-webhook",
+    { kind: "mago_bot_webhook", receiptId },
+    { jobId: `mago-bot-webhook:${receiptId}` },
   );
 }
 

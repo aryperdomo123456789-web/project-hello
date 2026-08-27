@@ -12,6 +12,8 @@ export type ProviderInstance = {
 export type NormalizedWebhookEvent = {
   provider: string;
   providerInstanceId?: string | undefined;
+  apiTenantId?: string | undefined;
+  apiProjectId?: string | undefined;
   externalEventId: string;
   eventType: string;
   kind: "incoming_message" | "message_status" | "connection_update" | "qrcode_updated" | "unknown";
@@ -21,6 +23,9 @@ export type NormalizedWebhookEvent = {
   messageType?: string | undefined;
   fromMe?: boolean | undefined;
   externalMessageId?: string | undefined;
+  apiMessageId?: string | undefined;
+  apiProviderMessageId?: string | undefined;
+  apiRequestId?: string | undefined;
   status?: string | undefined;
   timestamp?: Date | undefined;
   payload: Record<string, unknown>;

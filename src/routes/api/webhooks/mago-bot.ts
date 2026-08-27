@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db/client.server";
 import { channelConnections, webhookEvents } from "@/db/schema";
 import { getServerEnv } from "@/server/env.server";
 import { consumeRateLimit } from "@/server/rate-limit.server";
 import { getOrganizationIntegrationRuntime } from "@/services/integrations.server";
+import { enqueueMagoBotWebhook } from "@/queue/jobs.server";
 import {
   isMagoBotTimestampFresh,
   parseMagoBotSignature,
@@ -190,7 +191,7 @@ export const Route = createFileRoute("/api/webhooks/mago-bot")({
           return Response.json({ error: "Assinatura inválida" }, { status: 401 });
         }
 
-        const [receipt] = await db
+        const [createdReceipt] = await db
           .insert(webhookEvents)
           .values({
             organizationId: connection.organizationId,
@@ -208,12 +209,48 @@ export const Route = createFileRoute("/api/webhooks/mago-bot")({
           })
           .returning({ id: webhookEvents.id });
 
+        const receipt = createdReceipt
+          ? { id: createdReceipt.id, status: "received" }
+          : (
+              await db
+                .select({ id: webhookEvents.id, status: webhookEvents.status })
+                .from(webhookEvents)
+                .where(
+                  and(
+                    eq(webhookEvents.provider, WEBHOOK_PROVIDER),
+                    eq(webhookEvents.eventId, eventId),
+                  ),
+                )
+                .limit(1)
+            )[0];
         if (!receipt) {
+          return Response.json({ error: "Receipt não pôde ser localizado" }, { status: 500 });
+        }
+        if (!createdReceipt && (receipt.status === "processed" || receipt.status === "ignored")) {
           return Response.json({ ok: true, duplicate: true, eventId }, { status: 200 });
         }
 
+        try {
+          await enqueueMagoBotWebhook(receipt.id);
+        } catch (error) {
+          await db
+            .update(webhookEvents)
+            .set({
+              status: "failed",
+              lastError: error instanceof Error ? error.message.slice(0, 500) : "Fila indisponível",
+            })
+            .where(eq(webhookEvents.id, receipt.id));
+          return Response.json({ error: "Fila de processamento indisponível" }, { status: 503 });
+        }
+
         return Response.json(
-          { ok: true, accepted: true, duplicate: false, eventId, receiptId: receipt.id },
+          {
+            ok: true,
+            accepted: true,
+            duplicate: !createdReceipt,
+            eventId,
+            receiptId: receipt.id,
+          },
           { status: 202 },
         );
       },

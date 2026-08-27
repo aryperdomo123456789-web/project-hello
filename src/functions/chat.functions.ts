@@ -5,7 +5,11 @@ import { z } from "zod";
 import { db } from "@/db/client.server";
 import { channelConnections, contacts, conversations, messages, queues } from "@/db/schema";
 import { assertLicense } from "@/services/license.server";
-import { getWhatsAppAdapter } from "@/services/whatsapp.server";
+import {
+  sendOutboundMessage,
+  type OutboundMessageContext,
+  type OutboundMessageResult,
+} from "@/services/magoBotOutbound.server";
 import { requireUser } from "../server/auth.server";
 
 const conversationIdSchema = z.object({ conversationId: z.string().uuid() });
@@ -65,6 +69,12 @@ function conversationDto(row: {
     lastMessageText: row.lastMessageText,
     unreadCount: row.unreadCount,
   };
+}
+
+export async function sendChatOutbound(
+  context: OutboundMessageContext,
+): Promise<OutboundMessageResult> {
+  return sendOutboundMessage(context);
 }
 
 function messageDto(message: typeof messages.$inferSelect): MessageDTO {
@@ -194,19 +204,32 @@ export const sendMessageFn = createServerFn({ method: "POST" })
     if (!pendingMessage) throw new Error("Não foi possível criar mensagem");
 
     try {
-      const result = await getWhatsAppAdapter().sendText(
-        row.connection.providerInstanceId ?? row.connection.id,
-        row.contact.phone ?? row.contact.waId,
-        data.text,
-      );
+      const result = await sendChatOutbound({
+        organizationId: user.organizationId,
+        conversationId: row.conversation.id,
+        connectionId: row.connection.id,
+        providerInstanceId: row.connection.providerInstanceId,
+        apiResourceId: row.connection.apiResourceId,
+        apiProjectId: row.connection.apiProjectId,
+        recipient: row.contact.phone ?? row.contact.waId,
+        text: data.text,
+        idempotencyKey: clientMessageId,
+      });
       const [sentMessage] = await db
         .update(messages)
         .set({
-          status: "sent",
+          status: result.status,
           ...(result.externalId ? { externalId: result.externalId } : {}),
+          ...(result.apiMessageId ? { apiMessageId: result.apiMessageId } : {}),
+          ...(result.apiProviderMessageId
+            ? { apiProviderMessageId: result.apiProviderMessageId }
+            : {}),
+          ...(result.lastApiRequestId ? { lastApiRequestId: result.lastApiRequestId } : {}),
           sentAt: new Date(),
         })
-        .where(eq(messages.id, pendingMessage.id))
+        .where(
+          and(eq(messages.id, pendingMessage.id), eq(messages.organizationId, user.organizationId)),
+        )
         .returning();
       await db
         .update(conversations)
@@ -216,10 +239,20 @@ export const sendMessageFn = createServerFn({ method: "POST" })
           lastMessageAt: new Date(),
           updatedAt: new Date(),
         })
-        .where(eq(conversations.id, row.conversation.id));
+        .where(
+          and(
+            eq(conversations.id, row.conversation.id),
+            eq(conversations.organizationId, user.organizationId),
+          ),
+        );
       return sentMessage ? messageDto(sentMessage) : messageDto(pendingMessage);
     } catch (error) {
-      await db.update(messages).set({ status: "failed" }).where(eq(messages.id, pendingMessage.id));
+      await db
+        .update(messages)
+        .set({ status: "failed" })
+        .where(
+          and(eq(messages.id, pendingMessage.id), eq(messages.organizationId, user.organizationId)),
+        );
       throw error;
     }
   });

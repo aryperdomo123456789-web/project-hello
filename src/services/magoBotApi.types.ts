@@ -124,6 +124,7 @@ export type MagoBotMessage = {
 export type MagoBotSendMessageResponse = {
   message: MagoBotMessage;
   idempotentReplay?: boolean;
+  requestId?: string | undefined;
   raw?: unknown;
 };
 

@@ -1,10 +1,11 @@
-import { and, desc, eq, notInArray, or } from "drizzle-orm";
+import { and, desc, eq, notInArray, or, sql } from "drizzle-orm";
 
 import { db } from "@/db/client.server";
 import { channelConnections, contacts, conversations, messages, webhookEvents } from "@/db/schema";
+import { enqueueTranscription } from "@/queue/jobs.server";
+import { parseMagoBotWebhookPayload } from "./magoBotWebhookParser.server";
 import type { NormalizedWebhookEvent } from "./whatsapp.server";
 import { dispatchBestAgent, startOrResumeFlow } from "./flowRuntime.server";
-import { enqueueTranscription } from "@/queue/jobs.server";
 
 function mapMessageStatus(value?: string) {
   switch (value?.toLowerCase()) {
@@ -29,6 +30,8 @@ function mapConnectionStatus(value?: string) {
     case "connected":
       return "connected" as const;
     case "connecting":
+    case "qr_pending":
+    case "qr.pending":
       return "connecting" as const;
     case "close":
     case "closed":
@@ -43,22 +46,29 @@ async function findConnection(event: NormalizedWebhookEvent) {
   const instanceId = event.providerInstanceId;
   if (!instanceId) return null;
 
-  const matches = await db
+  const filters =
+    event.provider === "mago_bot_api"
+      ? [eq(channelConnections.apiChannelId, instanceId)]
+      : [
+          eq(
+            channelConnections.provider,
+            event.provider as "stub" | "evolution" | "custom" | "meta",
+          ),
+          or(
+            eq(channelConnections.providerInstanceId, instanceId),
+            eq(channelConnections.slug, instanceId),
+            eq(channelConnections.name, instanceId),
+          ),
+        ];
+  if (event.apiTenantId) filters.push(eq(channelConnections.apiTenantId, event.apiTenantId));
+  if (event.apiProjectId) filters.push(eq(channelConnections.apiProjectId, event.apiProjectId));
+
+  const [connection] = await db
     .select()
     .from(channelConnections)
-    .where(
-      and(
-        eq(channelConnections.provider, event.provider as "stub"),
-        or(
-          eq(channelConnections.providerInstanceId, instanceId),
-          eq(channelConnections.slug, instanceId),
-          eq(channelConnections.name, instanceId),
-        ),
-      ),
-    )
+    .where(and(...filters))
     .limit(1);
-
-  return matches[0] ?? null;
+  return connection ?? null;
 }
 
 async function processIncomingMessage(
@@ -75,27 +85,39 @@ async function processIncomingMessage(
       .where(and(eq(contacts.organizationId, connection.organizationId), eq(contacts.waId, phone)))
       .limit(1);
 
-    const contact =
-      existingContact[0] ??
-      (
-        await tx
-          .insert(contacts)
-          .values({
-            organizationId: connection.organizationId,
-            waId: phone,
-            phone,
-            name: event.name ?? "Contato",
-          })
-          .returning()
-      )[0];
-
+    let contact = existingContact[0];
+    if (!contact) {
+      const [createdContact] = await tx
+        .insert(contacts)
+        .values({
+          organizationId: connection.organizationId,
+          waId: phone,
+          phone,
+          name: event.name ?? "Contato",
+        })
+        .onConflictDoNothing()
+        .returning();
+      contact = createdContact;
+    }
+    if (!contact) {
+      const [recoveredContact] = await tx
+        .select()
+        .from(contacts)
+        .where(
+          and(eq(contacts.organizationId, connection.organizationId), eq(contacts.waId, phone)),
+        )
+        .limit(1);
+      contact = recoveredContact;
+    }
     if (!contact) throw new Error("Não foi possível criar contato");
 
     if (event.name && event.name !== contact.name) {
       await tx
         .update(contacts)
         .set({ name: event.name, updatedAt: new Date() })
-        .where(eq(contacts.id, contact.id));
+        .where(
+          and(eq(contacts.id, contact.id), eq(contacts.organizationId, connection.organizationId)),
+        );
     }
 
     const openConversations = await tx
@@ -129,7 +151,8 @@ async function processIncomingMessage(
 
     if (!conversation) throw new Error("Não foi possível criar conversa");
 
-    const externalId = event.externalMessageId ?? event.externalEventId;
+    const externalId =
+      event.apiProviderMessageId ?? event.externalMessageId ?? event.externalEventId;
     const inserted = await tx
       .insert(messages)
       .values({
@@ -137,6 +160,9 @@ async function processIncomingMessage(
         conversationId: conversation.id,
         channelConnectionId: connection.id,
         externalId,
+        ...(event.apiMessageId ? { apiMessageId: event.apiMessageId } : {}),
+        ...(event.apiProviderMessageId ? { apiProviderMessageId: event.apiProviderMessageId } : {}),
+        ...(event.apiRequestId ? { lastApiRequestId: event.apiRequestId } : {}),
         direction: event.fromMe ? "outbound" : "inbound",
         status: event.fromMe ? "sent" : "received",
         type: event.messageType ?? "text",
@@ -153,8 +179,14 @@ async function processIncomingMessage(
         lastMessageAt: event.timestamp ?? new Date(),
         status: conversation.assigneeId ? "in_progress" : "queued",
         updatedAt: new Date(),
+        version: sql`${conversations.version} + 1`,
       })
-      .where(eq(conversations.id, conversation.id));
+      .where(
+        and(
+          eq(conversations.id, conversation.id),
+          eq(conversations.organizationId, connection.organizationId),
+        ),
+      );
 
     return {
       kind: "message" as const,
@@ -201,81 +233,160 @@ async function processEvent(event: NormalizedWebhookEvent) {
     return processIncomingMessage(event, connection);
   }
 
-  if (event.kind === "message_status" && event.externalMessageId) {
+  if (
+    event.kind === "message_status" &&
+    (event.apiMessageId || event.apiProviderMessageId || event.externalMessageId)
+  ) {
     const status = mapMessageStatus(event.status);
     if (status) {
+      const identifiers = [
+        event.apiMessageId ? eq(messages.apiMessageId, event.apiMessageId) : undefined,
+        event.apiProviderMessageId
+          ? eq(messages.apiProviderMessageId, event.apiProviderMessageId)
+          : undefined,
+        event.externalMessageId ? eq(messages.externalId, event.externalMessageId) : undefined,
+      ].filter((condition): condition is ReturnType<typeof eq> => Boolean(condition));
       await db
         .update(messages)
         .set({
           status,
+          ...(event.apiMessageId ? { apiMessageId: event.apiMessageId } : {}),
+          ...(event.apiProviderMessageId
+            ? { apiProviderMessageId: event.apiProviderMessageId }
+            : {}),
+          ...(event.apiRequestId ? { lastApiRequestId: event.apiRequestId } : {}),
           ...(status === "delivered" ? { deliveredAt: new Date() } : {}),
           ...(status === "read" ? { readAt: new Date() } : {}),
         })
         .where(
           and(
+            eq(messages.organizationId, connection.organizationId),
             eq(messages.channelConnectionId, connection.id),
-            eq(messages.externalId, event.externalMessageId),
+            or(...identifiers),
           ),
         );
     }
     return { kind: "status" as const, status };
   }
 
-  if (event.kind === "connection_update") {
+  if (event.kind === "connection_update" || event.kind === "qrcode_updated") {
+    const status =
+      event.kind === "qrcode_updated" ? "connecting" : mapConnectionStatus(event.status);
     await db
       .update(channelConnections)
       .set({
-        status: mapConnectionStatus(event.status),
+        status,
         lastSeenAt: new Date(),
+        ...(status === "connected" ? { connectedAt: new Date() } : {}),
         updatedAt: new Date(),
       })
-      .where(eq(channelConnections.id, connection.id));
-    return { kind: "connection" as const, status: event.status };
+      .where(
+        and(
+          eq(channelConnections.id, connection.id),
+          eq(channelConnections.organizationId, connection.organizationId),
+        ),
+      );
+    return {
+      kind: event.kind === "qrcode_updated" ? ("qrcode" as const) : ("connection" as const),
+      status: event.status ?? status,
+    };
   }
 
   return { kind: "ignored" as const, reason: event.kind };
 }
 
-export async function processWebhookEvents(events: NormalizedWebhookEvent[]) {
-  const results: unknown[] = [];
+async function processWebhookEvent(event: NormalizedWebhookEvent, existingReceiptId?: string) {
+  const connection = await findConnection(event);
+  const receiptId = existingReceiptId;
+  let stored = receiptId ? { id: receiptId } : undefined;
 
-  for (const event of events) {
-    const connection = await findConnection(event);
-    const [stored] = await db
+  if (!stored) {
+    const [createdReceipt] = await db
       .insert(webhookEvents)
       .values({
         organizationId: connection?.organizationId,
         channelConnectionId: connection?.id,
         provider: event.provider,
+        eventId: event.externalEventId,
         externalEventId: event.externalEventId,
         eventType: event.eventType,
         payload: event.payload,
         status: "received",
+        attempts: 0,
       })
       .onConflictDoNothing()
       .returning({ id: webhookEvents.id });
-
-    if (!stored) {
-      results.push({ kind: "duplicate", externalEventId: event.externalEventId });
-      continue;
-    }
-
-    try {
-      const result = await processEvent(event);
-      await db
-        .update(webhookEvents)
-        .set({ status: "processed", processedAt: new Date() })
-        .where(eq(webhookEvents.id, stored.id));
-      results.push(result);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Erro desconhecido";
-      await db
-        .update(webhookEvents)
-        .set({ status: "failed", attempts: 1, lastError: message })
-        .where(eq(webhookEvents.id, stored.id));
-      results.push({ kind: "failed", error: message });
-    }
+    stored = createdReceipt;
   }
 
+  if (!stored) {
+    return { kind: "duplicate" as const, externalEventId: event.externalEventId };
+  }
+
+  try {
+    const result = await processEvent(event);
+    await db
+      .update(webhookEvents)
+      .set({ status: "processed", processedAt: new Date(), lastError: null })
+      .where(eq(webhookEvents.id, stored.id));
+    return result;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Erro desconhecido";
+    await db
+      .update(webhookEvents)
+      .set({
+        status: "failed",
+        attempts: sql`${webhookEvents.attempts} + 1`,
+        lastError: message.slice(0, 500),
+      })
+      .where(eq(webhookEvents.id, stored.id));
+    throw error;
+  }
+}
+
+export async function processWebhookEvents(events: NormalizedWebhookEvent[]) {
+  const results: unknown[] = [];
+  for (const event of events) {
+    try {
+      results.push(await processWebhookEvent(event));
+    } catch (error) {
+      results.push({
+        kind: "failed",
+        externalEventId: event.externalEventId,
+        error: error instanceof Error ? error.message : "Erro desconhecido",
+      });
+    }
+  }
   return results;
+}
+
+export async function processMagoBotWebhookReceipt(receiptId: string) {
+  const [claimed] = await db
+    .update(webhookEvents)
+    .set({ status: "processing", attempts: sql`${webhookEvents.attempts} + 1` })
+    .where(
+      and(
+        eq(webhookEvents.id, receiptId),
+        eq(webhookEvents.provider, "mago_bot_api"),
+        or(eq(webhookEvents.status, "received"), eq(webhookEvents.status, "failed")),
+      ),
+    )
+    .returning();
+  if (!claimed) return { kind: "skipped" as const, receiptId };
+
+  const event = parseMagoBotWebhookPayload(claimed.payload);
+  if (!event) {
+    await db
+      .update(webhookEvents)
+      .set({
+        status: "ignored",
+        processedAt: new Date(),
+        lastError: "unsupported_or_invalid_event",
+      })
+      .where(eq(webhookEvents.id, receiptId));
+    return { kind: "ignored" as const, receiptId };
+  }
+
+  const result = await processWebhookEvent(event, receiptId);
+  return { kind: "processed" as const, receiptId, result };
 }

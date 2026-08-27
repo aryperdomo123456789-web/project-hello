@@ -55,6 +55,7 @@ describe("integration registry", () => {
       "mercadopago",
       "evolution",
       "meta_cloud",
+      "mago_bot_api",
     ]) {
       expect(providers.has(provider as (typeof INTEGRATION_DEFINITIONS)[number]["provider"])).toBe(
         true,
@@ -66,5 +67,8 @@ describe("integration registry", () => {
     expect(
       INTEGRATION_DEFINITIONS.find((item) => item.provider === "deepseek")?.runtimeStatus,
     ).toBe("integrated");
+    expect(
+      INTEGRATION_DEFINITIONS.find((item) => item.provider === "mago_bot_api")?.runtimeStatus,
+    ).toBe("prepared");
   });
 });
