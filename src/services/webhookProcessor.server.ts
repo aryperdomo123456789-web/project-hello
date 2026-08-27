@@ -1,7 +1,15 @@
 import { and, desc, eq, notInArray, or, sql } from "drizzle-orm";
 
 import { db } from "@/db/client.server";
-import { channelConnections, contacts, conversations, messages, webhookEvents } from "@/db/schema";
+import {
+  campaignRecipients,
+  campaigns,
+  channelConnections,
+  contacts,
+  conversations,
+  messages,
+  webhookEvents,
+} from "@/db/schema";
 import { enqueueTranscription } from "@/queue/jobs.server";
 import { parseMagoBotWebhookPayload } from "./magoBotWebhookParser.server";
 import type { NormalizedWebhookEvent } from "./whatsapp.server";
@@ -225,6 +233,49 @@ async function processIncomingMessage(
   return result;
 }
 
+async function updateCampaignDeliveryStatus(
+  organizationId: string,
+  channelConnectionId: string,
+  identifiers: ReturnType<typeof eq>[],
+  status: "delivered" | "failed",
+) {
+  const [row] = await db
+    .select({
+      recipientId: campaignRecipients.id,
+      campaignId: campaignRecipients.campaignId,
+      recipientStatus: campaignRecipients.status,
+    })
+    .from(campaignRecipients)
+    .innerJoin(
+      messages,
+      and(
+        eq(messages.organizationId, organizationId),
+        eq(messages.channelConnectionId, channelConnectionId),
+        eq(messages.clientMessageId, campaignRecipients.lastIdempotencyKey),
+        or(...identifiers),
+      ),
+    )
+    .where(eq(campaignRecipients.organizationId, organizationId))
+    .limit(1);
+  if (!row || row.recipientStatus === status) return;
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(campaignRecipients)
+      .set({ status, updatedAt: new Date(), processingAt: null })
+      .where(eq(campaignRecipients.id, row.recipientId));
+    await tx
+      .update(campaigns)
+      .set({
+        ...(status === "delivered"
+          ? { deliveredCount: sql`${campaigns.deliveredCount} + 1` }
+          : { failedCount: sql`${campaigns.failedCount} + 1` }),
+        updatedAt: new Date(),
+      })
+      .where(eq(campaigns.id, row.campaignId));
+  });
+}
+
 async function processEvent(event: NormalizedWebhookEvent) {
   const connection = await findConnection(event);
   if (!connection) return { kind: "ignored" as const, reason: "connection_not_found" };
@@ -265,6 +316,14 @@ async function processEvent(event: NormalizedWebhookEvent) {
             or(...identifiers),
           ),
         );
+      if (status === "delivered" || status === "failed") {
+        await updateCampaignDeliveryStatus(
+          connection.organizationId,
+          connection.id,
+          identifiers,
+          status,
+        );
+      }
     }
     return { kind: "status" as const, status };
   }

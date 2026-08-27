@@ -3,17 +3,35 @@ import { and, asc, eq, inArray, isNull, lte, or } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/db/client.server";
-import { campaignRecipients, campaigns, contactPolicies, contacts } from "@/db/schema";
+import {
+  campaignRecipients,
+  campaigns,
+  channelConnections,
+  contactPolicies,
+  contacts,
+} from "@/db/schema";
 import { writeAudit } from "@/server/audit.server";
+import { enqueueCampaign } from "@/queue/jobs.server";
 import { requireRole, requireUser } from "@/server/auth.server";
 
 const createCampaignSchema = z.object({
   name: z.string().trim().min(2).max(120),
   messageTemplate: z.string().trim().min(1).max(4000),
   contactIds: z.array(z.string().uuid()).min(1).max(1000),
+  channelConnectionId: z.string().uuid(),
   scheduledAt: z.string().datetime().optional(),
   dailyLimit: z.number().int().min(1).max(10000).default(100),
   frequencyHours: z.number().int().min(1).max(720).default(24),
+  rateLimitPerMinute: z.number().int().min(1).max(60).default(10),
+  sendWindowStart: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+    .default("08:00"),
+  sendWindowEnd: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+    .default("20:00"),
+  timezone: z.string().min(1).max(64).default("America/Sao_Paulo"),
 });
 
 const campaignIdSchema = z.object({ campaignId: z.string().uuid() });
@@ -30,9 +48,20 @@ export type CampaignDTO = {
   name: string;
   status: string;
   messageTemplate: string;
+  channelConnectionId: string | null;
   scheduledAt: string | null;
   dailyLimit: number;
   frequencyHours: number;
+  rateLimitPerMinute: number;
+  sendWindowStart: string;
+  sendWindowEnd: string;
+  timezone: string;
+  queuedCount: number;
+  sentCount: number;
+  deliveredCount: number;
+  failedCount: number;
+  skippedCount: number;
+  completedAt: string | null;
   createdAt: string;
 };
 
@@ -42,9 +71,20 @@ function toCampaignDto(row: typeof campaigns.$inferSelect): CampaignDTO {
     name: row.name,
     status: row.status,
     messageTemplate: row.messageTemplate,
+    channelConnectionId: row.channelConnectionId,
     scheduledAt: row.scheduledAt?.toISOString() ?? null,
     dailyLimit: row.dailyLimit,
     frequencyHours: row.frequencyHours,
+    rateLimitPerMinute: row.rateLimitPerMinute,
+    sendWindowStart: row.sendWindowStart,
+    sendWindowEnd: row.sendWindowEnd,
+    timezone: row.timezone,
+    queuedCount: row.queuedCount,
+    sentCount: row.sentCount,
+    deliveredCount: row.deliveredCount,
+    failedCount: row.failedCount,
+    skippedCount: row.skippedCount,
+    completedAt: row.completedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
   };
 }
@@ -64,6 +104,17 @@ export const createCampaignFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const user = await requireRole("owner", "admin", "manager");
     const uniqueContactIds = [...new Set(data.contactIds)];
+    const [channel] = await db
+      .select({ id: channelConnections.id })
+      .from(channelConnections)
+      .where(
+        and(
+          eq(channelConnections.id, data.channelConnectionId),
+          eq(channelConnections.organizationId, user.organizationId),
+        ),
+      )
+      .limit(1);
+    if (!channel) throw new Error("Canal da campanha não pertence à organização");
     const allowedContacts = await db
       .select({ id: contacts.id })
       .from(contacts)
@@ -83,9 +134,14 @@ export const createCampaignFn = createServerFn({ method: "POST" })
           organizationId: user.organizationId,
           name: data.name,
           messageTemplate: data.messageTemplate,
+          channelConnectionId: data.channelConnectionId,
           scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : null,
           dailyLimit: data.dailyLimit,
           frequencyHours: data.frequencyHours,
+          rateLimitPerMinute: data.rateLimitPerMinute,
+          sendWindowStart: data.sendWindowStart,
+          sendWindowEnd: data.sendWindowEnd,
+          timezone: data.timezone,
           status: data.scheduledAt ? "scheduled" : "draft",
           createdBy: user.id,
         })
@@ -105,9 +161,88 @@ export const createCampaignFn = createServerFn({ method: "POST" })
       action: "campaign.created",
       resourceType: "campaign",
       resourceId: campaign.id,
-      metadata: { recipients: uniqueContactIds.length, sandboxOnly: true },
+      metadata: {
+        recipients: uniqueContactIds.length,
+        channelConnectionId: campaign.channelConnectionId,
+        mode: "queued_broadcast",
+      },
     });
+    if (campaign.scheduledAt) {
+      await enqueueCampaign(campaign.id, Math.max(0, campaign.scheduledAt.getTime() - Date.now()));
+    }
     return toCampaignDto(campaign);
+  });
+
+export const startCampaignFn = createServerFn({ method: "POST" })
+  .validator(campaignIdSchema)
+  .handler(async ({ data }) => {
+    const user = await requireRole("owner", "admin", "manager");
+    const [campaign] = await db
+      .select()
+      .from(campaigns)
+      .where(
+        and(eq(campaigns.id, data.campaignId), eq(campaigns.organizationId, user.organizationId)),
+      )
+      .limit(1);
+    if (!campaign) throw new Error("Campanha não encontrada");
+    if (["completed", "failed"].includes(campaign.status)) {
+      throw new Error("Campanha finalizada não pode ser reiniciada; duplique-a para novo disparo");
+    }
+    if (!campaign.channelConnectionId) {
+      throw new Error(
+        "Campanha antiga sem canal: edite ou recrie a campanha com um canal explícito",
+      );
+    }
+    const now = new Date();
+    if (campaign.scheduledAt && campaign.scheduledAt > now) {
+      throw new Error("A campanha ainda está agendada para o futuro");
+    }
+    const [running] = await db
+      .update(campaigns)
+      .set({
+        status: "running",
+        startedAt: campaign.startedAt ?? now,
+        lastError: null,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(campaigns.id, campaign.id),
+          eq(campaigns.organizationId, user.organizationId),
+          inArray(campaigns.status, ["draft", "scheduled", "paused", "running"]),
+        ),
+      )
+      .returning();
+    if (!running) throw new Error("Não foi possível iniciar a campanha");
+    await enqueueCampaign(running.id);
+    await writeAudit(user, {
+      action: "campaign.started",
+      resourceType: "campaign",
+      resourceId: running.id,
+      metadata: { channelConnectionId: running.channelConnectionId },
+    });
+    return toCampaignDto(running);
+  });
+
+export const pauseCampaignFn = createServerFn({ method: "POST" })
+  .validator(campaignIdSchema)
+  .handler(async ({ data }) => {
+    const user = await requireRole("owner", "admin", "manager");
+    const [paused] = await db
+      .update(campaigns)
+      .set({ status: "paused", updatedAt: new Date() })
+      .where(
+        and(eq(campaigns.id, data.campaignId), eq(campaigns.organizationId, user.organizationId)),
+      )
+      .returning();
+    if (!paused) throw new Error("Campanha não encontrada");
+    await writeAudit(user, {
+      action: "campaign.paused",
+      resourceType: "campaign",
+      resourceId: paused.id,
+      metadata: {},
+    });
+    return toCampaignDto(paused);
   });
 
 export const updateContactPolicyFn = createServerFn({ method: "POST" })

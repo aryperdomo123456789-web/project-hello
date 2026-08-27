@@ -381,9 +381,26 @@ export const campaigns = pgTable(
     name: text("name").notNull(),
     status: campaignStatusEnum("status").notNull().default("draft"),
     messageTemplate: text("message_template").notNull(),
+    channelConnectionId: uuid("channel_connection_id").references(() => channelConnections.id, {
+      onDelete: "restrict",
+    }),
     scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
     dailyLimit: integer("daily_limit").notNull().default(100),
     frequencyHours: integer("frequency_hours").notNull().default(24),
+    rateLimitPerMinute: integer("rate_limit_per_minute").notNull().default(10),
+    sendWindowStart: text("send_window_start").notNull().default("08:00"),
+    sendWindowEnd: text("send_window_end").notNull().default("20:00"),
+    timezone: text("timezone").notNull().default("America/Sao_Paulo"),
+    queuedCount: integer("queued_count").notNull().default(0),
+    dailySentCount: integer("daily_sent_count").notNull().default(0),
+    dailySentAt: timestamp("daily_sent_at", { withTimezone: true }),
+    sentCount: integer("sent_count").notNull().default(0),
+    deliveredCount: integer("delivered_count").notNull().default(0),
+    failedCount: integer("failed_count").notNull().default(0),
+    skippedCount: integer("skipped_count").notNull().default(0),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    lastError: text("last_error"),
     createdBy: uuid("created_by")
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
@@ -392,6 +409,7 @@ export const campaigns = pgTable(
   },
   (table) => [
     index("campaigns_org_status_idx").on(table.organizationId, table.status, table.scheduledAt),
+    index("campaigns_channel_status_idx").on(table.channelConnectionId, table.status),
   ],
 );
 
@@ -409,8 +427,16 @@ export const campaignRecipients = pgTable(
       .notNull()
       .references(() => contacts.id, { onDelete: "cascade" }),
     status: text("status").notNull().default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    lastIdempotencyKey: text("last_idempotency_key"),
+    apiMessageId: text("api_message_id"),
+    apiProviderMessageId: text("api_provider_message_id"),
+    lastApiRequestId: text("last_api_request_id"),
+    lastError: text("last_error"),
     lastSentAt: timestamp("last_sent_at", { withTimezone: true }),
     nextEligibleAt: timestamp("next_eligible_at", { withTimezone: true }),
+    processingAt: timestamp("processing_at", { withTimezone: true }),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
@@ -419,6 +445,11 @@ export const campaignRecipients = pgTable(
       table.organizationId,
       table.status,
       table.nextEligibleAt,
+    ),
+    uniqueIndex("campaign_recipients_idempotency_uq").on(
+      table.organizationId,
+      table.campaignId,
+      table.lastIdempotencyKey,
     ),
   ],
 );

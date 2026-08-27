@@ -31,6 +31,10 @@ export type FlowEffectJob =
   | {
       kind: "mago_bot_webhook";
       receiptId: string;
+    }
+  | {
+      kind: "campaign_broadcast";
+      campaignId: string;
     };
 
 let queue: Queue<FlowEffectJob> | undefined;
@@ -94,6 +98,15 @@ export async function enqueueMagoBotWebhook(receiptId: string) {
     "mago-bot-webhook",
     { kind: "mago_bot_webhook", receiptId },
     { jobId: `mago-bot-webhook:${receiptId}` },
+  );
+}
+
+export async function enqueueCampaign(campaignId: string, delay = 0) {
+  const runAt = Date.now() + Math.max(0, delay);
+  return getQueue().add(
+    "campaign-broadcast",
+    { kind: "campaign_broadcast", campaignId },
+    { jobId: `campaign:${campaignId}:${runAt}`, ...(delay > 0 ? { delay } : {}) },
   );
 }
 

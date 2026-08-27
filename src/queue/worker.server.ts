@@ -3,6 +3,7 @@ import { and, eq, inArray, isNull, lte, or, sql } from "drizzle-orm";
 
 import { db } from "@/db/client.server";
 import { channelConnections, conversations, flowEffects, messages } from "@/db/schema";
+import { processCampaign } from "@/queue/campaign-worker.server";
 import { resumeFlowAfterTimer } from "@/services/flowRuntime.server";
 import { processMagoBotWebhookReceipt } from "@/services/webhookProcessor.server";
 import { sendChatOutbound } from "@/services/magoBotOutbound.server";
@@ -115,6 +116,9 @@ export function createBackgroundWorker() {
       if (job.data.kind === "transcribe_message") return transcribeMessage(job.data.messageId);
       if (job.data.kind === "mago_bot_webhook") {
         return processMagoBotWebhookReceipt(job.data.receiptId);
+      }
+      if (job.data.kind === "campaign_broadcast") {
+        return processCampaign(job.data.campaignId);
       }
       return { status: "ignored" as const };
     },
