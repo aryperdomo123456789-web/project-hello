@@ -11,6 +11,7 @@ import {
   messages,
 } from "@/db/schema";
 import { isPhoneBlacklisted } from "@/services/contactGovernance.server";
+import { openCampaignCircuit } from "@/services/campaignTelemetry.server";
 import { sendChatOutbound } from "@/services/magoBotOutbound.server";
 import { getRedisConnection } from "./redis.server";
 import {
@@ -27,6 +28,7 @@ import {
   shouldDeferCampaignContact,
 } from "./campaignPolicy.server";
 import { enqueueCampaign } from "./jobs.server";
+import { isFatalProviderError } from "./campaignCircuit.server";
 
 const STALE_PROCESSING_MS = 15 * 60_000;
 
@@ -330,6 +332,21 @@ async function processCandidate(
     return "sent" as const;
   } catch (error) {
     const lastError = error instanceof Error ? error.message.slice(0, 500) : "Falha no disparo";
+    if (isFatalProviderError(error)) {
+      await db
+        .update(campaignRecipients)
+        .set({
+          status: "failed",
+          lastError,
+          nextEligibleAt: null,
+          processingAt: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(campaignRecipients.id, claimed.id));
+      await incrementCampaignMetric(campaign.id, "failedCount");
+      await openCampaignCircuit(campaign.organizationId, connection.id, lastError);
+      return "circuit_open" as const;
+    }
     const retryAt =
       claimed.attempts < CAMPAIGN_MAX_ATTEMPTS
         ? new Date(now.getTime() + campaignRetryDelayMs(claimed.attempts))
@@ -410,6 +427,7 @@ export async function processCampaign(campaignId: string) {
     if (!started) return { status: "paused" as const };
     campaign = started;
   }
+  if (campaign.circuitState === "open") return { status: "circuit_open" as const };
   if (campaign.status !== "running") return { status: "paused" as const };
 
   if (!campaign.channelConnectionId) {
@@ -440,13 +458,18 @@ export async function processCampaign(campaignId: string) {
   }
 
   const connection = await getCampaignConnection(dailyCampaign, channelConnectionId);
-  if (!connection) throw new Error("Canal da campanha não encontrado");
+  if (!connection) {
+    await openCampaignCircuit(
+      campaign.organizationId,
+      channelConnectionId,
+      "Canal da campanha não encontrado",
+    );
+    return { status: "circuit_open" as const };
+  }
   if (connection.status !== "connected") {
-    await db
-      .update(campaigns)
-      .set({ status: "failed", lastError: "Canal não está conectado", updatedAt: now })
-      .where(eq(campaigns.id, campaign.id));
-    return { status: "channel_not_connected" as const };
+    const reason = `Canal ${connection.id} não está conectado (${connection.status})`;
+    await openCampaignCircuit(campaign.organizationId, connection.id, reason);
+    return { status: "circuit_open" as const };
   }
 
   await recoverStaleRecipients(dailyCampaign.id, now);
@@ -458,6 +481,7 @@ export async function processCampaign(campaignId: string) {
     if (dailyCampaign.dailySentCount + sentThisRun >= dailyCampaign.dailyLimit) break;
     const result = await processCandidate(dailyCampaign, connection, candidate, new Date());
     if (result === "rate_limited") break;
+    if (result === "circuit_open") return { status: "circuit_open" as const, processed };
     if (result === "sent") sentThisRun += 1;
     if (result !== "deferred" && result !== "race_lost") processed += 1;
   }

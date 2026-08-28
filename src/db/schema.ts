@@ -401,6 +401,9 @@ export const campaigns = pgTable(
     startedAt: timestamp("started_at", { withTimezone: true }),
     completedAt: timestamp("completed_at", { withTimezone: true }),
     lastError: text("last_error"),
+    circuitState: text("circuit_state").notNull().default("closed"),
+    circuitOpenedAt: timestamp("circuit_opened_at", { withTimezone: true }),
+    circuitReason: text("circuit_reason"),
     createdBy: uuid("created_by")
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),

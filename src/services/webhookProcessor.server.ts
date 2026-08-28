@@ -13,6 +13,7 @@ import {
 } from "@/db/schema";
 import { enqueueTranscription } from "@/queue/jobs.server";
 import { isOptOutMessage } from "@/services/contactGovernance.server";
+import { openCampaignCircuit } from "@/services/campaignTelemetry.server";
 import { parseMagoBotWebhookPayload } from "./magoBotWebhookParser.server";
 import type { NormalizedWebhookEvent } from "./whatsapp.server";
 import { dispatchBestAgent, startOrResumeFlow } from "./flowRuntime.server";
@@ -259,7 +260,7 @@ async function updateCampaignDeliveryStatus(
   organizationId: string,
   channelConnectionId: string,
   identifiers: ReturnType<typeof eq>[],
-  status: "delivered" | "failed",
+  status: "delivered" | "failed" | "read",
 ) {
   const [row] = await db
     .select({
@@ -291,7 +292,9 @@ async function updateCampaignDeliveryStatus(
       .set({
         ...(status === "delivered"
           ? { deliveredCount: sql`${campaigns.deliveredCount} + 1` }
-          : { failedCount: sql`${campaigns.failedCount} + 1` }),
+          : status === "failed"
+            ? { failedCount: sql`${campaigns.failedCount} + 1` }
+            : {}),
         updatedAt: new Date(),
       })
       .where(eq(campaigns.id, row.campaignId));
@@ -338,7 +341,7 @@ async function processEvent(event: NormalizedWebhookEvent) {
             or(...identifiers),
           ),
         );
-      if (status === "delivered" || status === "failed") {
+      if (status === "delivered" || status === "failed" || status === "read") {
         await updateCampaignDeliveryStatus(
           connection.organizationId,
           connection.id,
@@ -367,6 +370,13 @@ async function processEvent(event: NormalizedWebhookEvent) {
           eq(channelConnections.organizationId, connection.organizationId),
         ),
       );
+    if (status === "disconnected") {
+      await openCampaignCircuit(
+        connection.organizationId,
+        connection.id,
+        `Webhook de conexão: ${event.status ?? "disconnected"}`,
+      );
+    }
     return {
       kind: event.kind === "qrcode_updated" ? ("qrcode" as const) : ("connection" as const),
       status: event.status ?? status,

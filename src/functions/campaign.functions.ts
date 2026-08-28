@@ -13,6 +13,12 @@ import {
 import { writeAudit } from "@/server/audit.server";
 import { enqueueCampaign } from "@/queue/jobs.server";
 import { requireRole, requireUser } from "@/server/auth.server";
+import {
+  getCampaignTelemetry,
+  type CampaignTelemetryDTO,
+} from "@/services/campaignTelemetry.server";
+
+export type { CampaignTelemetryDTO } from "@/services/campaignTelemetry.server";
 
 const createCampaignSchema = z.object({
   name: z.string().trim().min(2).max(120),
@@ -36,6 +42,7 @@ const createCampaignSchema = z.object({
 
 const campaignIdSchema = z.object({ campaignId: z.string().uuid() });
 const simulateCampaignSchema = campaignIdSchema.extend({ now: z.string().datetime().optional() });
+const telemetrySchema = z.object({ campaignId: z.string().uuid().optional() });
 const contactPolicySchema = z.object({
   contactId: z.string().uuid(),
   optedOut: z.boolean().optional(),
@@ -62,6 +69,9 @@ export type CampaignDTO = {
   failedCount: number;
   skippedCount: number;
   completedAt: string | null;
+  circuitState: string;
+  circuitOpenedAt: string | null;
+  circuitReason: string | null;
   createdAt: string;
 };
 
@@ -85,6 +95,9 @@ function toCampaignDto(row: typeof campaigns.$inferSelect): CampaignDTO {
     failedCount: row.failedCount,
     skippedCount: row.skippedCount,
     completedAt: row.completedAt?.toISOString() ?? null,
+    circuitState: row.circuitState,
+    circuitOpenedAt: row.circuitOpenedAt?.toISOString() ?? null,
+    circuitReason: row.circuitReason,
     createdAt: row.createdAt.toISOString(),
   };
 }
@@ -98,6 +111,13 @@ export const listCampaignsFn = createServerFn({ method: "GET" }).handler(async (
     .orderBy(asc(campaigns.createdAt));
   return rows.map(toCampaignDto);
 });
+
+export const getCampaignTelemetryFn = createServerFn({ method: "GET" })
+  .validator(telemetrySchema)
+  .handler(async ({ data }): Promise<CampaignTelemetryDTO> => {
+    const user = await requireUser();
+    return getCampaignTelemetry(user.organizationId, data.campaignId);
+  });
 
 export const createCampaignFn = createServerFn({ method: "POST" })
   .validator(createCampaignSchema)
@@ -203,6 +223,9 @@ export const startCampaignFn = createServerFn({ method: "POST" })
         status: "running",
         startedAt: campaign.startedAt ?? now,
         lastError: null,
+        circuitState: "closed",
+        circuitOpenedAt: null,
+        circuitReason: null,
         updatedAt: now,
       })
       .where(

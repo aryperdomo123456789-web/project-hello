@@ -1,14 +1,27 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Eye, Megaphone, Pause, Play, RefreshCw } from "lucide-react";
+import {
+  AlertTriangle,
+  BarChart3,
+  CheckCircle2,
+  Eye,
+  Megaphone,
+  Pause,
+  Play,
+  RefreshCw,
+  XCircle,
+} from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import {
   createCampaignFn,
+  getCampaignTelemetryFn,
   listCampaignsFn,
   pauseCampaignFn,
   simulateCampaignFn,
   startCampaignFn,
   type CampaignDTO,
+  type CampaignTelemetryDTO,
 } from "@/functions/campaign.functions";
 import { listContactsCRMFn, type ContactCRMDTO } from "@/functions/contact.functions";
 import { listConnectionsFn, type ConnectionDTO } from "@/functions/channel.functions";
@@ -18,6 +31,7 @@ export function CampaignsView() {
   const listCampaigns = useServerFn(listCampaignsFn);
   const listContacts = useServerFn(listContactsCRMFn);
   const listConnections = useServerFn(listConnectionsFn);
+  const getCampaignTelemetry = useServerFn(getCampaignTelemetryFn);
   const createCampaign = useServerFn(createCampaignFn);
   const startCampaign = useServerFn(startCampaignFn);
   const pauseCampaign = useServerFn(pauseCampaignFn);
@@ -25,6 +39,7 @@ export function CampaignsView() {
   const [campaigns, setCampaigns] = useState<CampaignDTO[]>([]);
   const [contacts, setContacts] = useState<ContactCRMDTO[]>([]);
   const [connections, setConnections] = useState<ConnectionDTO[]>([]);
+  const [telemetry, setTelemetry] = useState<CampaignTelemetryDTO | null>(null);
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [channelConnectionId, setChannelConnectionId] = useState("");
   const [name, setName] = useState("");
@@ -43,14 +58,30 @@ export function CampaignsView() {
   } | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const loadTelemetry = useCallback(async () => {
+    try {
+      const telemetryRow = await getCampaignTelemetry({ data: {} });
+      setTelemetry(telemetryRow);
+    } catch (error) {
+      captureDiagnostic(error, {
+        source: "async",
+        component: "CampaignsView",
+        payload: { operation: "load_campaign_telemetry" },
+        recoverable: true,
+      });
+    }
+  }, [getCampaignTelemetry]);
+
   const load = useCallback(async () => {
     try {
-      const [campaignRows, contactRows, connectionRows] = await Promise.all([
+      const [campaignRows, contactRows, connectionRows, telemetryRow] = await Promise.all([
         listCampaigns(),
         listContacts(),
         listConnections(),
+        getCampaignTelemetry({ data: {} }),
       ]);
       setCampaigns(Array.isArray(campaignRows) ? campaignRows : []);
+      setTelemetry(telemetryRow);
       const safeConnections = Array.isArray(connectionRows) ? connectionRows : [];
       setConnections(safeConnections);
       setChannelConnectionId(
@@ -74,12 +105,26 @@ export function CampaignsView() {
         recoverable: true,
       });
     }
-  }, [listCampaigns, listContacts, listConnections]);
+  }, [getCampaignTelemetry, listCampaigns, listContacts, listConnections]);
 
   useEffect(() => {
     void load();
-  }, [load]);
+    const timer = window.setInterval(() => void loadTelemetry(), 10_000);
+    return () => window.clearInterval(timer);
+  }, [load, loadTelemetry]);
 
+  const telemetryByCampaign = useMemo(
+    () => new Map((telemetry?.campaigns ?? []).map((row) => [row.campaignId, row])),
+    [telemetry],
+  );
+  const chartData = (telemetry?.campaigns ?? []).map((row) => ({
+    name: row.name.length > 16 ? `${row.name.slice(0, 16)}…` : row.name,
+    enviados: row.sent,
+    entregues: row.delivered,
+    lidas: row.read,
+    falhas: row.failed,
+  }));
+  const circuitAlerts = campaigns.filter((campaign) => campaign.circuitState === "open");
   const selectedCount = selectedContacts.length;
   const canCreate =
     name.trim().length >= 2 &&
@@ -226,6 +271,98 @@ export function CampaignsView() {
             {status}
           </div>
         )}
+
+        {circuitAlerts.length > 0 && (
+          <div
+            className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950"
+            role="alert"
+          >
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+              <div>
+                <p className="font-bold">Circuit breaker ativo</p>
+                <p className="mt-1 text-sm">
+                  {circuitAlerts.length} campanha(s) foram pausadas porque o canal ficou offline.
+                  Reconecte o canal e revise o motivo antes de disparar novamente.
+                </p>
+                <div className="mt-2 space-y-1 text-xs">
+                  {circuitAlerts.map((campaign) => (
+                    <p key={campaign.id}>
+                      <strong>{campaign.name}</strong>:{" "}
+                      {campaign.circuitReason ?? "canal indisponível"}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <section className="space-y-4 rounded-2xl border bg-white p-5 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="flex items-center gap-2 text-sm font-bold text-slate-900">
+                <BarChart3 className="h-4 w-4 text-blue-600" /> Telemetria operacional
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                Atualização automática a cada 10 segundos; os números refletem os estados
+                persistidos dos recipients.
+              </p>
+            </div>
+            {telemetry?.generatedAt && (
+              <span className="text-[11px] text-slate-400">
+                Atualizado às {new Date(telemetry.generatedAt).toLocaleTimeString("pt-BR")}
+              </span>
+            )}
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <TelemetryCard
+              label="Volume total"
+              value={telemetry?.summary.total ?? 0}
+              icon={<BarChart3 className="h-4 w-4" />}
+            />
+            <TelemetryCard
+              label="Taxa de entrega"
+              value={`${telemetry?.summary.deliveryRate ?? 0}%`}
+              icon={<CheckCircle2 className="h-4 w-4" />}
+              tone="green"
+            />
+            <TelemetryCard
+              label="Taxa de leitura"
+              value={`${telemetry?.summary.readRate ?? 0}%`}
+              icon={<Eye className="h-4 w-4" />}
+              tone="blue"
+            />
+            <TelemetryCard
+              label="Taxa de falha"
+              value={`${telemetry?.summary.failureRate ?? 0}%`}
+              icon={<XCircle className="h-4 w-4" />}
+              tone="red"
+            />
+            <TelemetryCard
+              label="Índice de opt-out"
+              value={`${telemetry?.summary.optOutRate ?? 0}%`}
+              icon={<AlertTriangle className="h-4 w-4" />}
+              tone="amber"
+            />
+          </div>
+          {chartData.length > 0 && (
+            <div className="h-56 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 8, right: 8, left: -20, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
+                  <Tooltip />
+                  <Bar dataKey="enviados" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="entregues" fill="#16a34a" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="lidas" fill="#7c3aed" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="falhas" fill="#dc2626" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </section>
 
         <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
           <section className="rounded-2xl border bg-white p-6 shadow-sm">
@@ -397,6 +534,13 @@ export function CampaignsView() {
                           {campaign.rateLimitPerMinute}/min · enviados {campaign.sentCount} · falhas{" "}
                           {campaign.failedCount}
                         </p>
+                        {telemetryByCampaign.get(campaign.id) && (
+                          <p className="mt-1 text-[11px] text-slate-500">
+                            Entrega {telemetryByCampaign.get(campaign.id)?.deliveryRate ?? 0}% ·
+                            leitura {telemetryByCampaign.get(campaign.id)?.readRate ?? 0}% · opt-out{" "}
+                            {telemetryByCampaign.get(campaign.id)?.optOutRate ?? 0}%
+                          </p>
+                        )}
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
                         {(campaign.status === "draft" ||
@@ -455,6 +599,35 @@ export function CampaignsView() {
           </section>
         </div>
       </div>
+    </div>
+  );
+}
+
+function TelemetryCard({
+  label,
+  value,
+  icon,
+  tone = "slate",
+}: {
+  label: string;
+  value: string | number;
+  icon: React.ReactNode;
+  tone?: "slate" | "green" | "blue" | "red" | "amber";
+}) {
+  const tones = {
+    slate: "bg-slate-50 text-slate-700",
+    green: "bg-emerald-50 text-emerald-700",
+    blue: "bg-blue-50 text-blue-700",
+    red: "bg-rose-50 text-rose-700",
+    amber: "bg-amber-50 text-amber-700",
+  };
+  return (
+    <div className={`rounded-xl p-3 ${tones[tone]}`}>
+      <div className="flex items-center gap-2 text-xs font-semibold">
+        {icon}
+        {label}
+      </div>
+      <p className="mt-2 text-xl font-bold">{value}</p>
     </div>
   );
 }
