@@ -29,6 +29,8 @@ const createCampaignSchema = z.object({
   dailyLimit: z.number().int().min(1).max(10000).default(100),
   frequencyHours: z.number().int().min(1).max(720).default(24),
   rateLimitPerMinute: z.number().int().min(1).max(60).default(10),
+  pacingMinSeconds: z.number().int().min(0).max(120).default(5),
+  pacingMaxSeconds: z.number().int().min(0).max(120).default(25),
   sendWindowStart: z
     .string()
     .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
@@ -60,6 +62,8 @@ export type CampaignDTO = {
   dailyLimit: number;
   frequencyHours: number;
   rateLimitPerMinute: number;
+  pacingMinSeconds: number;
+  pacingMaxSeconds: number;
   sendWindowStart: string;
   sendWindowEnd: string;
   timezone: string;
@@ -86,6 +90,8 @@ function toCampaignDto(row: typeof campaigns.$inferSelect): CampaignDTO {
     dailyLimit: row.dailyLimit,
     frequencyHours: row.frequencyHours,
     rateLimitPerMinute: row.rateLimitPerMinute,
+    pacingMinSeconds: row.pacingMinSeconds,
+    pacingMaxSeconds: row.pacingMaxSeconds,
     sendWindowStart: row.sendWindowStart,
     sendWindowEnd: row.sendWindowEnd,
     timezone: row.timezone,
@@ -159,6 +165,8 @@ export const createCampaignFn = createServerFn({ method: "POST" })
           dailyLimit: data.dailyLimit,
           frequencyHours: data.frequencyHours,
           rateLimitPerMinute: data.rateLimitPerMinute,
+          pacingMinSeconds: Math.min(data.pacingMinSeconds, data.pacingMaxSeconds),
+          pacingMaxSeconds: Math.max(data.pacingMinSeconds, data.pacingMaxSeconds),
           sendWindowStart: data.sendWindowStart,
           sendWindowEnd: data.sendWindowEnd,
           timezone: data.timezone,

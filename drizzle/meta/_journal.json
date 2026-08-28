@@ -162,6 +162,13 @@
       "when": 1787876314882,
       "tag": "0022_ancient_young_avengers",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1787877167109,
+      "tag": "0023_silent_thunderbolts",
+      "breakpoints": true
     }
   ]
 }

@@ -21,8 +21,50 @@ export function campaignIdempotencyKey(campaignId: string, recipientId: string, 
   return `campaign:${campaignId}:${recipientId}:${attempt}`;
 }
 
-export function renderCampaignMessage(template: string, name: string, phone: string) {
-  return template.replaceAll("{{name}}", name).replaceAll("{{phone}}", phone);
+export function parseCampaignSpintax(template: string, random: () => number = Math.random) {
+  return template.replace(/\{([^{}]*\|[^{}]*)\}/g, (_match, options: string) => {
+    const choices = options
+      .split("|")
+      .map((choice) => choice.trim())
+      .filter(Boolean);
+    if (!choices.length) return "";
+    const index = Math.min(choices.length - 1, Math.floor(random() * choices.length));
+    return choices[index] ?? "";
+  });
+}
+
+export function renderCampaignMessage(
+  template: string,
+  name: string,
+  phone: string,
+  random: () => number = Math.random,
+) {
+  const expanded = parseCampaignSpintax(template, random);
+  return expanded.replaceAll("{{name}}", name).replaceAll("{{phone}}", phone);
+}
+
+export function campaignDeterministicRandom(seed: string) {
+  let hash = 2_166_136_261;
+  for (const character of seed) {
+    hash ^= character.charCodeAt(0);
+    hash = Math.imul(hash, 16_777_619) >>> 0;
+  }
+  const value = hash / 4_294_967_296;
+  return () => value;
+}
+
+export function campaignPacingDelayMs(
+  minSeconds: number,
+  maxSeconds: number,
+  random: () => number = Math.random,
+) {
+  const lower = Math.max(0, Math.floor(minSeconds));
+  const upper = Math.max(0, Math.floor(maxSeconds));
+  const min = Math.min(lower, upper);
+  const max = Math.max(lower, upper);
+  const span = max - min;
+  const seconds = min + (span === 0 ? 0 : Math.floor(random() * (span + 1)));
+  return seconds * 1_000;
 }
 
 export function splitCampaignBatch<T>(items: T[], batchSize = CAMPAIGN_BATCH_SIZE): T[][] {

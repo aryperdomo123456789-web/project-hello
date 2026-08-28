@@ -17,8 +17,10 @@ import { getRedisConnection } from "./redis.server";
 import {
   CAMPAIGN_BATCH_SIZE,
   CAMPAIGN_MAX_ATTEMPTS,
+  campaignDeterministicRandom,
   campaignIdempotencyKey,
   campaignDailyLimitRetryDelayMs,
+  campaignPacingDelayMs,
   campaignRateLimitRetryDelayMs,
   campaignRetryDelayMs,
   campaignWindowRetryDelayMs,
@@ -203,6 +205,10 @@ async function markRecipientSkipped(
   if (!nextEligibleAt) await incrementCampaignMetric(campaignId, "skippedCount");
 }
 
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
+
 async function processCandidate(
   campaign: typeof campaigns.$inferSelect,
   connection: NonNullable<Awaited<ReturnType<typeof getCampaignConnection>>>,
@@ -248,6 +254,12 @@ async function processCandidate(
       candidate.contact.id,
       now,
     );
+    const renderedText = renderCampaignMessage(
+      campaign.messageTemplate,
+      candidate.contact.name,
+      phone,
+      campaignDeterministicRandom(idempotencyKey),
+    );
     const result = await sendChatOutbound({
       organizationId: campaign.organizationId,
       contactId: candidate.contact.id,
@@ -257,7 +269,7 @@ async function processCandidate(
       apiResourceId: connection.apiResourceId,
       apiProjectId: connection.apiProjectId,
       recipient: phone,
-      text: renderCampaignMessage(campaign.messageTemplate, candidate.contact.name, phone),
+      text: renderedText,
       idempotencyKey,
     });
     if (result.status === "failed") throw new Error("Gateway recusou o disparo da campanha");
@@ -279,7 +291,7 @@ async function processCandidate(
           direction: "outbound",
           status: result.status,
           type: "text",
-          text: renderCampaignMessage(campaign.messageTemplate, candidate.contact.name, phone),
+          text: renderedText,
           payload: {
             source: "campaign-broadcast",
             campaignId: campaign.id,
@@ -329,6 +341,12 @@ async function processCandidate(
       campaign.id,
       result.status === "delivered" ? "deliveredCount" : "sentCount",
     );
+    const pacingDelay = campaignPacingDelayMs(
+      campaign.pacingMinSeconds,
+      campaign.pacingMaxSeconds,
+      campaignDeterministicRandom(`${idempotencyKey}:pacing`),
+    );
+    if (pacingDelay > 0) await sleep(pacingDelay);
     return "sent" as const;
   } catch (error) {
     const lastError = error instanceof Error ? error.message.slice(0, 500) : "Falha no disparo";

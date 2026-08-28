@@ -47,6 +47,8 @@ export function CampaignsView() {
   const [dailyLimit, setDailyLimit] = useState("100");
   const [frequencyHours, setFrequencyHours] = useState("24");
   const [rateLimitPerMinute, setRateLimitPerMinute] = useState("10");
+  const [pacingMinSeconds, setPacingMinSeconds] = useState("5");
+  const [pacingMaxSeconds, setPacingMaxSeconds] = useState("25");
   const [sendWindowStart, setSendWindowStart] = useState("08:00");
   const [sendWindowEnd, setSendWindowEnd] = useState("20:00");
   const [status, setStatus] = useState<string | null>(null);
@@ -156,6 +158,8 @@ export function CampaignsView() {
           dailyLimit: Number(dailyLimit) || 100,
           frequencyHours: Number(frequencyHours) || 24,
           rateLimitPerMinute: Number(rateLimitPerMinute) || 10,
+          pacingMinSeconds: Number(pacingMinSeconds) || 0,
+          pacingMaxSeconds: Number(pacingMaxSeconds) || 0,
           sendWindowStart,
           sendWindowEnd,
         },
@@ -389,7 +393,8 @@ export function CampaignsView() {
                   className="mt-1 w-full rounded-lg border px-3 py-2 font-normal outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <span className="mt-1 block text-xs font-normal text-slate-400">
-                  Use {"{{name}}"} e {"{{phone}}"} para personalizar.
+                  Use {"{{name}}"} e {"{{phone}}"} para personalizar. Alternativas explícitas:{" "}
+                  {"{Olá|Oi}"}.
                 </span>
               </label>
               <label className="block text-sm font-semibold text-slate-700">
@@ -442,8 +447,34 @@ export function CampaignsView() {
                     className="mt-1 h-10 w-full rounded-lg border px-3 font-normal"
                   />
                 </label>
+                <label className="text-sm font-semibold text-slate-700">
+                  Pacing mínimo (s)
+                  <input
+                    type="number"
+                    min="0"
+                    max="120"
+                    value={pacingMinSeconds}
+                    onChange={(event) => setPacingMinSeconds(event.target.value)}
+                    className="mt-1 h-10 w-full rounded-lg border px-3 font-normal"
+                  />
+                </label>
+                <label className="text-sm font-semibold text-slate-700">
+                  Pacing máximo (s)
+                  <input
+                    type="number"
+                    min="0"
+                    max="120"
+                    value={pacingMaxSeconds}
+                    onChange={(event) => setPacingMaxSeconds(event.target.value)}
+                    className="mt-1 h-10 w-full rounded-lg border px-3 font-normal"
+                  />
+                </label>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
+                <p className="text-xs text-slate-500 sm:col-span-2">
+                  Pacing é um intervalo de controle de carga entre envios. Ele não substitui
+                  consentimento, opt-out, limites do provider ou homologação oficial.
+                </p>
                 <label className="text-sm font-semibold text-slate-700">
                   Janela inicial
                   <input
@@ -531,7 +562,8 @@ export function CampaignsView() {
                         <p className="font-semibold text-slate-900">{campaign.name}</p>
                         <p className="mt-1 text-xs text-slate-500">
                           {campaign.status} · limite {campaign.dailyLimit}/dia · rate{" "}
-                          {campaign.rateLimitPerMinute}/min · enviados {campaign.sentCount} · falhas{" "}
+                          {campaign.rateLimitPerMinute}/min · pacing {campaign.pacingMinSeconds}–
+                          {campaign.pacingMaxSeconds}s · enviados {campaign.sentCount} · falhas{" "}
                           {campaign.failedCount}
                         </p>
                         {telemetryByCampaign.get(campaign.id) && (

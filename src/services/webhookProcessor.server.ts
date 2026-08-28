@@ -435,20 +435,37 @@ async function processWebhookEvent(event: NormalizedWebhookEvent, existingReceip
   }
 }
 
-export async function processWebhookEvents(events: NormalizedWebhookEvent[]) {
-  const results: unknown[] = [];
-  for (const event of events) {
-    try {
-      results.push(await processWebhookEvent(event));
-    } catch (error) {
-      results.push({
-        kind: "failed",
-        externalEventId: event.externalEventId,
-        error: error instanceof Error ? error.message : "Erro desconhecido",
-      });
+export async function mapWithConcurrency<T, R>(
+  items: T[],
+  worker: (item: T, index: number) => Promise<R>,
+  concurrency = 4,
+) {
+  const limit = Math.max(1, Math.min(16, Math.floor(concurrency)));
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+  async function runner() {
+    while (true) {
+      const index = nextIndex++;
+      if (index >= items.length) return;
+      results[index] = await worker(items[index] as T, index);
     }
   }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, () => runner()));
   return results;
+}
+
+export async function processWebhookEvents(events: NormalizedWebhookEvent[]) {
+  return mapWithConcurrency(events, async (event) => {
+    try {
+      return await processWebhookEvent(event);
+    } catch (error) {
+      return {
+        kind: "failed" as const,
+        externalEventId: event.externalEventId,
+        error: error instanceof Error ? error.message : "Erro desconhecido",
+      };
+    }
+  });
 }
 
 export async function processMagoBotWebhookReceipt(receiptId: string) {

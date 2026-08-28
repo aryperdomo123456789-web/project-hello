@@ -388,6 +388,8 @@ export const campaigns = pgTable(
     dailyLimit: integer("daily_limit").notNull().default(100),
     frequencyHours: integer("frequency_hours").notNull().default(24),
     rateLimitPerMinute: integer("rate_limit_per_minute").notNull().default(10),
+    pacingMinSeconds: integer("pacing_min_seconds").notNull().default(5),
+    pacingMaxSeconds: integer("pacing_max_seconds").notNull().default(25),
     sendWindowStart: text("send_window_start").notNull().default("08:00"),
     sendWindowEnd: text("send_window_end").notNull().default("20:00"),
     timezone: text("timezone").notNull().default("America/Sao_Paulo"),
