@@ -16,12 +16,14 @@ export type ChannelGatewayChannel = {
   providerInstanceId: string;
   displayPhone?: string | null;
   status: "disconnected" | "connecting" | "connected" | "error";
+  rawStatus?: string | null;
 };
 
 export type ChannelGatewayQr = {
   transport: ChannelGatewayTransport;
   code: string;
   base64: string;
+  expiresAt?: string | null;
 };
 
 export type ChannelGatewayStatus = ChannelGatewayChannel & {
@@ -38,6 +40,8 @@ function localStatus(value: string | undefined): ChannelGatewayChannel["status"]
     case "provisioning":
     case "created":
     case "qr_pending":
+    case "qrcode":
+    case "qr":
       return "connecting";
     case "error":
     case "failed":
@@ -74,6 +78,7 @@ function apiChannelToLocal(
     providerInstanceId,
     displayPhone: channel.phoneNumber ?? channel.phone ?? channel.connection?.phoneNumber ?? null,
     status: localStatus(channel.status),
+    rawStatus: channel.status ?? null,
   };
 }
 
@@ -84,6 +89,7 @@ function legacyToLocal(instance: ProviderInstance): ChannelGatewayChannel {
     providerInstanceId: instance.id,
     displayPhone: instance.phone ?? null,
     status: instance.status,
+    rawStatus: instance.status,
   };
 }
 
@@ -142,6 +148,7 @@ export async function getQrCode(
       transport: "mago_bot_api",
       code: result.code ?? "",
       base64: result.qrcode ?? "",
+      expiresAt: result.expiresAt ?? null,
     };
   }
 

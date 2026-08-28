@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Filter, Search, Tag, UserRound } from "lucide-react";
 
 import type { Contact } from "@/types/chat";
+import { ContactGovernancePanel } from "@/components/crm/ContactGovernancePanel";
 import { ContactImportButton } from "@/components/crm/ContactImportButton";
 
 const stages: Array<{ id: Contact["stage"]; label: string; color: string }> = [
@@ -19,7 +20,7 @@ export function CRMWorkspace({
 }) {
   const [query, setQuery] = useState("");
   const [tagFilter, setTagFilter] = useState("Todas");
-  const safeContacts = Array.isArray(contacts) ? contacts : [];
+  const safeContacts = useMemo(() => (Array.isArray(contacts) ? contacts : []), [contacts]);
   const allTags = useMemo(
     () => [
       "Todas",
@@ -83,6 +84,8 @@ export function CRMWorkspace({
             </div>
           </div>
         </header>
+
+        <ContactGovernancePanel />
 
         <div className="grid gap-4 md:grid-cols-3">
           {stages.map((stage) => (

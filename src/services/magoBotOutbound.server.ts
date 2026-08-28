@@ -1,4 +1,5 @@
 import { getIntegrationDefinition } from "@/services/integration-registry.server";
+import { assertOutboundAllowed } from "@/services/contactGovernance.server";
 import { getOrganizationIntegrationRuntime } from "@/services/integrations.server";
 import { getWhatsAppAdapter } from "@/services/whatsapp.server";
 import { createMagoBotApiClient } from "./magoBotApi.server";
@@ -6,6 +7,7 @@ import type { MagoBotApiError } from "./magoBotApi.types";
 
 export type OutboundMessageContext = {
   organizationId: string;
+  contactId?: string | null;
   conversationId: string;
   connectionId: string;
   providerInstanceId: string | null;
@@ -56,6 +58,11 @@ function apiErrorRequestId(error: unknown): string | undefined {
 export async function sendChatOutbound(
   context: OutboundMessageContext,
 ): Promise<OutboundMessageResult> {
+  await assertOutboundAllowed({
+    organizationId: context.organizationId,
+    recipient: context.recipient,
+    ...(context.contactId !== undefined ? { contactId: context.contactId } : {}),
+  });
   const runtime = await getOrganizationIntegrationRuntime(context.organizationId, "mago_bot_api");
   const apiKey = runtime?.credentials["apiKey"]?.trim();
   const apiProjectId = context.apiProjectId?.trim() || runtime?.credentials["apiProjectId"]?.trim();

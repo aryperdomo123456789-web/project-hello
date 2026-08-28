@@ -1,5 +1,5 @@
 import { useServerFn } from "@tanstack/react-start";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, Power, PowerOff, Plus, RefreshCw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
@@ -43,11 +43,14 @@ function reportConnectionError(
   });
 }
 
-function statusLabel(status: string) {
-  if (status === "connected") return "Conectado";
-  if (status === "connecting") return "Aguardando QR";
+function statusLabel(status: string, rawStatus?: string | null) {
+  if (rawStatus === "open" || status === "connected") return "Conectado";
+  if (rawStatus === "qrcode" || rawStatus === "qr" || status === "connecting")
+    return "Aguardando QR";
+  if (rawStatus === "close" || rawStatus === "closed" || status === "disconnected")
+    return "Desconectado";
   if (status === "error") return "Erro";
-  return "Desconectado";
+  return rawStatus || "Desconhecido";
 }
 
 export function ConnectionsView() {
@@ -62,8 +65,14 @@ export function ConnectionsView() {
   const [newName, setNewName] = useState("");
   const [showQrModal, setShowQrModal] = useState(false);
   const [qrCodeData, setQrCodeData] = useState<string | null>(null);
+  const [qrConnectionId, setQrConnectionId] = useState<string | null>(null);
   const [qrConnectionName, setQrConnectionName] = useState("");
+  const [qrStatus, setQrStatus] = useState("connecting");
+  const [qrExpiresAt, setQrExpiresAt] = useState<string | null>(null);
   const [viewError, setViewError] = useState<string | null>(null);
+  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollAttemptRef = useRef(0);
+  const pollingActiveRef = useRef(false);
 
   const loadConnections = useCallback(async () => {
     try {
@@ -99,6 +108,56 @@ export function ConnectionsView() {
     }
   }
 
+  const stopQrPolling = useCallback(() => {
+    pollingActiveRef.current = false;
+    if (pollTimerRef.current) {
+      clearTimeout(pollTimerRef.current);
+      pollTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleQrPolling = useCallback(
+    (connectionId: string) => {
+      stopQrPolling();
+      pollingActiveRef.current = true;
+      const attempt = pollAttemptRef.current;
+      const delay = Math.min(1_000 * 2 ** attempt, 10_000);
+      pollTimerRef.current = setTimeout(() => {
+        void (async () => {
+          if (!pollingActiveRef.current) return;
+          try {
+            const updated = await getConnectionStatus({ data: { connectionId } });
+            setConnections((current) =>
+              current.map((item) => (item.id === updated.id ? updated : item)),
+            );
+            setQrStatus(updated.rawStatus ?? updated.status);
+            if (updated.status === "connected") {
+              stopQrPolling();
+              setShowQrModal(false);
+              toast.success("WhatsApp conectado com sucesso.");
+              return;
+            }
+            if (attempt % 2 === 0) {
+              const qr = await getConnectionQr({ data: { connectionId } });
+              const imageSource = qrSrc(qr.base64);
+              if (imageSource) setQrCodeData(imageSource);
+              setQrExpiresAt(qr.expiresAt ?? null);
+            }
+            pollAttemptRef.current = Math.min(attempt + 1, 6);
+            scheduleQrPolling(connectionId);
+          } catch (error) {
+            reportConnectionError(error, "poll_connection_status", { connectionId, attempt });
+            pollAttemptRef.current = Math.min(attempt + 1, 6);
+            scheduleQrPolling(connectionId);
+          }
+        })();
+      }, delay);
+    },
+    [getConnectionQr, getConnectionStatus, stopQrPolling],
+  );
+
+  useEffect(() => () => stopQrPolling(), [stopQrPolling]);
+
   async function handleConnect(connection: ConnectionDTO) {
     setLoading(true);
     try {
@@ -106,13 +165,18 @@ export function ConnectionsView() {
       const imageSource = qrSrc(qr.base64);
       if (!imageSource) throw new Error("O provedor retornou um QR Code inválido");
       setQrCodeData(imageSource);
+      setQrConnectionId(connection.id);
       setQrConnectionName(connection.name);
+      setQrStatus(connection.rawStatus ?? "qrcode");
+      setQrExpiresAt(qr.expiresAt ?? null);
+      pollAttemptRef.current = 0;
       setShowQrModal(true);
       setConnections((current) =>
         current.map((item) =>
-          item.id === connection.id ? { ...item, status: "connecting" } : item,
+          item.id === connection.id ? { ...item, status: "connecting", rawStatus: "qrcode" } : item,
         ),
       );
+      scheduleQrPolling(connection.id);
     } catch (error) {
       reportConnectionError(error, "get_connection_qr", { connectionId: connection.id });
       toast.error(error instanceof Error ? error.message : "Erro ao obter QR Code");
@@ -126,7 +190,7 @@ export function ConnectionsView() {
     try {
       const updated = await getConnectionStatus({ data: { connectionId: connection.id } });
       setConnections((current) => current.map((item) => (item.id === updated.id ? updated : item)));
-      toast.success(`Status atualizado: ${statusLabel(updated.status)}`);
+      toast.success(`Status atualizado: ${statusLabel(updated.status, updated.rawStatus)}`);
     } catch (error) {
       reportConnectionError(error, "get_connection_status", { connectionId: connection.id });
       toast.error(error instanceof Error ? error.message : "Erro ao atualizar status");
@@ -266,7 +330,7 @@ export function ConnectionsView() {
                                 : "secondary"
                           }
                         >
-                          {statusLabel(connection.status)}
+                          {statusLabel(connection.status, connection.rawStatus)}
                         </Badge>
                         <span className="text-xs text-muted-foreground">
                           {connection.displayPhone ?? connection.provider}
@@ -334,16 +398,44 @@ export function ConnectionsView() {
             <CardHeader className="text-center">
               <CardTitle>Conectar {qrConnectionName}</CardTitle>
               <CardDescription>Abra o WhatsApp no celular e escaneie este QR Code.</CardDescription>
+              <div className="mt-2 flex items-center justify-center gap-2">
+                <Badge
+                  variant={
+                    qrStatus === "open" || qrStatus === "connected"
+                      ? ("success" as never)
+                      : ("warning" as never)
+                  }
+                >
+                  {statusLabel(qrStatus === "open" ? "connected" : "connecting", qrStatus)}
+                </Badge>
+                {qrConnectionId && (
+                  <span className="text-[10px] text-slate-400">polling ativo</span>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="flex flex-col items-center pb-6">
-              <div className="mb-6 rounded-xl border bg-white p-4 shadow-inner">
+              <div className="mb-4 rounded-xl border bg-white p-4 shadow-inner">
                 <img
                   src={qrSrc(qrCodeData) ?? ""}
                   alt={`QR Code de ${qrConnectionName}`}
                   className="h-64 w-64"
                 />
               </div>
-              <Button variant="secondary" onClick={() => setShowQrModal(false)} className="w-full">
+              {qrExpiresAt && (
+                <p className="mb-4 text-center text-xs text-slate-500">
+                  QR válido até {new Date(qrExpiresAt).toLocaleTimeString("pt-BR")}. O painel renova
+                  automaticamente.
+                </p>
+              )}
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  stopQrPolling();
+                  setShowQrModal(false);
+                  setQrConnectionId(null);
+                }}
+                className="w-full"
+              >
                 Fechar
               </Button>
             </CardContent>

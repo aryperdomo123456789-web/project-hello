@@ -5,12 +5,14 @@ import {
   campaignRecipients,
   campaigns,
   channelConnections,
+  contactPolicies,
   contacts,
   conversations,
   messages,
   webhookEvents,
 } from "@/db/schema";
 import { enqueueTranscription } from "@/queue/jobs.server";
+import { isOptOutMessage } from "@/services/contactGovernance.server";
 import { parseMagoBotWebhookPayload } from "./magoBotWebhookParser.server";
 import type { NormalizedWebhookEvent } from "./whatsapp.server";
 import { dispatchBestAgent, startOrResumeFlow } from "./flowRuntime.server";
@@ -128,6 +130,21 @@ async function processIncomingMessage(
         );
     }
 
+    const optedOut = !event.fromMe && isOptOutMessage(event.text);
+    if (optedOut) {
+      await tx
+        .insert(contactPolicies)
+        .values({
+          organizationId: connection.organizationId,
+          contactId: contact.id,
+          optedOut: true,
+        })
+        .onConflictDoUpdate({
+          target: [contactPolicies.organizationId, contactPolicies.contactId],
+          set: { optedOut: true, updatedAt: new Date() },
+        });
+    }
+
     const openConversations = await tx
       .select()
       .from(conversations)
@@ -201,6 +218,7 @@ async function processIncomingMessage(
       conversationId: conversation.id,
       messageId: inserted[0]?.id,
       created: inserted.length > 0,
+      optedOut,
     };
   });
 
@@ -219,6 +237,10 @@ async function processIncomingMessage(
         );
       });
     }
+  }
+
+  if (result.kind === "message" && result.optedOut) {
+    return { ...result, governance: "opted_out" as const };
   }
 
   if (result.kind === "message" && result.created && event.text && !event.fromMe) {

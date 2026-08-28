@@ -454,6 +454,24 @@ export const campaignRecipients = pgTable(
   ],
 );
 
+export const contactBlacklist = pgTable(
+  "contact_blacklist",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    phoneE164: text("phone_e164").notNull(),
+    reason: text("reason").notNull().default("manual"),
+    bannedAt: timestamp("banned_at", { withTimezone: true }).defaultNow().notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("contact_blacklist_org_phone_uq").on(table.organizationId, table.phoneE164),
+    index("contact_blacklist_active_idx").on(table.organizationId, table.expiresAt),
+  ],
+);
+
 export const contactPolicies = pgTable(
   "contact_policies",
   {

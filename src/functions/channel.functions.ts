@@ -32,6 +32,7 @@ export type ConnectionDTO = {
   apiChannelId: string | null;
   displayPhone: string | null;
   status: string;
+  rawStatus?: string | null;
   connectedAt: string | null;
   lastSeenAt: string | null;
 };
@@ -158,7 +159,7 @@ export const getConnectionQrFn = createServerFn({ method: "POST" })
         ),
       );
 
-    return { ...qr, connectionId: connection.id };
+    return { ...qr, connectionId: connection.id, expiresAt: qr.expiresAt ?? null };
   });
 
 export const getConnectionStatusFn = createServerFn({ method: "POST" })
@@ -178,7 +179,10 @@ export const getConnectionStatusFn = createServerFn({ method: "POST" })
         ),
       )
       .returning();
-    return updated ? toConnectionDto(updated) : toConnectionDto(connection);
+    return {
+      ...(updated ? toConnectionDto(updated) : toConnectionDto(connection)),
+      rawStatus: status.rawStatus ?? status.status,
+    };
   });
 
 export const reconnectConnectionFn = createServerFn({ method: "POST" })

@@ -10,6 +10,7 @@ import {
   conversations,
   messages,
 } from "@/db/schema";
+import { isPhoneBlacklisted } from "@/services/contactGovernance.server";
 import { sendChatOutbound } from "@/services/magoBotOutbound.server";
 import { getRedisConnection } from "./redis.server";
 import {
@@ -206,7 +207,13 @@ async function processCandidate(
   candidate: CampaignCandidate,
   now: Date,
 ) {
-  const policyDecision = shouldDeferCampaignContact(now, candidate.policy);
+  const phone = candidate.contact.phone ?? candidate.contact.waId;
+  if (!phone) {
+    await markRecipientSkipped(campaign.id, candidate.recipient.id, "phone_missing", now);
+    return "skipped" as const;
+  }
+  const blacklisted = await isPhoneBlacklisted(campaign.organizationId, phone, now);
+  const policyDecision = shouldDeferCampaignContact(now, candidate.policy, blacklisted);
   if (policyDecision.defer) {
     await markRecipientSkipped(
       campaign.id,
@@ -216,12 +223,6 @@ async function processCandidate(
       policyDecision.nextEligibleAt,
     );
     return "deferred" as const;
-  }
-
-  const phone = candidate.contact.phone ?? candidate.contact.waId;
-  if (!phone) {
-    await markRecipientSkipped(campaign.id, candidate.recipient.id, "phone_missing", now);
-    return "skipped" as const;
   }
 
   if (!(await acquireCampaignRateLimit(campaign.id, campaign.rateLimitPerMinute))) {
@@ -247,6 +248,7 @@ async function processCandidate(
     );
     const result = await sendChatOutbound({
       organizationId: campaign.organizationId,
+      contactId: candidate.contact.id,
       conversationId: conversation.id,
       connectionId: connection.id,
       providerInstanceId: connection.providerInstanceId,

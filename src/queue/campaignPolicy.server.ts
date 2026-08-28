@@ -63,7 +63,13 @@ export function isWithinCampaignWindow(
 export function shouldDeferCampaignContact(
   now: Date,
   policy: CampaignContactPolicy | null | undefined,
-): { defer: boolean; reason?: "opted_out" | "quiet_until" | "frequency"; nextEligibleAt?: Date } {
+  blacklisted = false,
+): {
+  defer: boolean;
+  reason?: "blacklisted" | "opted_out" | "quiet_until" | "frequency";
+  nextEligibleAt?: Date;
+} {
+  if (blacklisted) return { defer: true, reason: "blacklisted" };
   if (policy?.optedOut) return { defer: true, reason: "opted_out" };
   if (policy?.quietUntil && policy.quietUntil > now) {
     return { defer: true, reason: "quiet_until", nextEligibleAt: policy.quietUntil };

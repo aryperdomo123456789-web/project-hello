@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   getRuntime: vi.fn(),
   getAdapter: vi.fn(),
   sendText: vi.fn(),
+  assertAllowed: vi.fn(),
 }));
 
 vi.mock("@/services/integrations.server", () => ({
@@ -12,6 +13,12 @@ vi.mock("@/services/integrations.server", () => ({
 
 vi.mock("@/services/whatsapp.server", () => ({
   getWhatsAppAdapter: mocks.getAdapter,
+}));
+
+vi.mock("@/services/contactGovernance.server", () => ({
+  assertOutboundAllowed: mocks.assertAllowed,
+  isOptOutMessage: (text: string | null | undefined) =>
+    ["SAIR", "PARAR", "CANCELAR"].includes(text?.trim().toUpperCase() ?? ""),
 }));
 
 import { sendChatOutbound } from "@/functions/chat.functions";
@@ -30,6 +37,8 @@ describe("outbound do chat pelo gateway da API Mago Bot", () => {
     mocks.getRuntime.mockReset();
     mocks.getAdapter.mockReset();
     mocks.sendText.mockReset();
+    mocks.assertAllowed.mockReset();
+    mocks.assertAllowed.mockResolvedValue({ allowed: true });
     mocks.getAdapter.mockReturnValue({ sendText: mocks.sendText });
   });
 
@@ -86,6 +95,27 @@ describe("outbound do chat pelo gateway da API Mago Bot", () => {
     expect(mocks.sendText).not.toHaveBeenCalled();
   });
 
+  it("bloqueia outbound quando a governança rejeita o número", async () => {
+    mocks.getRuntime.mockResolvedValue(null);
+    mocks.assertAllowed.mockRejectedValue(new Error("Número bloqueado pela blacklist"));
+
+    await expect(
+      sendChatOutbound({
+        organizationId: "org-blocked",
+        contactId: "contact-1",
+        conversationId: "conversation-1",
+        connectionId: "connection-1",
+        providerInstanceId: "instance-1",
+        apiResourceId: null,
+        apiProjectId: null,
+        recipient: "5511999999999",
+        text: "não deve sair",
+        idempotencyKey: "blocked-message-1",
+      }),
+    ).rejects.toThrow("Número bloqueado");
+    expect(mocks.sendText).not.toHaveBeenCalled();
+  });
+
   it("usa fallback legado apenas quando a integração ainda não está configurada", async () => {
     mocks.getRuntime.mockResolvedValue(null);
     mocks.sendText.mockResolvedValue({ externalId: "legacy-msg-1", raw: {} });
@@ -121,6 +151,8 @@ describe("lifecycle M2M de canais", () => {
     mocks.getRuntime.mockReset();
     mocks.getAdapter.mockReset();
     mocks.sendText.mockReset();
+    mocks.assertAllowed.mockReset();
+    mocks.assertAllowed.mockResolvedValue({ allowed: true });
     mocks.getAdapter.mockReturnValue({ sendText: mocks.sendText });
     mocks.getRuntime.mockResolvedValue({
       provider: "mago_bot_api",

@@ -206,6 +206,7 @@ export const sendMessageFn = createServerFn({ method: "POST" })
     try {
       const result = await sendChatOutbound({
         organizationId: user.organizationId,
+        contactId: row.contact.id,
         conversationId: row.conversation.id,
         connectionId: row.connection.id,
         providerInstanceId: row.connection.providerInstanceId,
