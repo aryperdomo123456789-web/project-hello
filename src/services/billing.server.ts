@@ -3,6 +3,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db/client.server";
 import { billingEvents, organizations } from "@/db/schema";
 import { getPlanCatalog, type PlanId } from "@/entitlements/plans";
+import { isStripeConfigured } from "@/services/stripe.server";
 
 export const TRIAL_DAYS = 14;
 
@@ -11,6 +12,8 @@ export type BillingSummary = {
   planName: string;
   billingStatus: string;
   billingProvider: string;
+  stripeConfigured: boolean;
+  canManageStripe: boolean;
   trialStartedAt: string;
   trialEndsAt: string;
   currentPeriodEnd: string | null;
@@ -34,6 +37,7 @@ export function buildBillingSummary(
     plan: string;
     billingStatus: string;
     billingProvider: string;
+    billingCustomerRef: string | null;
     trialStartedAt: Date;
     trialEndsAt: Date | null;
     currentPeriodEnd: Date | null;
@@ -50,6 +54,12 @@ export function buildBillingSummary(
     planName: catalog.name,
     billingStatus: organization.billingStatus,
     billingProvider: organization.billingProvider,
+    stripeConfigured: isStripeConfigured(),
+    canManageStripe:
+      isStripeConfigured() &&
+      organization.billingProvider === "stripe" &&
+      Boolean(organization.billingCustomerRef) &&
+      ["active", "trialing", "past_due"].includes(organization.billingStatus),
     trialStartedAt: organization.trialStartedAt.toISOString(),
     trialEndsAt: trialEndsAt.toISOString(),
     currentPeriodEnd: organization.currentPeriodEnd?.toISOString() ?? null,
@@ -65,6 +75,7 @@ export async function getOrganizationBilling(organizationId: string) {
       plan: organizations.plan,
       billingStatus: organizations.billingStatus,
       billingProvider: organizations.billingProvider,
+      billingCustomerRef: organizations.billingCustomerRef,
       trialStartedAt: organizations.trialStartedAt,
       trialEndsAt: organizations.trialEndsAt,
       currentPeriodEnd: organizations.currentPeriodEnd,

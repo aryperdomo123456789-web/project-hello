@@ -3,6 +3,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db/client.server";
 import { planCatalogItems } from "@/db/schema";
 import { PLAN_CATALOG, type PlanId, type PlanLimits } from "@/entitlements/plans";
+import { stripePriceIdFromEnvironment } from "@/services/stripe.server";
 
 const INITIAL_PRICES_CENTS: Record<PlanId, number> = {
   starter: 14_900,
@@ -17,6 +18,7 @@ export type PlanCatalogItemDTO = {
   description: string;
   priceCents: number;
   currency: string;
+  stripePriceId: string | null;
   limits: PlanLimits;
   features: string[];
   highlighted: boolean;
@@ -36,6 +38,7 @@ function toDTO(item: typeof planCatalogItems.$inferSelect): PlanCatalogItemDTO {
     description: item.description,
     priceCents: item.priceCents,
     currency: item.currency,
+    stripePriceId: item.stripePriceId,
     limits: {
       connections: item.connections,
       agents: item.agents,
@@ -67,6 +70,7 @@ async function seedMissingPlans(organizationId: string, existingPlanIds: Set<str
           description: catalog.description,
           priceCents: INITIAL_PRICES_CENTS[planId],
           currency: "BRL",
+          stripePriceId: stripePriceIdFromEnvironment(planId),
           ...catalog.limits,
           features: catalog.features,
           highlighted: planId === "growth",
@@ -107,6 +111,7 @@ export async function updateOrganizationPlan(input: {
   name: string;
   description: string;
   priceCents: number;
+  stripePriceId: string | null;
   limits: PlanLimits;
   features: string[];
   highlighted: boolean;
@@ -119,6 +124,7 @@ export async function updateOrganizationPlan(input: {
       description: input.description,
       priceCents: input.priceCents,
       currency: "BRL",
+      stripePriceId: input.stripePriceId,
       connections: input.limits.connections,
       agents: input.limits.agents,
       monthlyMessages: input.limits.monthlyMessages,

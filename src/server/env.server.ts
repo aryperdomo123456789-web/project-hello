@@ -67,6 +67,14 @@ const envSchema = z.object({
   MP_WEBHOOK_SECRET: z.string().optional(),
   MP_WEBHOOK_MAX_AGE_SECONDS: z.coerce.number().int().min(60).max(172800).default(86400),
   MP_LIVE_ENABLED: z.coerce.boolean().default(false),
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  STRIPE_SUCCESS_URL: z.string().url().optional(),
+  STRIPE_CANCEL_URL: z.string().url().optional(),
+  STRIPE_PORTAL_RETURN_URL: z.string().url().optional(),
+  STRIPE_PRICE_STARTER_ID: z.string().optional(),
+  STRIPE_PRICE_GROWTH_ID: z.string().optional(),
+  STRIPE_PRICE_SCALE_ID: z.string().optional(),
 });
 
 export type ServerEnv = z.infer<typeof envSchema>;

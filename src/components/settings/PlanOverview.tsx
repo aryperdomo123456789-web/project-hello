@@ -5,6 +5,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { getWorkspacePlanFn, type WorkspacePlanDTO } from "@/functions/organization.functions";
 import {
   createMercadoPagoCheckoutFn,
+  createStripeCheckoutFn,
+  createStripePortalFn,
   getBillingSummaryFn,
   setCancelAtPeriodEndFn,
 } from "@/functions/billing.functions";
@@ -20,12 +22,15 @@ import { usageRatio } from "@/entitlements/plans";
 import { PlanCatalogEditor } from "@/components/settings/PlanCatalogEditor";
 
 type OnboardingTab = "Conexões" | "Automações" | "Laboratório" | "Equipe";
+type BillingPlan = "starter" | "growth" | "scale";
 
 export function PlanOverview({ onNavigate }: { onNavigate?: (tab: OnboardingTab) => void }) {
   const getWorkspacePlan = useServerFn(getWorkspacePlanFn);
   const getBillingSummary = useServerFn(getBillingSummaryFn);
   const setCancelAtPeriodEnd = useServerFn(setCancelAtPeriodEndFn);
   const createMercadoPagoCheckout = useServerFn(createMercadoPagoCheckoutFn);
+  const createStripeCheckout = useServerFn(createStripeCheckoutFn);
+  const createStripePortal = useServerFn(createStripePortalFn);
   const getRetentionPolicy = useServerFn(getRetentionPolicyFn);
   const updateRetentionPolicy = useServerFn(updateRetentionPolicyFn);
   const runRetentionDryRun = useServerFn(runRetentionDryRunFn);
@@ -35,7 +40,10 @@ export function PlanOverview({ onNavigate }: { onNavigate?: (tab: OnboardingTab)
     null,
   );
   const [billingAction, setBillingAction] = useState(false);
+  const [selectedBillingPlan, setSelectedBillingPlan] = useState<BillingPlan>("starter");
   const [checkoutBusy, setCheckoutBusy] = useState(false);
+  const [stripeBusy, setStripeBusy] = useState(false);
+  const [portalBusy, setPortalBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retention, setRetention] = useState<RetentionPolicyDTO | null>(null);
   const [retentionRun, setRetentionRun] =
@@ -53,6 +61,7 @@ export function PlanOverview({ onNavigate }: { onNavigate?: (tab: OnboardingTab)
       ]);
       setData(plan);
       setBilling(billingSummary);
+      setSelectedBillingPlan(billingSummary.plan);
       setRetention(retentionPolicy);
       setRetentionRun(latestRetentionRun);
       setError(null);
@@ -160,6 +169,81 @@ export function PlanOverview({ onNavigate }: { onNavigate?: (tab: OnboardingTab)
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
+              {billing.stripeConfigured && !billing.canManageStripe && (
+                <>
+                  <label className="flex items-center gap-2 text-xs font-semibold text-indigo-900">
+                    Plano
+                    <select
+                      value={selectedBillingPlan}
+                      onChange={(event) =>
+                        setSelectedBillingPlan(event.target.value as BillingPlan)
+                      }
+                      className="rounded-lg border border-indigo-200 bg-white px-2 py-2 text-xs text-slate-900"
+                    >
+                      <option value="starter">Starter</option>
+                      <option value="growth">Growth</option>
+                      <option value="scale">Scale</option>
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    disabled={stripeBusy}
+                    onClick={async () => {
+                      setStripeBusy(true);
+                      try {
+                        const checkout = await createStripeCheckout({
+                          data: { plan: selectedBillingPlan },
+                        });
+                        window.location.assign(checkout.url);
+                      } catch (cause) {
+                        setError(
+                          "Não foi possível abrir o Checkout Stripe. Verifique o Price ID do plano.",
+                        );
+                        captureDiagnostic(cause, {
+                          source: "async",
+                          component: "PlanOverview",
+                          payload: {
+                            operation: "create_stripe_checkout",
+                            plan: selectedBillingPlan,
+                          },
+                          recoverable: true,
+                        });
+                      } finally {
+                        setStripeBusy(false);
+                      }
+                    }}
+                    className="rounded-lg border border-indigo-300 bg-indigo-600 px-3 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50"
+                  >
+                    {stripeBusy ? "Abrindo Stripe..." : "Assinar / trocar com Stripe"}
+                  </button>
+                </>
+              )}
+              {billing.canManageStripe && (
+                <button
+                  type="button"
+                  disabled={portalBusy}
+                  onClick={async () => {
+                    setPortalBusy(true);
+                    try {
+                      const portal = await createStripePortal();
+                      window.location.assign(portal.url);
+                    } catch (cause) {
+                      setError("Não foi possível abrir o Portal Stripe.");
+                      captureDiagnostic(cause, {
+                        source: "async",
+                        component: "PlanOverview",
+                        payload: { operation: "create_stripe_portal" },
+                        recoverable: true,
+                      });
+                    } finally {
+                      setPortalBusy(false);
+                    }
+                  }}
+                  className="rounded-lg border border-indigo-200 bg-white px-3 py-2 text-xs font-bold text-indigo-800 hover:bg-indigo-50 disabled:opacity-50"
+                >
+                  {portalBusy ? "Abrindo portal..." : "Gerenciar assinatura Stripe"}
+                </button>
+              )}
               <button
                 type="button"
                 disabled={checkoutBusy}
@@ -187,7 +271,7 @@ export function PlanOverview({ onNavigate }: { onNavigate?: (tab: OnboardingTab)
                 }}
                 className="rounded-lg border border-emerald-300 bg-white px-3 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-100 disabled:opacity-50"
               >
-                {checkoutBusy ? "Abrindo..." : "Abrir checkout de teste"}
+                {checkoutBusy ? "Abrindo..." : "Checkout Mercado Pago (sandbox)"}
               </button>
               <button
                 type="button"

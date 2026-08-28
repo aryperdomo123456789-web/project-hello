@@ -83,6 +83,7 @@ export function PlanCatalogEditor() {
           name: selectedPlan.name,
           description: selectedPlan.description,
           priceCents: selectedPlan.priceCents,
+          stripePriceId: selectedPlan.stripePriceId ?? "",
           limits: selectedPlan.limits,
           features: selectedPlan.features,
           highlighted: selectedPlan.highlighted,
@@ -190,6 +191,20 @@ export function PlanCatalogEditor() {
           </label>
         </div>
 
+        <label className="text-xs font-semibold text-slate-600">
+          Stripe Price ID (opcional)
+          <input
+            value={selectedPlan.stripePriceId ?? ""}
+            onChange={(event) => updateSelected({ stripePriceId: event.target.value.trim() })}
+            placeholder="price_..."
+            maxLength={120}
+            className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-xs text-slate-900"
+          />
+          <span className="mt-1 block font-normal text-slate-500">
+            Identificador público do preço recorrente no Stripe; nunca cole uma chave secreta aqui.
+          </span>
+        </label>
+
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {(
             [
@@ -264,9 +279,9 @@ export function PlanCatalogEditor() {
         </div>
         {message && <p className="text-xs font-medium text-slate-600">{message}</p>}
         <p className="flex items-start gap-2 text-[11px] leading-5 text-slate-500">
-          <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />O Checkout Mercado Pago
-          usará o preço persistido deste plano. O gateway continua em sandbox até a homologação de
-          webhook e credenciais de produção.
+          <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />O Checkout usa o Price
+          ID Stripe quando configurado; Mercado Pago continua disponível como alternativa. Segredos
+          ficam somente no ambiente server-side.
         </p>
       </form>
     </section>

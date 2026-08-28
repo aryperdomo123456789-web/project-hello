@@ -18,6 +18,13 @@ const updatePlanSchema = z.object({
   name: z.string().trim().min(1).max(80),
   description: z.string().trim().min(1).max(280),
   priceCents: z.number().int().min(0).max(2_000_000_000),
+  stripePriceId: z
+    .string()
+    .trim()
+    .refine(
+      (value) => value === "" || /^price_[A-Za-z0-9]+$/.test(value),
+      "Price ID Stripe inválido",
+    ),
   limits: limitsSchema,
   features: z.array(z.string().trim().min(1).max(120)).max(30),
   highlighted: z.boolean(),
@@ -40,6 +47,7 @@ export const updatePlanCatalogFn = createServerFn({ method: "POST" })
       name: data.name.trim(),
       description: data.description.trim(),
       priceCents: data.priceCents,
+      stripePriceId: data.stripePriceId || null,
       limits: data.limits,
       features,
       highlighted: data.highlighted,
@@ -52,6 +60,7 @@ export const updatePlanCatalogFn = createServerFn({ method: "POST" })
       metadata: {
         planId: updated.planId,
         priceCents: updated.priceCents,
+        stripePriceIdConfigured: Boolean(updated.stripePriceId),
         isActive: updated.isActive,
       },
     });

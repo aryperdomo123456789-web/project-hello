@@ -18,6 +18,7 @@ import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as OwnerLoginRouteImport } from './routes/owner.login'
 import { Route as ApiWebhooksMagoBotRouteImport } from './routes/api/webhooks/mago-bot'
 import { Route as ApiWebhooksMercadopagoRouteImport } from './routes/api/webhooks/mercadopago'
+import { Route as ApiWebhooksStripeRouteImport } from './routes/api/webhooks/stripe'
 import { Route as ApiWebhooksWhatsappRouteImport } from './routes/api/webhooks/whatsapp'
 
 const IndexRoute = IndexRouteImport.update({
@@ -65,6 +66,11 @@ const ApiWebhooksMercadopagoRoute = ApiWebhooksMercadopagoRouteImport.update({
   path: '/api/webhooks/mercadopago',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWebhooksStripeRoute = ApiWebhooksStripeRouteImport.update({
+  id: '/api/webhooks/stripe',
+  path: '/api/webhooks/stripe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiWebhooksWhatsappRoute = ApiWebhooksWhatsappRouteImport.update({
   id: '/api/webhooks/whatsapp',
   path: '/api/webhooks/whatsapp',
@@ -81,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/owner/login': typeof OwnerLoginRoute
   '/api/webhooks/mago-bot': typeof ApiWebhooksMagoBotRoute
   '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRoute
+  '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
   '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
 }
 export interface FileRoutesByTo {
@@ -93,6 +100,7 @@ export interface FileRoutesByTo {
   '/owner/login': typeof OwnerLoginRoute
   '/api/webhooks/mago-bot': typeof ApiWebhooksMagoBotRoute
   '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRoute
+  '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
   '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
 }
 export interface FileRoutesById {
@@ -106,6 +114,7 @@ export interface FileRoutesById {
   '/owner/login': typeof OwnerLoginRoute
   '/api/webhooks/mago-bot': typeof ApiWebhooksMagoBotRoute
   '/api/webhooks/mercadopago': typeof ApiWebhooksMercadopagoRoute
+  '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
   '/api/webhooks/whatsapp': typeof ApiWebhooksWhatsappRoute
 }
 export interface FileRouteTypes {
@@ -120,6 +129,7 @@ export interface FileRouteTypes {
     | '/owner/login'
     | '/api/webhooks/mago-bot'
     | '/api/webhooks/mercadopago'
+    | '/api/webhooks/stripe'
     | '/api/webhooks/whatsapp'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -132,6 +142,7 @@ export interface FileRouteTypes {
     | '/owner/login'
     | '/api/webhooks/mago-bot'
     | '/api/webhooks/mercadopago'
+    | '/api/webhooks/stripe'
     | '/api/webhooks/whatsapp'
   id:
     | '__root__'
@@ -144,6 +155,7 @@ export interface FileRouteTypes {
     | '/owner/login'
     | '/api/webhooks/mago-bot'
     | '/api/webhooks/mercadopago'
+    | '/api/webhooks/stripe'
     | '/api/webhooks/whatsapp'
   fileRoutesById: FileRoutesById
 }
@@ -157,6 +169,7 @@ export interface RootRouteChildren {
   OwnerLoginRoute: typeof OwnerLoginRoute
   ApiWebhooksMagoBotRoute: typeof ApiWebhooksMagoBotRoute
   ApiWebhooksMercadopagoRoute: typeof ApiWebhooksMercadopagoRoute
+  ApiWebhooksStripeRoute: typeof ApiWebhooksStripeRoute
   ApiWebhooksWhatsappRoute: typeof ApiWebhooksWhatsappRoute
 }
 
@@ -225,6 +238,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiWebhooksMercadopagoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/webhooks/stripe': {
+      id: '/api/webhooks/stripe'
+      path: '/api/webhooks/stripe'
+      fullPath: '/api/webhooks/stripe'
+      preLoaderRoute: typeof ApiWebhooksStripeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/webhooks/whatsapp': {
       id: '/api/webhooks/whatsapp'
       path: '/api/webhooks/whatsapp'
@@ -245,6 +265,7 @@ const rootRouteChildren: RootRouteChildren = {
   OwnerLoginRoute: OwnerLoginRoute,
   ApiWebhooksMagoBotRoute: ApiWebhooksMagoBotRoute,
   ApiWebhooksMercadopagoRoute: ApiWebhooksMercadopagoRoute,
+  ApiWebhooksStripeRoute: ApiWebhooksStripeRoute,
   ApiWebhooksWhatsappRoute: ApiWebhooksWhatsappRoute,
 }
 export const routeTree = rootRouteImport

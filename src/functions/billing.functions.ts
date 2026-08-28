@@ -13,6 +13,7 @@ import {
   recordBillingEvent,
 } from "@/services/billing.server";
 import { createMercadoPagoSubscription } from "@/services/mercadopago.server";
+import { createCheckoutSession, createPortalSession } from "@/services/stripe.server";
 import { getOrganizationPlan } from "@/services/plan-catalog.server";
 
 const cancelSchema = z.object({ cancel: z.boolean() });
@@ -21,6 +22,32 @@ const checkoutSchema = z.object({ plan: z.enum(["starter", "growth", "scale"]) }
 export const getBillingSummaryFn = createServerFn({ method: "GET" }).handler(async () => {
   const user = await requireUser();
   return getOrganizationBilling(user.organizationId);
+});
+
+export const createStripeCheckoutFn = createServerFn({ method: "POST" })
+  .validator(checkoutSchema)
+  .handler(async ({ data }) => {
+    const actor = await requireRole("owner", "admin");
+    const result = await createCheckoutSession(actor.organizationId, data.plan, actor.email);
+    await writeAudit(actor, {
+      action: "billing.stripe_checkout_created",
+      resourceType: "organization",
+      resourceId: actor.organizationId,
+      metadata: { provider: "stripe", plan: data.plan, sessionId: result.sessionId },
+    });
+    return result;
+  });
+
+export const createStripePortalFn = createServerFn({ method: "POST" }).handler(async () => {
+  const actor = await requireRole("owner", "admin");
+  const result = await createPortalSession(actor.organizationId);
+  await writeAudit(actor, {
+    action: "billing.stripe_portal_opened",
+    resourceType: "organization",
+    resourceId: actor.organizationId,
+    metadata: { provider: "stripe", customerId: result.customerId },
+  });
+  return result;
 });
 
 export const createMercadoPagoCheckoutFn = createServerFn({ method: "POST" })
